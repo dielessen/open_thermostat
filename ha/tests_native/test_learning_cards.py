@@ -59,10 +59,10 @@ async def test_what_the_e32_knows_comes_first_on_the_learning_view(hass):
     # The boiler's response in one sentence, and yesterday compared with usual; each empty (hidden) without text.
     for card in (boiler, insights):
         assert card["type"] == "markdown" and card["show_empty"] is False
-    hass.states.async_set(hub["boiler_response"], "learned", {"sentence": "Your boiler rests about 9 min each time it reaches "
-                                                               "its temperature; the E32 asks at most 48 °C now, so it starts less often."})
-    assert render(hass, boiler) == ("<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Your boiler rests about 9 min each time it "
-                                    "reaches its temperature; the E32 asks at most 48 °C now, so it starts less often.")
+    hass.states.async_set(hub["boiler_response"], "learned", {"sentence": "Your boiler holds about 50 °C and rests 9 minutes; "
+                                                               "near the target the E32 asks at most 48 °C."})
+    assert render(hass, boiler) == ("<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Your boiler holds about 50 °C and rests 9 "
+                                    "minutes; near the target the E32 asks at most 48 °C.")
     hass.states.async_set(hub["learned_overview"], "x", {"insights": [
         {"text": "Yesterday used 34 % more gas per degree of cold than usual.",
          "meaning": "A window or door left open, or a room set warmer, can cause this."}]})

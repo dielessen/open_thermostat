@@ -2207,13 +2207,16 @@
             "name": "Rest after holding (min)"
           },
           "ceiling_c": {
-            "name": "E32 asks at most (°C)"
+            "name": "Near the target the E32 asks at most (°C)"
           },
           "absorbed_kw": {
             "name": "Heat the house takes (kW)"
           },
           "kw_per_k": {
             "name": "kW per °C of water temperature"
+          },
+          "return_reported": {
+            "name": "Return temperature reported"
           },
           "sentence": {
             "name": "In words"

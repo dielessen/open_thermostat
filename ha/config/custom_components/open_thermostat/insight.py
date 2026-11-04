@@ -9,9 +9,11 @@ the summary as ``insight`` (heating_link.decode_insight):
   ``cooling:<room>``, ``arrival:<room>``, ``curve``, ``boiler_minimum``, ``boiler_response``, ``house``;
   at most 8, ``more`` counts the rest (a key this version does not know counts there too);
 - ``boiler``: the boiler's response (BoilerResponse): ``held`` (today's held temperatures), ``rest_s``
-  (the boiler's own rest after one), ``ceiling_c`` (the most the E32 asks at this outdoor temperature),
-  ``absorbed_kw``, ``kw_per_k`` and ``state`` (collecting, learned, no_return, not_driving). The flow
-  document (fw/telemetry/flow) carries the same object; the insight's wins;
+  (the boiler's own rest after one), ``ceiling_c`` (the most the E32 asks near the target at this outdoor
+  temperature; a room 1 °C or more below its target gets the full water temperature), ``absorbed_kw``,
+  ``kw_per_k``, ``state`` (not_driving, collecting, learned, no_return: no return temperature, the ceiling
+  and the rest are still learned) and ``return`` (the return temperature is reported). The flow document
+  (fw/telemetry/flow) carries the same object; the insight's wins;
 - ``house``: the house model (heat loss, emitter output, the curve it implies); not shown on its own;
 - ``insights``: yesterday against the house's own usual days, at most 4: {"kind", "pct", "room"?}.
 
@@ -33,7 +35,7 @@ from homeassistant.core import callback
 
 from .const import DOMAIN
 from .heating_link import ROOM_ID, HubEntity, label, number
-from .learned_overview import duration, language, number as decimal
+from .learned_overview import language, number as decimal
 
 # Missing keys: the house-wide ones, and the per-room ones as "<kind>:<room id>".
 HOUSE_KEYS = ("curve", "boiler_minimum", "boiler_response", "house")
@@ -54,15 +56,16 @@ TEXT = {
         "missing.boiler_minimum": "It is still finding out from which water temperature your boiler starts heating.",
         "missing.boiler_response": "It is still listening to how your boiler holds its temperature.",
         "missing.house": "It is still working out how fast your house loses heat.",
-        "boiler.learned_both": "Your boiler rests about {rest} each time it reaches its temperature; the E32 asks at most "
-                               "{ceiling} °C now, so it starts less often.",
-        "boiler.learned_ceiling": "The E32 asks your boiler at most {ceiling} °C now, so it starts less often.",
-        "boiler.learned_rest": "Your boiler rests about {rest} each time it reaches its temperature.",
+        "boiler.learned_both": "Your boiler holds about {flow} °C and rests {rest}; near the target the E32 asks at most "
+                               "{ceiling} °C.",
+        "boiler.learned_ceiling": "Your boiler holds about {flow} °C; near the target the E32 asks at most {ceiling} °C.",
+        "boiler.learned_rest": "Your boiler rests {rest} each time it reaches its temperature.",
         "boiler.learned": "The E32 has learned how your boiler holds its temperature.",
         "boiler.collecting": "The E32 is still listening to how your boiler holds its temperature.",
         "boiler.no_return": "Your boiler does not report the water coming back, so the E32 cannot see how much heat your "
-                            "house takes; everything else works as usual.",
+                            "house takes; it still learns how your boiler holds its temperature.",
         "boiler.not_driving": "The E32 listens to your boiler once it controls the boiler itself.",
+        "minute.one": "{n} minute", "minute.few": "{n} minutes", "minute.other": "{n} minutes",
         "insight.gas_per_dd_up": "Yesterday used {pct} % more gas per degree of cold than usual.",
         "insight.gas_per_dd_down": "Yesterday used {pct} % less gas per degree of cold than usual.",
         "insight.starts_up": "Yesterday the burner started {pct} % more often per heating hour than usual.",
@@ -90,15 +93,17 @@ TEXT = {
         "missing.boiler_minimum": "Hij zoekt nog uit vanaf welke watertemperatuur je ketel gaat verwarmen.",
         "missing.boiler_response": "Hij luistert nog hoe je ketel zijn temperatuur vasthoudt.",
         "missing.house": "Hij rekent nog uit hoe snel je huis warmte verliest.",
-        "boiler.learned_both": "Je ketel rust ongeveer {rest} telkens als hij zijn temperatuur bereikt; de E32 vraagt nu "
-                               "hooguit {ceiling} °C, zodat hij minder vaak start.",
-        "boiler.learned_ceiling": "De E32 vraagt je ketel nu hooguit {ceiling} °C, zodat hij minder vaak start.",
-        "boiler.learned_rest": "Je ketel rust ongeveer {rest} telkens als hij zijn temperatuur bereikt.",
+        "boiler.learned_both": "Je ketel houdt ongeveer {flow} °C vast en rust {rest}; dicht bij de doeltemperatuur vraagt "
+                               "de E32 hoogstens {ceiling} °C.",
+        "boiler.learned_ceiling": "Je ketel houdt ongeveer {flow} °C vast; dicht bij de doeltemperatuur vraagt de E32 "
+                                  "hoogstens {ceiling} °C.",
+        "boiler.learned_rest": "Je ketel rust {rest} telkens als hij zijn temperatuur bereikt.",
         "boiler.learned": "De E32 heeft geleerd hoe je ketel zijn temperatuur vasthoudt.",
         "boiler.collecting": "De E32 luistert nog hoe je ketel zijn temperatuur vasthoudt.",
         "boiler.no_return": "Je ketel meldt het terugkomende water niet, dus de E32 kan niet zien hoeveel warmte je huis "
-                            "opneemt; al het andere werkt gewoon.",
+                            "opneemt; hij leert wel hoe je ketel zijn temperatuur vasthoudt.",
         "boiler.not_driving": "De E32 luistert naar je ketel zodra hij de ketel zelf regelt.",
+        "minute.one": "{n} minuut", "minute.few": "{n} minuten", "minute.other": "{n} minuten",
         "insight.gas_per_dd_up": "Gisteren ging er {pct} % meer gas per graad kou door dan normaal.",
         "insight.gas_per_dd_down": "Gisteren ging er {pct} % minder gas per graad kou door dan normaal.",
         "insight.starts_up": "Gisteren startte de brander {pct} % vaker per stookuur dan normaal.",
@@ -127,15 +132,18 @@ TEXT = {
         "missing.boiler_minimum": "Wciąż sprawdza, od jakiej temperatury wody Twój kocioł zaczyna grzać.",
         "missing.boiler_response": "Wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "missing.house": "Wciąż oblicza, jak szybko Twój dom traci ciepło.",
-        "boiler.learned_both": "Twój kocioł odpoczywa około {rest} za każdym razem, gdy osiągnie swoją temperaturę; E32 "
-                               "zadaje teraz najwyżej {ceiling} °C, więc kocioł rzadziej się uruchamia.",
-        "boiler.learned_ceiling": "E32 zadaje teraz kotłowi najwyżej {ceiling} °C, więc kocioł rzadziej się uruchamia.",
-        "boiler.learned_rest": "Twój kocioł odpoczywa około {rest} za każdym razem, gdy osiągnie swoją temperaturę.",
+        "boiler.learned_both": "Twój kocioł utrzymuje około {flow} °C i odpoczywa {rest}; blisko temperatury docelowej E32 "
+                               "zadaje najwyżej {ceiling} °C.",
+        "boiler.learned_ceiling": "Twój kocioł utrzymuje około {flow} °C; blisko temperatury docelowej E32 zadaje najwyżej "
+                                  "{ceiling} °C.",
+        "boiler.learned_rest": "Twój kocioł odpoczywa {rest} za każdym razem, gdy osiągnie swoją temperaturę.",
         "boiler.learned": "E32 nauczył się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "boiler.collecting": "E32 wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "boiler.no_return": "Twój kocioł nie zgłasza temperatury wody powrotnej, więc E32 nie widzi, ile ciepła pobiera "
-                            "Twój dom; wszystko inne działa normalnie.",
+                            "Twój dom; nadal uczy się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "boiler.not_driving": "E32 zacznie wsłuchiwać się w Twój kocioł, gdy sam będzie nim sterował.",
+        # Polish minutes: 1 minutę, 2-4 minuty (not 12-14), else minut.
+        "minute.one": "{n} minutę", "minute.few": "{n} minuty", "minute.other": "{n} minut",
         "insight.gas_per_dd_up": "Wczoraj zużyto o {pct} % więcej gazu na stopień zimna niż zwykle.",
         "insight.gas_per_dd_down": "Wczoraj zużyto o {pct} % mniej gazu na stopień zimna niż zwykle.",
         "insight.starts_up": "Wczoraj palnik uruchamiał się o {pct} % częściej na godzinę grzania niż zwykle.",
@@ -213,10 +221,12 @@ def boiler_response(summary):
 
 
 def _figure(value, low, high, digits):
+    """A plausible figure with digits decimals, halves up (as the E32 page rounds); whole numbers stay int."""
     value = number(value, low, high)
     if value is None:
         return None
-    value = round(value, digits)
+    scale = 10 ** digits
+    value = int(value * scale + 0.5) / scale if value >= 0 else -int(-value * scale + 0.5) / scale
     return int(value) if value == int(value) else value
 
 
@@ -224,23 +234,45 @@ def boiler_values(boiler):
     """The boiler's figures, each checked (None: not reported or implausible)."""
     boiler = boiler if type(boiler) is dict else {}
     state, held, rest = boiler.get("state"), boiler.get("held"), number(boiler.get("rest_s"), 1, 7200)
-    return {"state": state if state in BOILER_STATES else None,
+    reported = boiler.get("return")
+    return {"state": state if state in BOILER_STATES else None, "rest_s": rest,
             "held_today": held if type(held) is int and 0 <= held <= 10000 else None,
             "rest_min": round(rest / 60, 1) if rest is not None else None,
             "ceiling_c": _figure(boiler.get("ceiling_c"), 10, 90, 0),
             "absorbed_kw": _figure(boiler.get("absorbed_kw"), 0, 200, 1),
-            "kw_per_k": _figure(boiler.get("kw_per_k"), 0, 20, 2)}
+            "kw_per_k": _figure(boiler.get("kw_per_k"), 0, 20, 2),
+            # BoilerResponse::hasReturn(): without the return the heat the house takes stays unknown.
+            "return_reported": reported if type(reported) is bool else None}
+
+
+def minutes(count, lang):
+    """A whole number of minutes in words, with the plural each language needs (Polish: 1, 2-4, 5+)."""
+    form = "one" if count == 1 else "few" if count % 10 in (2, 3, 4) and count % 100 not in (12, 13, 14) else "other"
+    return TEXT[lang]["minute." + form].format(n=count)
+
+
+# A held target is the boiler stopping by itself at about the E32's request; the ceiling it leaves is that request
+# minus 2 °C (BoilerResponse), so the boiler holds about the ceiling + 2 °C.
+HELD_ABOVE_CEILING_C = 2
 
 
 def boiler_sentence(values, lang):
-    """The boiler's response in one sentence, or None while its state is unknown."""
+    """The boiler's response in one sentence, or None while its state is unknown.
+
+    The ceiling holds only near the target temperatures: a room 1 °C or more below its target gets the full water
+    temperature (FlowPolicy), so the sentence says "near the target", never "now".
+    """
     t, state = TEXT[lang], values.get("state")
     if state != "learned":
         return t["boiler." + state] if state in BOILER_STATES else None
-    rest = duration(values["rest_min"], lang) if values.get("rest_min") else None
-    ceiling = decimal(values["ceiling_c"], lang, 0) if values.get("ceiling_c") is not None else None
-    key = "learned_both" if rest and ceiling else "learned_ceiling" if ceiling else "learned_rest" if rest else "learned"
-    return t["boiler." + key].format(rest=rest, ceiling=ceiling)
+    # Whole minutes, halves up (as the E32 page's Math.round), so both say the same.
+    rest = minutes(max(1, int(values["rest_s"] / 60 + 0.5)), lang) if values.get("rest_s") else None
+    ceiling = values.get("ceiling_c")
+    shown = {"rest": rest, "ceiling": decimal(ceiling, lang, 0) if ceiling is not None else None,
+             "flow": decimal(ceiling + HELD_ABOVE_CEILING_C, lang, 0) if ceiling is not None else None}
+    key = ("learned_both" if rest and ceiling is not None else "learned_ceiling" if ceiling is not None
+           else "learned_rest" if rest else "learned")
+    return t["boiler." + key].format(**shown)
 
 
 def insight_items(summary):
@@ -321,7 +353,8 @@ class KnowledgeSensor(_InsightSensor):
 
 
 class BoilerResponseSensor(_InsightSensor):
-    """What the E32 learned from the boiler itself: how long it rests and the most it asks of it now."""
+    """What the E32 learned from the boiler itself: the temperature it holds, how long it rests and the most the E32
+    asks of it near the target."""
 
     _attr_translation_key = "boiler_response"
     _attr_device_class = SensorDeviceClass.ENUM
@@ -346,7 +379,8 @@ class BoilerResponseSensor(_InsightSensor):
         values = self._values()
         if values is None:
             return None
-        return {**{key: values[key] for key in ("held_today", "rest_min", "ceiling_c", "absorbed_kw", "kw_per_k")},
+        return {**{key: values[key] for key in ("held_today", "rest_min", "ceiling_c", "absorbed_kw", "kw_per_k",
+                                                "return_reported")},
                 "sentence": boiler_sentence(values, self._lang())}
 
 

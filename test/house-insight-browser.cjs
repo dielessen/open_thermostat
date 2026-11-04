@@ -13,7 +13,7 @@ const plan={schema:1,revision:4,mode:'active',minimum_flow_c:28,maximum_flow_c:6
  {id:'slaapkamer',name:'Slaapkamer',state:'active',inactive_until:0,emitter:'radiator',sources:[{type:'ha',id:'sensor.slaapkamer'}],fallback_centi_c:1800,minimum_centi_c:500,maximum_centi_c:2500}]};
 // RC5-PLAN.md 2.2 (the insight) and 2.3 (free heat), as /status/heating carries them.
 const INSIGHT={knowledge:{pct:70,missing:['warmup:slaapkamer','arrival:slaapkamer','boiler_response','curve','house','something_new'],more:1},
- boiler:{held:3,rest_s:540,ceiling_c:48,absorbed_kw:7.4,kw_per_k:0.36,state:'learned'},
+ boiler:{held:3,rest_s:540,ceiling_c:48,absorbed_kw:7.4,kw_per_k:0.36,state:'learned',return:true},
  insights:[{kind:'gas_per_dd_up',pct:34},{kind:'warmup_slower',pct:40,room:'slaapkamer'}]};
 const fixture=()=>({schema:1,revision:4,mode:'active',request:{heat:true,flow_c:48,reason:'heating'},
  rooms:[{id:'woonkamer',name:'Woonkamer',state:'active',status:'ok',temperature:20.5,setpoint:21,demand:true},
@@ -34,7 +34,7 @@ const WORDS={
   missing:['It still has to see how fast Slaapkamer warms up.','It still has to check whether Slaapkamer is warm on time.',
    'It is still listening to how your boiler holds its temperature.','It is still learning how much warmer the water must be when it gets colder outside.',
    'It is still working out how fast your house loses heat.','And 2 more.'],more:'More',
-  boiler:'Your boiler rests about 9 min each time it reaches its temperature; the E32 asks at most 48 °C now, so it starts less often.',
+  boiler:'Your boiler holds about 50 °C and rests 9 minutes; near the target the E32 asks at most 48 °C.',
   insightsTitle:'Yesterday compared with usual',
   insights:['Yesterday used 34 % more gas per degree of cold than usual. A window or door left open, or a room set warmer, can cause this.',
    'Yesterday Slaapkamer warmed up 40 % more slowly than usual. A window left open, a closed radiator valve or furniture in front of the radiator can slow a room down.'],
@@ -43,12 +43,12 @@ const WORDS={
   curveState:'Weather compensation: estimated from your house for now, learning more (2 of 6 steady periods).',
   ceiling:['Asks at most (learned from your boiler)','48 °C'],learnedRow:['Learned water temperature','Limited by your boiler · 52 °C'],
   done:'It has learned everything it needs; it keeps checking as the seasons change.',
-  noReturn:'Your boiler does not report the water coming back, so the E32 cannot see how much heat your house takes; everything else works as usual.'},
+  noReturn:'Your boiler does not report the water coming back, so the E32 cannot see how much heat your house takes; it still learns how your boiler holds its temperature.'},
  nl:{ring:'De E32 kent je huis: 70 %',title:'De E32 kent je huis',missingTitle:'Nog te leren',
   missing:['Hij moet nog zien hoe snel Slaapkamer opwarmt.','Hij moet nog nagaan of Slaapkamer op tijd warm is.',
    'Hij luistert nog hoe je ketel zijn temperatuur vasthoudt.','Hij leert nog hoeveel warmer het water moet zijn als het buiten kouder wordt.',
    'Hij rekent nog uit hoe snel je huis warmte verliest.','En nog 2.'],more:'Meer',
-  boiler:'Je ketel rust ongeveer 9 min telkens als hij zijn temperatuur bereikt; de E32 vraagt nu hooguit 48 °C, zodat hij minder vaak start.',
+  boiler:'Je ketel houdt ongeveer 50 °C vast en rust 9 minuten; dicht bij de doeltemperatuur vraagt de E32 hoogstens 48 °C.',
   insightsTitle:'Gisteren vergeleken met normaal',
   insights:['Gisteren ging er 34 % meer gas per graad kou door dan normaal. Een raam of deur die openstond, of een ruimte die warmer is ingesteld, kan dit veroorzaken.',
    'Gisteren warmde Slaapkamer 40 % langzamer op dan normaal. Een open raam, een dichte radiatorkraan of meubels voor de radiator kunnen een ruimte vertragen.'],
@@ -57,7 +57,7 @@ const WORDS={
   curveState:'Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog bij (2 van 6 rustige periodes).',
   ceiling:['Vraagt hooguit (geleerd van je ketel)','48 °C'],learnedRow:['Geleerde watertemperatuur','Begrensd door je ketel · 52 °C'],
   done:'Hij heeft alles geleerd wat hij nodig heeft; hij blijft het controleren als de seizoenen wisselen.',
-  noReturn:'Je ketel meldt het terugkomende water niet, dus de E32 kan niet zien hoeveel warmte je huis opneemt; al het andere werkt gewoon.'}};
+  noReturn:'Je ketel meldt het terugkomende water niet, dus de E32 kan niet zien hoeveel warmte je huis opneemt; hij leert wel hoe je ketel zijn temperatuur vasthoudt.'}};
 const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ').trim()));
 (async()=>{
  fs.mkdirSync(out,{recursive:true});
@@ -122,7 +122,7 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ')
   status.knowledge=undefined;await push();
   assert.equal(await knows.isVisible(),true);assert.equal(await knows.locator('[data-boiler-line]').innerText(),words.boiler);
   // Everything learned; another boiler state; nothing stood out yesterday.
-  status=fixture();status.knowledge={pct:100,missing:[],more:0};status.boiler={state:'no_return'};status.insights=[];await push();
+  status=fixture();status.knowledge={pct:100,missing:[],more:0};status.boiler={state:'no_return',return:false};status.insights=[];await push();
   await knows.locator('.hl-done').waitFor();
   assert.equal(await knows.locator('.hl-done').innerText(),words.done);
   assert.equal(await knows.locator('[data-boiler-line]').innerText(),words.noReturn);

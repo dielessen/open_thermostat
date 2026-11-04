@@ -3244,13 +3244,16 @@
             "name": "Rust na vasthouden (min)"
           },
           "ceiling_c": {
-            "name": "E32 vraagt hooguit (°C)"
+            "name": "Dicht bij de doeltemperatuur vraagt de E32 hoogstens (°C)"
           },
           "absorbed_kw": {
             "name": "Warmte die het huis opneemt (kW)"
           },
           "kw_per_k": {
             "name": "kW per °C watertemperatuur"
+          },
+          "return_reported": {
+            "name": "Retourtemperatuur gemeld"
           },
           "sentence": {
             "name": "In woorden"

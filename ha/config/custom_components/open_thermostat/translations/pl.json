@@ -2207,13 +2207,16 @@
             "name": "Przerwa po utrzymaniu (min)"
           },
           "ceiling_c": {
-            "name": "E32 zadaje najwyżej (°C)"
+            "name": "Blisko temperatury docelowej E32 zadaje najwyżej (°C)"
           },
           "absorbed_kw": {
             "name": "Ciepło pobierane przez dom (kW)"
           },
           "kw_per_k": {
             "name": "kW na °C temperatury wody"
+          },
+          "return_reported": {
+            "name": "Temperatura powrotu zgłaszana"
           },
           "sentence": {
             "name": "Słownie"

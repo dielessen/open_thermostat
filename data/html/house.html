@@ -924,11 +924,13 @@ background:var(--ot-surface);color:var(--ot-text);border:1px solid var(--ot-bord
     curve: "It is still learning how much warmer the water must be when it gets colder outside.",
     boiler_minimum: "It is still finding out from which water temperature your boiler starts heating.",
     boiler_response: "It is still listening to how your boiler holds its temperature.", house: "It is still working out how fast your house loses heat."};
-  const boilerText = {learned_both: "Your boiler rests about {rest} each time it reaches its temperature; the E32 asks at most {ceiling} °C now, so it starts less often.",
-    learned_ceiling: "The E32 asks your boiler at most {ceiling} °C now, so it starts less often.",
-    learned_rest: "Your boiler rests about {rest} each time it reaches its temperature.", learned: "The E32 has learned how your boiler holds its temperature.",
+  // The ceiling holds near the target temperatures only (a room 1 °C or more below its target gets the full water
+  // temperature), so the sentence says "near the target", never "now".
+  const boilerText = {learned_both: "Your boiler holds about {flow} °C and rests {rest}; near the target the E32 asks at most {ceiling} °C.",
+    learned_ceiling: "Your boiler holds about {flow} °C; near the target the E32 asks at most {ceiling} °C.",
+    learned_rest: "Your boiler rests {rest} each time it reaches its temperature.", learned: "The E32 has learned how your boiler holds its temperature.",
     collecting: "The E32 is still listening to how your boiler holds its temperature.",
-    no_return: "Your boiler does not report the water coming back, so the E32 cannot see how much heat your house takes; everything else works as usual.",
+    no_return: "Your boiler does not report the water coming back, so the E32 cannot see how much heat your house takes; it still learns how your boiler holds its temperature.",
     not_driving: "The E32 listens to your boiler once it controls the boiler itself."};
   const insightText = {gas_per_dd_up: ["Yesterday used {pct} % more gas per degree of cold than usual.", "A window or door left open, or a room set warmer, can cause this."],
     gas_per_dd_down: ["Yesterday used {pct} % less gas per degree of cold than usual.", "Sun, a cooler setting or fewer hours at home can cause this."],
@@ -1142,9 +1144,13 @@ background:var(--ot-surface);color:var(--ot-text);border:1px solid var(--ot-bord
   function boilerSentence(b) {
     if (!b || typeof b !== 'object' || !['collecting', 'learned', 'no_return', 'not_driving'].includes(b.state)) return '';
     if (b.state !== 'learned') return uiText(boilerText[b.state]);
-    const rest = ok(b.rest_s) && b.rest_s >= 1 && b.rest_s <= 7200 ? duration(b.rest_s / 60) : null;
-    const ceiling = ok(b.ceiling_c) && b.ceiling_c >= 10 && b.ceiling_c <= 90 ? num(Math.round(b.ceiling_c), 0) : null;
-    return fill(uiText(boilerText[rest && ceiling ? 'learned_both' : ceiling ? 'learned_ceiling' : rest ? 'learned_rest' : 'learned']), {rest, ceiling});
+    const m = ok(b.rest_s) && b.rest_s >= 1 && b.rest_s <= 7200 ? Math.max(1, Math.round(b.rest_s / 60)) : null;
+    const rest = m === null ? null : fill(uiText(m === 1 ? "{n} minute" : "{n} minutes"), {n: m});
+    const ceiling = ok(b.ceiling_c) && b.ceiling_c >= 10 && b.ceiling_c <= 90 ? Math.round(b.ceiling_c) : null;
+    // A held target is the boiler stopping by itself at about the request; the ceiling it leaves is that request
+    // minus 2 °C (BoilerResponse), so the boiler holds about the ceiling + 2 °C.
+    const values = {rest, ceiling: ceiling === null ? null : num(ceiling, 0), flow: ceiling === null ? null : num(ceiling + 2, 0)};
+    return fill(uiText(boilerText[rest && ceiling !== null ? 'learned_both' : ceiling !== null ? 'learned_ceiling' : rest ? 'learned_rest' : 'learned']), values);
   }
   function insightItems(list, names) {
     return (Array.isArray(list) ? list : []).filter(i => i && insightText[i.kind] && ok(i.pct) && i.pct >= 0 && i.pct <= 10000

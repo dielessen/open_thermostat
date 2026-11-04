@@ -32,17 +32,19 @@ SUMMARY = {"schema": 1, "learned": {"schema": 1, "applied": True, "status": "lea
 INSIGHT = {"schema": 1,
            "knowledge": {"pct": 70, "missing": ["warmup:slaapkamer", "arrival:slaapkamer", "boiler_response"], "more": 0},
            "house": {"ua_kw_per_k": 0.21, "kw_per_flow_k": 0.43, "slope": 0.71, "state": "learned"},
-           "boiler": {"held": 3, "rest_s": 540, "ceiling_c": 48, "absorbed_kw": 7.4, "kw_per_k": 0.36, "state": "learned"},
+           "boiler": {"held": 3, "rest_s": 540, "ceiling_c": 48, "absorbed_kw": 7.4, "kw_per_k": 0.36, "state": "learned",
+                      "return": True},
            "insights": [{"kind": "gas_per_dd_up", "pct": 34}, {"kind": "warmup_slower", "pct": 40, "room": "slaapkamer"}]}
-# The worst case the plan allows (<= 700 B): 8 missing keys with 31-character room ids, "more", the house, the
-# boiler and 4 insights, two of them with a room.
-ROOMS = [f"kamer_met_een_lange_naam_nr_{i}xx"[:31] for i in range(6)]
+# The worst case the plan allows (<= 700 B): 8 missing keys with 30-character room ids, "more", the house, the
+# boiler (P1's object with "return") and 4 insights, two of them with a room.
+ROOMS = [f"kamer_met_een_lange_naam_nr_{i}xx"[:30] for i in range(6)]
 WORST = {"schema": 1,
          "knowledge": {"pct": 42, "missing": [f"warmup:{ROOMS[0]}", f"cooling:{ROOMS[1]}", f"arrival:{ROOMS[2]}",
                                               f"warmup:{ROOMS[3]}", "curve", "boiler_minimum", "boiler_response", "house"],
-                       "more": 19},
+                       "more": 9},
          "house": {"ua_kw_per_k": 0.214, "kw_per_flow_k": 0.431, "slope": 1.17, "state": "collecting"},
-         "boiler": {"held": 12, "rest_s": 1260, "ceiling_c": 57, "absorbed_kw": 11.8, "kw_per_k": 0.412, "state": "collecting"},
+         "boiler": {"held": 12, "rest_s": 1260, "ceiling_c": 57, "absorbed_kw": 11.8, "kw_per_k": 0.412, "state": "learned",
+                    "return": True},
          "insights": [{"kind": "gas_per_dd_up", "pct": 134}, {"kind": "starts_up", "pct": 250},
                       {"kind": "warmup_slower", "pct": 45, "room": ROOMS[4]}, {"kind": "warmup_slower", "pct": 61, "room": ROOMS[5]}]}
 # fw/telemetry/flow with the rc.5 additions (RC5-PLAN.md 2.1): "ceiling_c", the learned state "held", the
@@ -50,8 +52,8 @@ WORST = {"schema": 1,
 FLOW = {"schema": 1, "flow": {"source": "curve", "rule_flow_c": 44, "applied_flow_c": 48, "ceiling_c": 48,
                               "curve": {"state": "applied", "flow_c": 46, "slope": 0.71, "slope_source": "house", "windows": 2},
                               "learned": {"state": "held", "flow_c": 52}, "optimum_start": "none", "yesterday": None,
-                              "boiler": {"held": 1, "rest_s": 600, "ceiling_c": 48, "absorbed_kw": None, "kw_per_k": None,
-                                         "state": "collecting"}},
+                              "boiler": {"held": 1, "rest_s": None, "ceiling_c": None, "absorbed_kw": None, "kw_per_k": None,
+                                         "state": "no_return", "return": False}},
         "night_gas": {"last": None}}
 # fw/telemetry/learned/<room> with free heat (RC5-PLAN.md 2.3): six 4-hour dayparts from midnight.
 FREE_HEAT = {"rate": [0.0, None, 0.2, 0.4, 0.1, None], "n": [9, 0, 6, 7, 3, 0], "applied_min": 12}
@@ -107,7 +109,7 @@ def test_the_worst_case_insight_fits_and_reads_completely():
     h.receive(INSIGHT_TOPIC, payload)
     part = module.knowledge(h.summary)
     sentences, more = module.missing_sentences(part, {}, "en")
-    assert len(sentences) == 8 and more == 19
+    assert len(sentences) == 8 and more == 9
     assert sentences[0] == f"It still has to see how fast {ROOMS[0]} warms up."
     assert [item["kind"] for item in module.insight_items(h.summary)] == ["gas_per_dd_up", "starts_up", "warmup_slower",
                                                                           "warmup_slower"]
@@ -208,7 +210,7 @@ def test_firmware_without_the_topic_leaves_both_sensors_unknown_and_silence_make
     knowledge, boiler = (localized(cls(hub(odd))) for cls in (module.KnowledgeSensor, module.BoilerResponseSensor))
     assert knowledge.native_value is None and boiler.native_value is None
     assert boiler.extra_state_attributes == {"held_today": None, "rest_min": None, "ceiling_c": None, "absorbed_kw": None,
-                                             "kw_per_k": None, "sentence": None}
+                                             "kw_per_k": None, "return_reported": None, "sentence": None}
 
 
 def test_the_boiler_response_in_figures_and_one_sentence():
@@ -216,34 +218,43 @@ def test_the_boiler_response_in_figures_and_one_sentence():
     assert sensor.unique_id == "fixture_hub_boiler_response" and sensor.translation_key == "boiler_response"
     assert sensor.device_class == SensorDeviceClass.ENUM and sensor.options == ["collecting", "learned", "no_return", "not_driving"]
     assert sensor.native_value == "learned"
+    # The ceiling holds near the target only (a room 1 °C or more below its target gets the full water temperature);
+    # the boiler holds about the ceiling + 2 °C (the ceiling is the held request minus 2 °C).
     assert sensor.extra_state_attributes == {
-        "held_today": 3, "rest_min": 9.0, "ceiling_c": 48, "absorbed_kw": 7.4, "kw_per_k": 0.36,
-        "sentence": "Your boiler rests about 9 min each time it reaches its temperature; the E32 asks at most 48 °C now, "
-                    "so it starts less often."}
+        "held_today": 3, "rest_min": 9.0, "ceiling_c": 48, "absorbed_kw": 7.4, "kw_per_k": 0.36, "return_reported": True,
+        "sentence": "Your boiler holds about 50 °C and rests 9 minutes; near the target the E32 asks at most 48 °C."}
     assert {"absorbed_kw", "sentence"} <= sensor._unrecorded_attributes
 
 
 @pytest.mark.parametrize("boiler, en, nl, pl", [
     ({"state": "learned", "rest_s": 450, "ceiling_c": None},
-     "Your boiler rests about 7.5 min each time it reaches its temperature.",
-     "Je ketel rust ongeveer 7,5 min telkens als hij zijn temperatuur bereikt.",
-     "Twój kocioł odpoczywa około 7,5 min za każdym razem, gdy osiągnie swoją temperaturę."),
+     "Your boiler rests 8 minutes each time it reaches its temperature.",
+     "Je ketel rust 8 minuten telkens als hij zijn temperatuur bereikt.",
+     "Twój kocioł odpoczywa 8 minut za każdym razem, gdy osiągnie swoją temperaturę."),
+    ({"state": "learned", "rest_s": 75, "ceiling_c": None},
+     "Your boiler rests 1 minute each time it reaches its temperature.",
+     "Je ketel rust 1 minuut telkens als hij zijn temperatuur bereikt.",
+     "Twój kocioł odpoczywa 1 minutę za każdym razem, gdy osiągnie swoją temperaturę."),
     ({"state": "learned", "rest_s": None, "ceiling_c": 52},
-     "The E32 asks your boiler at most 52 °C now, so it starts less often.",
-     "De E32 vraagt je ketel nu hooguit 52 °C, zodat hij minder vaak start.",
-     "E32 zadaje teraz kotłowi najwyżej 52 °C, więc kocioł rzadziej się uruchamia."),
+     "Your boiler holds about 54 °C; near the target the E32 asks at most 52 °C.",
+     "Je ketel houdt ongeveer 54 °C vast; dicht bij de doeltemperatuur vraagt de E32 hoogstens 52 °C.",
+     "Twój kocioł utrzymuje około 54 °C; blisko temperatury docelowej E32 zadaje najwyżej 52 °C."),
+    ({"state": "learned", "rest_s": 180, "ceiling_c": 41, "return": False},
+     "Your boiler holds about 43 °C and rests 3 minutes; near the target the E32 asks at most 41 °C.",
+     "Je ketel houdt ongeveer 43 °C vast en rust 3 minuten; dicht bij de doeltemperatuur vraagt de E32 hoogstens 41 °C.",
+     "Twój kocioł utrzymuje około 43 °C i odpoczywa 3 minuty; blisko temperatury docelowej E32 zadaje najwyżej 41 °C."),
     ({"state": "learned"}, "The E32 has learned how your boiler holds its temperature.",
      "De E32 heeft geleerd hoe je ketel zijn temperatuur vasthoudt.", "E32 nauczył się, jak Twój kocioł utrzymuje swoją temperaturę."),
     ({"state": "collecting", "held": 1}, "The E32 is still listening to how your boiler holds its temperature.",
      "De E32 luistert nog hoe je ketel zijn temperatuur vasthoudt.",
      "E32 wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę."),
-    ({"state": "no_return"},
-     "Your boiler does not report the water coming back, so the E32 cannot see how much heat your house takes; "
-     "everything else works as usual.",
-     "Je ketel meldt het terugkomende water niet, dus de E32 kan niet zien hoeveel warmte je huis opneemt; al het andere "
-     "werkt gewoon.",
-     "Twój kocioł nie zgłasza temperatury wody powrotnej, więc E32 nie widzi, ile ciepła pobiera Twój dom; wszystko inne "
-     "działa normalnie."),
+    ({"state": "no_return", "return": False},
+     "Your boiler does not report the water coming back, so the E32 cannot see how much heat your house takes; it still "
+     "learns how your boiler holds its temperature.",
+     "Je ketel meldt het terugkomende water niet, dus de E32 kan niet zien hoeveel warmte je huis opneemt; hij leert wel "
+     "hoe je ketel zijn temperatuur vasthoudt.",
+     "Twój kocioł nie zgłasza temperatury wody powrotnej, więc E32 nie widzi, ile ciepła pobiera Twój dom; nadal uczy się, "
+     "jak Twój kocioł utrzymuje swoją temperaturę."),
     ({"state": "not_driving"}, "The E32 listens to your boiler once it controls the boiler itself.",
      "De E32 luistert naar je ketel zodra hij de ketel zelf regelt.",
      "E32 zacznie wsłuchiwać się w Twój kocioł, gdy sam będzie nim sterował.")])
@@ -254,13 +265,20 @@ def test_every_boiler_state_has_its_sentence(boiler, en, nl, pl):
         assert sensor.native_value == boiler["state"] and sensor.extra_state_attributes["sentence"] == expected, language
 
 
+@pytest.mark.parametrize("count, en, nl, pl", [(1, "1 minute", "1 minuut", "1 minutę"), (2, "2 minutes", "2 minuten", "2 minuty"),
+                                              (5, "5 minutes", "5 minuten", "5 minut"), (12, "12 minutes", "12 minuten", "12 minut"),
+                                              (22, "22 minutes", "22 minuten", "22 minuty")])
+def test_minutes_in_every_language(count, en, nl, pl):
+    assert [module.minutes(count, language) for language in ("en", "nl", "pl")] == [en, nl, pl]
+
+
 def test_without_the_insight_the_boiler_comes_from_the_flow_document():
     h = HeatingHub("fixture")
     h.receive("fw/telemetry/summary", json.dumps(SUMMARY))
     h.receive(FLOW_TOPIC, json.dumps(FLOW))
     h.update(STATUS)  # the E32 reports (a status of its own parts is assembled elsewhere)
     sensor = localized(module.BoilerResponseSensor(h))
-    assert sensor.native_value == "collecting" and sensor.extra_state_attributes["rest_min"] == 10.0
+    assert sensor.native_value == "no_return" and sensor.extra_state_attributes["return_reported"] is False
     assert localized(module.KnowledgeSensor(h)).native_value is None  # the knowledge needs the insight itself
 
 

@@ -380,33 +380,38 @@ the rc.4 learning changes (L1-L5):
   asks for heat where the recording shows none).
 - `tools/replay/test_replay.py`: 6/6 OK on rc.4.
 
-### rc.5 on the fixture and on the owner's recording (<...> Nov 2026)
+### rc.5 on the fixture and on the owner's recording (4 Nov 2026)
 
-<!-- Template of the rc.5 baseline paragraph, written with the release tooling: the integrator replaces every
-"<...>" below (find them with: grep -n '<\.\.\.>' tools/replay/README.md), drops the lines that do not apply
-and deletes this comment. The figures come from `tools/replay/score.py`; a difference is explained in a
-sentence, not just shown. -->
+`tools/replay/run.sh out/replay-data/house-20261030-20261102.csv --plan out/replay-data/plan.json
+--mode shadow,active --apply-learned --weather-curve` before (`REPLAY_REV=42a62a44`, the rc.4 code) and after
+the rc.5 changes (d135acd9), then `python3 tools/replay/score.py <after json> <before json>` for the table.
+The recording (30 Oct 18:10 - 2 Nov 08:44, 19126 rows, read only) is 62 hours: too short for the new modules
+to learn, so their first job here is to change nothing.
 
-`tools/replay/run.sh test/fixtures/replay/house-shadow.csv --plan test/fixtures/replay/plan.json
---mode shadow,active --apply-learned --weather-curve`, before (`REPLAY_REV=v1.0.0-e32v2-rc.4`) and after the
-rc.5 changes (<...>), then `python3 tools/replay/score.py <after json> <before json>` for the table. The same
-on the owner's recording (`out/replay-data/house-20261030-20261102.csv` with `out/replay-data/plan.json` of the
-main checkout, <...> - <...>, read only; the fixture is too short for the new modules to learn much):
-
-- Starts and request: <...> burner starts per heating hour (rc.4: <...>), mean request <...> degC (rc.4:
-  <...>), mean flow <...> degC and return <...> degC while heating, heating <...> kWh by the learner's
-  estimate (rc.4: <...>). The difference comes from <...>.
-- Listening to the boiler (`BoilerResponse`): <...> held-target events, rest rhythm <...> s, ceiling per
-  outdoor band <...>, absorbed <...> kW and <...> kW per K of flow, state "<...>". The recording is from shadow
-  mode (the old thermostat drove the boiler), so <...>.
-- The synthetic holding boiler (`tools/replay/synth.py`: the recorded requests of the owner's recording driven
-  through a boiler that holds its target up to +5 K): <...> held events; with the learned ceiling the request
-  falls from <...> to <...> degC and the burner starts per heating hour from <...> to <...>.
-- House model (`HouseModel`): heat loss <...> kW per K outside, emitter output <...> kW per K of flow, implied
-  slope <...> (design slope <...>), state "<...>". Weather compensation takes the <...> slope.
-- Knowledge: <...> % with <...> still missing (<...>). Insights: <...> items (<...>).
-- Free heat (`FreeHeat`): <...> dayparts with a rate (the best <...> K/h at <...>); the planned leads are
-  <...> min shorter on <...> mornings; arrival errors <...> min (rc.4: <...>).
-- Unchanged by design: cooling <...> and warm-up <...> segments, AutoTuner <...> proposals, computed vs
-  recorded E32 heat <...> % of <...> steps (rc.4: <...> %).
-- `tools/replay/test_replay.py`: <...>/<...> OK on rc.5.
+- Starts and request: 3.58 burner starts per heating hour (rc.4: 3.58), mean request 41.1 degC (rc.4: 41.1),
+  mean flow 47.8 degC and return 45.5 degC while heating, heating 34.0 kWh by the learner's estimate (rc.4:
+  34.0); 16.74 heating hours and 3.41 optimum-start hours in both. Every figure of the table is identical
+  before and after, in shadow and in active mode: the three modules only report until they have evidence.
+- Listening to the boiler (`BoilerResponse`): the shadow run hears nothing ("not_driving": the old thermostat
+  drove the boiler). The active run hears 2 held-target events, no rest rhythm and no ceiling yet (two events
+  are one over-asked request short of a ceiling), and learns the emitter output from the return temperature:
+  0.25 kW per K of flow above the rooms; state "collecting".
+- The synthetic holding boiler (`tools/replay/synth.py out/replay-data/house-20261030-20261102.csv
+  /tmp/synth-holding.csv`: the recording's requests driven through a boiler that holds its target up to +5 K
+  with a 10-minute anti-cycle; 9.8 h of heat asked, 13 held targets): the active run hears 5 of them (the
+  rest fall in warm-ups, which do not count), learns the boiler's rest of 600 s and a 42 degC ceiling for the
+  5..10 degC outdoor band, state "learned"; the mean request falls from 41.1 to 40.9 degC over the 2.6 days,
+  starts stay 1.01 per heating hour (the holding boiler's own rhythm sets them here). The long-run effect is in
+  the soak: with radiators the held stops fall from 900 to 505 and the burner starts from 963 to 667 in 60
+  days, comfort unchanged (test/soak/README.md, rc.5).
+- House model (`HouseModel`): emitter output 0.25 kW per K of flow (from the boiler's response), no heat loss
+  per K yet (the recording holds one day of gas per degree-day and two cooling segments, three are needed),
+  no implied slope, state "collecting": weather compensation takes the design slope (0.67, floor).
+- Knowledge and insights: not part of the replay (HeatingController computes them from the learners for
+  `fw/telemetry/insight`; `test_heating_telemetry.cpp` pins the topic's worst case). Insights are empty here:
+  five judged days come before the first one.
+- Free heat (`FreeHeat`): windows in four dayparts (1, 2, 0, 0, 0, 1 of the five needed), so no rate and no
+  shortened lead; the judged mornings stay +180 and +111 min late (rc.4: the same).
+- Unchanged by design: the run's JSON differs from rc.4 only by the new objects (`boiler`, `house`,
+  `free_heat`, `ceiling_c` null, `slope_source`).
+- `tools/replay/test_replay.py`: 16/16 OK on rc.5.

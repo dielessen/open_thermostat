@@ -17,6 +17,8 @@ const HALF=['tile','button','statistic','gauge'];
 // A grid row is 56 px with an 8 px gap. A figure (statistic) and a gauge are two rows (120 px), and so is the tile
 // beside one (its grid_options say so).
 const ROWS={statistic:2,gauge:2};
+// rc.5 (P17): the Boiler view's Now card, a band and four figures (two rows of two on a phone, one row on a desktop).
+HEIGHT['custom:openthermostat-boiler-now']=250;
 const height=card=>{const rows=(card.grid_options&&card.grid_options.rows)||ROWS[card.type];
  return rows?rows*56+(rows-1)*8:(HEIGHT[card.type]||90);};
 const html=(view,hidden,width)=>{

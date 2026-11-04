@@ -14,7 +14,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.open_thermostat import dashboard as module
 from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
-from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE
+from custom_components.open_thermostat.room_overview import BOILER_NOW_CARD_TYPE, HOUSE_CARD_TYPE
 from test_dashboard_heating import installation, walk
 from test_dashboard_redesign import LIVE_FIELDS
 
@@ -91,9 +91,12 @@ async def test_boiler_values_are_hidden_while_they_have_none_instead_of_showing_
     assert house["flow"] == fields["measured_flow_temperature"]
     others = [c for c in view_cards(overview) if c["type"] != HOUSE_CARD_TYPE]
     assert not any(entity_id in json.dumps(others) for entity_id in values)
-    # The display code in words: hidden as long as the boiler reports no code.
-    words = [c for c in view_cards(boiler) if c["type"] == "markdown" and "'meaning'" in c["content"]]
-    assert [c["visibility"] for c in words] == [[known(fields["display_code"])]]
+    # The display code in words: the Now card's (frontend/boiler-now-card.js), which says it only while the code has a
+    # value; the section shows while one of its values has one (here the code among them).
+    now = section(boiler, "Now")
+    assert [c["type"] for c in now] == ["heading", BOILER_NOW_CARD_TYPE] and now[1]["code"] == fields["display_code"]
+    assert known(fields["display_code"]) in next(s for s in boiler["sections"] if s["cards"] is now)["visibility"][0]["conditions"]
+    assert not any(c["type"] == "markdown" and "'meaning'" in c["content"] for c in view_cards(boiler))
     # The problem is the house card's (its strip turns red with the reason only while there is one); no tile of its own.
     assert house["problem"] == hub["heating_problem"]
     assert not any(c.get("entity") == hub["heating_problem"] for c in view_cards(overview))

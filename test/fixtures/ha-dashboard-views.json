@@ -622,154 +622,25 @@
         "type": "heading"
        },
        {
-        "content": "{% set e = \"sensor.fixture_boiler_fields_v1_display_code\" %}{% set code = states(e) %}{% set meaning = state_attr(e, 'meaning') %}{% set severity = state_attr(e, 'severity') %}{% set advice = state_attr(e, 'advice') %}{% set cause = state_attr(e, 'cause') %}{% set raw = code ~ (' ' ~ cause if cause else '') %}{% if severity in [\"blocking\", \"locking\", \"fault\"] %}<ha-alert alert-type=\"{{ 'error' if severity == 'locking' else 'warning' }}\" title=\"{{ meaning }}\">{{ state_attr(e, 'severity_text') }}.{% if advice %} {{ advice }}{% endif %} <small>Display code {{ raw }}</small></ha-alert>{% elif severity == 'unknown' %}<ha-icon icon=\"mdi:help-circle-outline\"></ha-icon> **Display code {{ raw }}** · {{ meaning }}{% elif meaning %}<ha-icon icon=\"{{ {\"normal\": \"mdi:water-boiler\", \"waiting\": \"mdi:timer-sand\", \"service\": \"mdi:wrench-outline\"}.get(severity, 'mdi:water-boiler') }}\"></ha-icon> Boiler: **{{ meaning }}** <small>{{ raw }}</small>{% if advice and severity != 'normal' %}\n\n<small>{{ advice }}</small>{% endif %}{% else %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Display code **{{ code }}**{% endif %}",
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_display_code",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "deep-orange",
-        "entity": "sensor.boiler_activity",
+        "activity": "sensor.boiler_activity",
+        "ceiling": "sensor.flow_source",
+        "code": "sensor.fixture_boiler_fields_v1_display_code",
+        "cycling": "binary_sensor.fixture_hub_burner_short_cycling",
+        "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
         "grid_options": {
-         "columns": 12
+         "columns": "full"
         },
-        "icon": "mdi:fire",
-        "name": "Boiler",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "heating"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "blue",
-        "entity": "sensor.boiler_activity",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:faucet",
-        "name": "Boiler",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "tapping",
-           "keep_warm",
-           "charging",
-           "hot_water"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "grey",
-        "entity": "sensor.boiler_activity",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:water-boiler",
-        "name": "Boiler",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "idle"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-        "icon": "mdi:thermometer-chevron-up",
-        "name": "Water to heating",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
-        "icon": "mdi:thermometer-chevron-down",
-        "name": "Water back",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-        "grid_options": {
-         "columns": 6,
-         "rows": 2
-        },
-        "max": 100,
-        "min": 0,
-        "name": "Burner power",
-        "needle": false,
-        "type": "gauge",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_hub_burner_starts_last_hour",
-        "grid_options": {
-         "columns": 6,
-         "rows": 2
-        },
-        "icon": "mdi:counter",
-        "name": "Starts per hour",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
+        "heating": "sensor.boiler_heating_active",
+        "hot_water": "sensor.boiler_dhw_active",
+        "modulation": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+        "request": "sensor.fixture_hub_heat_request",
+        "return": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+        "starts": "sensor.fixture_hub_burner_starts_last_hour",
+        "starts_today": "sensor.daily_burner_starts",
+        "type": "custom:openthermostat-boiler-now"
        }
       ],
+      "column_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -828,6 +699,9 @@
        },
        {
         "content": "{% set icons = {\"warning\": \"mdi:alert-outline\", \"suggestion\": \"mdi:lightbulb-on-outline\", \"info\": \"mdi:information-outline\"} %}{% set confidence = {\"low\": \"low\", \"medium\": \"medium\", \"high\": \"high\"} %}{% for item in state_attr(\"sensor.heating_advice\", 'items') or [] %}<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> **{{ item.title }}**\n\n{{ item.action }}\n\n*Where: {{ item.where }} · Confidence: {{ confidence.get(item.confidence, item.confidence) }}*\n\n{% endfor %}Advice only: nothing is changed automatically.",
+        "grid_options": {
+         "columns": "full"
+        },
         "type": "markdown",
         "visibility": [
          {
@@ -838,6 +712,7 @@
         ]
        }
       ],
+      "column_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -5062,154 +4937,25 @@
         "type": "heading"
        },
        {
-        "content": "{% set e = \"sensor.fixture_boiler_fields_v1_display_code\" %}{% set code = states(e) %}{% set meaning = state_attr(e, 'meaning') %}{% set severity = state_attr(e, 'severity') %}{% set advice = state_attr(e, 'advice') %}{% set cause = state_attr(e, 'cause') %}{% set raw = code ~ (' ' ~ cause if cause else '') %}{% if severity in [\"blocking\", \"locking\", \"fault\"] %}<ha-alert alert-type=\"{{ 'error' if severity == 'locking' else 'warning' }}\" title=\"{{ meaning }}\">{{ state_attr(e, 'severity_text') }}.{% if advice %} {{ advice }}{% endif %} <small>Displaycode {{ raw }}</small></ha-alert>{% elif severity == 'unknown' %}<ha-icon icon=\"mdi:help-circle-outline\"></ha-icon> **Displaycode {{ raw }}** · {{ meaning }}{% elif meaning %}<ha-icon icon=\"{{ {\"normal\": \"mdi:water-boiler\", \"waiting\": \"mdi:timer-sand\", \"service\": \"mdi:wrench-outline\"}.get(severity, 'mdi:water-boiler') }}\"></ha-icon> Ketel: **{{ meaning }}** <small>{{ raw }}</small>{% if advice and severity != 'normal' %}\n\n<small>{{ advice }}</small>{% endif %}{% else %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Displaycode **{{ code }}**{% endif %}",
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_display_code",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "deep-orange",
-        "entity": "sensor.boiler_activity",
+        "activity": "sensor.boiler_activity",
+        "ceiling": "sensor.flow_source",
+        "code": "sensor.fixture_boiler_fields_v1_display_code",
+        "cycling": "binary_sensor.fixture_hub_burner_short_cycling",
+        "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
         "grid_options": {
-         "columns": 12
+         "columns": "full"
         },
-        "icon": "mdi:fire",
-        "name": "Ketel",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "heating"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "blue",
-        "entity": "sensor.boiler_activity",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:faucet",
-        "name": "Ketel",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "tapping",
-           "keep_warm",
-           "charging",
-           "hot_water"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "grey",
-        "entity": "sensor.boiler_activity",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:water-boiler",
-        "name": "Ketel",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "idle"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-        "icon": "mdi:thermometer-chevron-up",
-        "name": "Aanvoerwater",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
-        "icon": "mdi:thermometer-chevron-down",
-        "name": "Retourwater",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-        "grid_options": {
-         "columns": 6,
-         "rows": 2
-        },
-        "max": 100,
-        "min": 0,
-        "name": "Brandervermogen",
-        "needle": false,
-        "type": "gauge",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_hub_burner_starts_last_hour",
-        "grid_options": {
-         "columns": 6,
-         "rows": 2
-        },
-        "icon": "mdi:counter",
-        "name": "Starts per uur",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
+        "heating": "sensor.boiler_heating_active",
+        "hot_water": "sensor.boiler_dhw_active",
+        "modulation": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+        "request": "sensor.fixture_hub_heat_request",
+        "return": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+        "starts": "sensor.fixture_hub_burner_starts_last_hour",
+        "starts_today": "sensor.daily_burner_starts",
+        "type": "custom:openthermostat-boiler-now"
        }
       ],
+      "column_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -5268,6 +5014,9 @@
        },
        {
         "content": "{% set icons = {\"warning\": \"mdi:alert-outline\", \"suggestion\": \"mdi:lightbulb-on-outline\", \"info\": \"mdi:information-outline\"} %}{% set confidence = {\"low\": \"laag\", \"medium\": \"middel\", \"high\": \"hoog\"} %}{% for item in state_attr(\"sensor.heating_advice\", 'items') or [] %}<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> **{{ item.title }}**\n\n{{ item.action }}\n\n*Waar: {{ item.where }} · Zekerheid: {{ confidence.get(item.confidence, item.confidence) }}*\n\n{% endfor %}Alleen advies: er wordt niets automatisch veranderd.",
+        "grid_options": {
+         "columns": "full"
+        },
         "type": "markdown",
         "visibility": [
          {
@@ -5278,6 +5027,7 @@
         ]
        }
       ],
+      "column_span": 2,
       "type": "grid",
       "visibility": [
        {

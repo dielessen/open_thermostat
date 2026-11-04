@@ -2484,6 +2484,40 @@
           "keep_warm": "Podtrzymanie ciepła",
           "charging": "Nagrzewanie zasobnika",
           "hot_water": "Ciepła woda"
+        },
+        "state_attributes": {
+          "card": {
+            "state": {
+              "title": "Kocioł teraz",
+              "no_data": "Brak danych z kotła",
+              "boiler": "Kocioł",
+              "code": "Kod {code}: {meaning}",
+              "code_bare": "Kod {code}",
+              "code_fault": "{severity} · kod {code}",
+              "link": "połączenie z kotłem: {state}",
+              "link_good": "dobre",
+              "link_none": "brak",
+              "dhw": "ciepła woda: {state}",
+              "yes": "tak",
+              "no": "nie",
+              "flow": "Woda do ogrzewania",
+              "asked": "żądanie {flow} °C",
+              "would_ask": "E32 zażądałby {flow} °C",
+              "no_request": "brak żądania",
+              "ceiling": "najwyżej {flow} °C",
+              "back": "Woda powrotna",
+              "difference": "różnica {n} °C",
+              "power": "Moc palnika",
+              "power_off": "palnik wyłączony",
+              "power_low": "mały płomień, spokojnie",
+              "power_mid": "średni płomień",
+              "power_full": "pełny płomień",
+              "starts": "Starty w ostatniej godzinie",
+              "calm": "spokojnie",
+              "often": "włącza się zbyt często",
+              "today": "dziś {n}"
+            }
+          }
         }
       },
       "e32_last_backup": {

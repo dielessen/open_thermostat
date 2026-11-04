@@ -2484,6 +2484,40 @@
           "keep_warm": "Keeping warm",
           "charging": "Heating the hot water tank",
           "hot_water": "Hot water"
+        },
+        "state_attributes": {
+          "card": {
+            "state": {
+              "title": "The boiler now",
+              "no_data": "No data from the boiler",
+              "boiler": "Boiler",
+              "code": "Display code {code}: {meaning}",
+              "code_bare": "Display code {code}",
+              "code_fault": "{severity} · display code {code}",
+              "link": "connection with the boiler: {state}",
+              "link_good": "good",
+              "link_none": "none",
+              "dhw": "hot water: {state}",
+              "yes": "yes",
+              "no": "no",
+              "flow": "Water to heating",
+              "asked": "asked {flow} °C",
+              "would_ask": "E32 would ask {flow} °C",
+              "no_request": "no request",
+              "ceiling": "at most {flow} °C",
+              "back": "Water back",
+              "difference": "difference {n} °C",
+              "power": "Burner power",
+              "power_off": "burner off",
+              "power_low": "low fire, calm",
+              "power_mid": "medium fire",
+              "power_full": "full fire",
+              "starts": "Starts in the last hour",
+              "calm": "calm",
+              "often": "switching on and off too often",
+              "today": "today {n}"
+            }
+          }
         }
       },
       "e32_last_backup": {

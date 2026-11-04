@@ -88,6 +88,7 @@ async def test_the_overview_names_the_house_mode_and_long_states_get_the_whole_w
     board, config, rooms, hub = with_learned(hass)
     house = view(config, "heating")["sections"][0]["cards"]
     mode = next(c for c in house if c.get("entity") == hub["house_mode"])
+    # The whole width, also where the Overview's section spans both view columns on a wide screen (rc.5: "full").
     assert mode["name"] == "House mode" and mode["grid_options"] == {"columns": "full"}
     assert mode["features"] == [{"type": "select-options"}]
     control = next(s["cards"] for s in view(config, "learned")["sections"]

@@ -442,6 +442,25 @@ def test_free_heat_per_room_in_words(language, text, meaning):
     assert {"text": text, "meaning": meaning} in lines
 
 
+def test_a_room_with_free_heat_says_so_and_a_room_without_it_says_nothing():
+    """P3: "free_heat" sits in "learned" of fw/telemetry/learned/<room>; it is null before any judged window and
+    left out of a message near its 1000 B budget. A room without it gets no line, never an "unknown" one."""
+    h = HeatingHub("fixture")
+    h.update(STATUS)
+    h.update_learned("woonkamer", decode_learned("woonkamer", json.dumps(
+        {"schema": 1, "id": "woonkamer", "learned": {"readiness": "learning", "segments": 2}, "plan": None})))
+    h.update_learned("slaapkamer", decode_learned("slaapkamer", json.dumps(
+        {"schema": 1, "id": "slaapkamer", "learned": {"readiness": "learning", "segments": 3, "free_heat": FREE_HEAT}, "plan": None})))
+    sensor = lo.LearnedOverviewSensor(SimpleNamespace(entry_id="e"), h, clock=str)
+    sensor.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
+    living, bedroom = sensor.extra_state_attributes["rooms"]
+    assert not any("by itself" in line["text"] for line in living["lines"])
+    assert bedroom["lines"][-1]["text"].startswith("In the afternoon this room warms up by itself")
+    h.update_learned("slaapkamer", decode_learned("slaapkamer", json.dumps(
+        {"schema": 1, "id": "slaapkamer", "learned": {"readiness": "learning", "segments": 3, "free_heat": None}, "plan": None})))
+    assert not any("by itself" in line["text"] for line in sensor.extra_state_attributes["rooms"][1]["lines"])
+
+
 def test_free_heat_needs_five_windows_and_a_real_rise():
     assert lo.free_heat({"free_heat": FREE_HEAT}) == (3, 0.4, 12)
     morning = {"rate": [None, None, 0.3, None, None, None], "n": [0, 0, 5, 0, 0, 0], "applied_min": 0}

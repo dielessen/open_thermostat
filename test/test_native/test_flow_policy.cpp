@@ -522,6 +522,36 @@ TEST(FlowPolicy, DefaultLeadsAreAppliedAsACappedEstimateWithARest) {
     EXPECT_GT(both.flowC, two.learner.ruleFlow(250));
 }
 
+// rc.4 (L1, R1-07): a start whose room arrived while the burner's minimum on still held kept
+// `apply` true but forgot its rooms (heating_ took the empty wants), so when the hold ended no
+// room had "arrived": the start never ended and never rested, and a dip of 0.3 degC a minute
+// later restarted the burner at once. A held-on start keeps its rooms and rests after it.
+TEST(FlowPolicy, AStartThatArrivesWithinItsMinimumOnStillRestsAfterwards) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.learner.setPlan(s.p); s.policy.setPlan(s.p);
+    FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
+    const auto planned = WarmupPlanner::optimumStart(s.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt);
+    ASSERT_STREQ(planned.confidence, "default");
+    EXPECT_TRUE(planned.estimate);
+    // 45 min before the rise the room still reads its night 18.5 degC: the (late) default start begins.
+    s.rooms[0] = room(1850, 1850); s.in.utc = planned.rise.atUtc - 45 * 60;
+    ASSERT_TRUE(s.apply(idle).heat);
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::optimumStart);
+    // A minute later the room reads 21.0: arrived within the 5-minute minimum on, the burner stays on.
+    s.rooms[0] = room(2100, 1850); s.in.now += minute; s.in.utc = *s.in.utc + 60;
+    EXPECT_TRUE(s.apply(idle).heat) << "held on for the minimum on time";
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::optimumStart);
+    // Six minutes later the hold is over: the start ends.
+    s.in.now += 6 * minute; s.in.utc = *s.in.utc + 360;
+    EXPECT_FALSE(s.apply(idle).heat);
+    // A dip to 20.7 right after plans a 40-minute start again (0.3 degC x 2 h): the burner rests first.
+    s.rooms[0] = room(2070, 1850); s.in.now += minute; s.in.utc = *s.in.utc + 60;
+    EXPECT_FALSE(s.apply(idle).heat) << "within the rest of a start that arrived during its minimum on";
+    s.in.now += 6 * minute; s.in.utc = *s.in.utc + 360;
+    EXPECT_TRUE(s.apply(idle).heat) << "after the rest";
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::optimumStart);
+}
+
 // rc.4 (L2): a morning that arrived late raises the room's lead factor through the policy, so the
 // next morning starts earlier; the status shows the estimate and the arrival.
 TEST(FlowPolicy, ALateMorningStartsTheNextOneEarlier) {

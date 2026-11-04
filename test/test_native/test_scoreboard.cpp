@@ -75,6 +75,47 @@ TEST(Scoreboard, SumsTheDayAndMovesItToYesterdayAtMidnight) {
     cJSON_free(text);
 }
 
+// rc.4 (B1): the MQTT form (fw/telemetry/scoreboard, addJson compact) leaves out today's rooms,
+// so eight rooms with 32-character ids stay within 1 KB (Home Assistant shows today's room
+// figures only as attributes); yesterday keeps its rooms, and the page's full form has both.
+TEST(Scoreboard, TheCompactFormLeavesOutTodaysRooms) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    Scoreboard s;
+    AutoTuner tuner;
+    s.step(wednesday + 6 * 3600, 60, int16_t(800), 0.1);
+    s.step(wednesday + 86400 + 60, 60, int16_t(300), 0.2);                   // Thursday: Wednesday is yesterday
+    s.arrival(0, wednesday + 7 * 3600, 12);                                   // yesterday: the living room
+    s.arrival(1, wednesday + 86400 + 7 * 3600, -3);                           // today: the kitchen
+    for (const bool compact : {false, true}) {
+        Json root(cJSON_CreateObject(), cJSON_Delete);
+        ASSERT_TRUE(s.addJson(root.get(), tuner, plan(), compact));
+        const cJSON* board = at(root.get(), "scoreboard");
+        const cJSON* y = at(at(board, "yesterday"), "rooms");
+        ASSERT_TRUE(cJSON_IsArray(y)) << compact;
+        ASSERT_EQ(cJSON_GetArraySize(y), 1) << compact;
+        EXPECT_STREQ(at(cJSON_GetArrayItem(y, 0), "id")->valuestring, "woonkamer");
+        EXPECT_EQ(at(cJSON_GetArrayItem(y, 0), "on_time_min")->valueint, 12);
+        const cJSON* today = at(board, "today");
+        ASSERT_TRUE(cJSON_IsObject(today));
+        const cJSON* t = at(today, "rooms");
+        if (compact) { EXPECT_EQ(t, nullptr) << "compact: no \"rooms\" key for today"; }
+        else {
+            ASSERT_TRUE(cJSON_IsArray(t));
+            ASSERT_EQ(cJSON_GetArraySize(t), 1);
+            EXPECT_STREQ(at(cJSON_GetArrayItem(t, 0), "id")->valuestring, "keuken");
+            EXPECT_EQ(at(cJSON_GetArrayItem(t, 0), "on_time_min")->valueint, -3);
+        }
+        // The rest of today stays in both forms.
+        EXPECT_STREQ(at(today, "day")->valuestring, "2026-11-05");
+        EXPECT_DOUBLE_EQ(at(today, "degree_days")->valuedouble, 15);
+        EXPECT_TRUE(cJSON_IsNull(at(today, "heating_h")));
+    }
+    // The default (the page, /status/heating) is the full form.
+    Json full(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.addJson(full.get(), tuner, plan()));
+    EXPECT_TRUE(cJSON_IsArray(at(at(at(full.get(), "scoreboard"), "today"), "rooms")));
+}
+
 TEST(Scoreboard, TheRecordComesBackForTodayOrYesterdayOnly) {
     ScopedTz tz(ScopedTz::amsterdam);
     Scoreboard s;

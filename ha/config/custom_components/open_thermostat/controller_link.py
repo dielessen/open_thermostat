@@ -716,6 +716,10 @@ class ControllerClient:
         raw, _, _ = await self._request("POST", HEATING_PLAN, document=plan)
         return _decode(raw)
 
+    async def async_comfort_state(self):
+        """GET the E32's comfort state: overrides, away and (rc.4, house.holidays.v1) every planned holiday."""
+        return await self.async_read(HEATING_COMFORT)
+
     async def async_comfort_command(self, command):
         """POST one override or away command; returns the E32's comfort state.
 

@@ -1037,6 +1037,72 @@
             }
           }
         }
+      },
+      "house_holidays": {
+        "title": "House mode and holiday",
+        "description": "{saved}Choose the house mode, or plan holidays ahead. On holiday every room stays at most the temperature on holiday and the house is warm again when you are back; then the house mode is as before.\n\nPlanned holidays:\n{holidays}",
+        "menu_options": {
+          "house_mode_set": "House mode",
+          "house_holiday_add": "Plan a holiday",
+          "house_holiday_change": "Change or remove a holiday",
+          "house_holiday_temperature": "Temperature on holiday",
+          "back": "← Back",
+          "done": "Done"
+        }
+      },
+      "house_mode_set": {
+        "title": "House mode",
+        "description": "Choose how the house is heated. For a holiday that starts now, also choose when it ends; the house is warm again in time. {error}",
+        "data": {
+          "house_mode": "House mode",
+          "holiday_until": "Holiday ends"
+        },
+        "data_description": {
+          "house_mode": "Automatic: the people you set under Presence decide. At home: always the week programs. Away: every room at most the away temperature. Holiday: from now until the date below.",
+          "holiday_until": "Only for Holiday: the day and time you are back. At most a year ahead."
+        }
+      },
+      "house_holiday_add": {
+        "title": "Plan a holiday",
+        "description": "Choose when the holiday starts and when you are back. The house is warm again at that time; afterwards the house mode is as before. Holidays that overlap become one. {error}",
+        "data": {
+          "holiday_from": "Starts",
+          "holiday_to": "Ends (back home)"
+        },
+        "data_description": {
+          "holiday_from": "The day and time the holiday starts. A moment in the past starts it now.",
+          "holiday_to": "The day and time you are back. At most a year ahead."
+        }
+      },
+      "house_holiday_change": {
+        "title": "Change or remove a holiday",
+        "description": "Choose the holiday.",
+        "data": {
+          "holiday": "Holiday"
+        }
+      },
+      "house_holiday_edit": {
+        "title": "Change a holiday",
+        "description": "{holiday}\n\nChange the times, or remove the holiday. {error}",
+        "data": {
+          "holiday_from": "Starts",
+          "holiday_to": "Ends (back home)",
+          "remove": "Remove this holiday"
+        },
+        "data_description": {
+          "holiday_to": "The day and time you are back. At most a year ahead.",
+          "remove": "On: the holiday is removed; a holiday that runs now ends at once."
+        }
+      },
+      "house_holiday_temperature": {
+        "title": "Temperature on holiday",
+        "description": "Every room stays at most this warm during a holiday (5–25 °C; frost protection always stays on). Until you change it, it is the temperature when nobody is home. {error}",
+        "data": {
+          "holiday_temperature": "Temperature on holiday"
+        },
+        "data_description": {
+          "holiday_temperature": "The same setting as \"Temperature on holiday\" on the E32 device and on the E32's Home page."
+        }
       }
     },
     "error": {
@@ -1230,7 +1296,16 @@
       "house_holiday_date_invalid": "Choose a moment in the future, at most a year ahead.",
       "house_mode_not_saved": "The E32 did not accept this ({error}). Try again.",
       "house_mode_update_required": "This E32 software does not know this mode. Update the E32 first.",
-      "e32_inactive_until_invalid": "Choose a date and time in the future (before 2100) for \"Off until\", or leave it empty."
+      "e32_inactive_until_invalid": "Choose a date and time in the future (before 2100) for \"Off until\", or leave it empty.",
+      "house_holiday_dates_needed": "Choose when the holiday starts and when it ends.",
+      "house_holiday_order": "The holiday must end after it starts.",
+      "house_holiday_past": "This holiday is already over. Choose an end in the future.",
+      "house_holiday_too_far": "Choose an end at most a year ahead.",
+      "house_holiday_too_many": "At most 8 holidays can be planned. Remove one first.",
+      "house_holiday_changed": "This holiday was changed elsewhere. Open it again.",
+      "house_holiday_no_clock": "The E32 clock is not set yet, so a holiday date cannot be used. Try again in a minute.",
+      "house_holiday_not_saved": "The E32 did not accept this ({error}). Try again.",
+      "house_holiday_temperature_invalid": "Choose a temperature between 5 and 25 °C."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -1321,7 +1396,8 @@
       "ble_saved_restart_later": "Saved on the E32. It restarts to use the changes as soon as an update or boiler test has finished.",
       "e32_flow_options_saved": "The water temperature settings are saved on the E32.",
       "house_mode_unavailable": "The E32 does not report its house mode right now. Check that it is on, then try again.",
-      "house_mode_saved": "Saved."
+      "house_mode_saved": "Saved.",
+      "house_holidays_none": "No holidays are planned."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -1378,6 +1454,9 @@
       },
       "away_temperature": {
         "name": "Temperature when nobody is home"
+      },
+      "holiday_temperature": {
+        "name": "Temperature on holiday"
       }
     },
     "sensor": {
@@ -3903,6 +3982,15 @@
     },
     "e32_restart_failed": {
       "message": "The E32 restart was not confirmed ({error}). Check the connection and try again."
+    },
+    "holiday_temperature_invalid": {
+      "message": "Choose a temperature on holiday between 5 and 25 °C."
+    },
+    "house_holiday_changed": {
+      "message": "This holiday was changed elsewhere. Open it again."
+    },
+    "house_holiday_too_many": {
+      "message": "At most 8 holidays can be planned. Remove one first."
     }
   },
   "device": {

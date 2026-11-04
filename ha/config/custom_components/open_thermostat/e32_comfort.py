@@ -619,6 +619,14 @@ def comfort_error(err):
     return plan_error(err)
 
 
+def comfort_key(command):
+    """What a newer house command supersedes: the house (mode, away temperature, holiday end), or (rc.4)
+    the holiday temperature on its own, so a house mode chosen right after it never drops it."""
+    if type(command) is dict and "holiday_temperature" in command and not {"house_mode", "away", "holidays"} & set(command):
+        return ("holiday_temperature",)
+    return ("house",)
+
+
 async def async_comfort_command(link, command):
     """POST one command over the room-plan link's stored connection (one login, its lock).
 
@@ -632,7 +640,7 @@ async def async_comfort_command(link, command):
     from .controller_link import ControllerLinkError
     from .room_plan import WriteSuperseded
     room = command.get("room") if type(command) is dict else None
-    wanted = link.claim(("room", room) if room is not None else ("house",))
+    wanted = link.claim(("room", room) if room is not None else comfort_key(command))
     async with link._lock:
         try:
             if not wanted():

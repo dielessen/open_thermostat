@@ -102,7 +102,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "From": "Van",
   "Until": "Tot",
   "Save holiday": "Vakantie opslaan",
-  "Add a holiday": "Vakantie toevoegen",
+  "Plan a holiday": "Vakantie plannen",
   "Temperature on holiday (°C)": "Temperatuur op vakantie (°C)",
   "Every room stays at most this warm on holiday. Until you change it, it is the temperature when nobody is home.": "Op vakantie blijft elke ruimte hooguit zo warm. Tot je hem verandert, is dit de temperatuur als niemand thuis is.",
   "On holiday until {date}.": "Op vakantie tot {date}.",

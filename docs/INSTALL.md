@@ -118,7 +118,7 @@ settings (see [Updates](#13-updates)).
 
 1. Open the [releases page](https://github.com/dielessen/open_thermostat/releases)
    and choose the newest **E32 V2** release. Its tag starts with `v` and
-   contains `e32v2`, for example `v1.0.0-e32v2-rc.4`.
+   contains `e32v2`, for example `v1.0.0-e32v2-rc.5`.
 2. Under **Assets**, download `open-thermostat-e32v2-<version>.zip`. Do not
    use the "Source code" downloads that GitHub adds automatically.
 3. Extract the ZIP into a new folder. You need two files from it:
@@ -421,7 +421,7 @@ OpenThermostat is a *custom repository* in HACS: you add it once.
 4. Restart Home Assistant (**Settings → System → Restart**). *Why:* Home
    Assistant only loads new integrations at start-up.
 
-**Pre-releases** (versions such as `1.0.0rc5`): HACS offers only
+**Pre-releases** (versions such as `1.0.0rc6`): HACS offers only
 stable versions unless you ask for more. Two ways:
 
 - **One specific version:** in the HACS list, open the three dots of the
@@ -437,7 +437,7 @@ stable versions unless you ask for more. Two ways:
 
 1. On the [releases page](https://github.com/dielessen/open_thermostat/releases),
    choose the **Home Assistant** release that the release notes pair with your
-   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc5`.
+   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc6`.
    Download `OpenThermostat-HA-<version>.zip`.
 2. Extract the ZIP on your computer. It contains a folder
    `custom_components/open_thermostat`.
@@ -841,6 +841,9 @@ The trial run is optional. **The E32 does:**
   controlling the boiler. The Overview says **Your thermostat controls the
   boiler** and, under **Who controls the boiler?**, that this is a trial run;
 - change any boiler setting;
+- learn from how your boiler answers its requests (its ceiling and rest, see
+  [Listening to the boiler](USER-GUIDE.md#listening-to-the-boiler)); the
+  boiler's response says **E32 not controlling the boiler** until the takeover;
 - drive radiator valves. A room's **Valve control** switch is off by default,
   and even when it is on, valves are only driven while the E32 controls the
   boiler itself.
@@ -882,13 +885,13 @@ When a new release pair comes out, read its release notes first. They say
 which integration goes with which firmware. Usually: **update the integration
 first, then the firmware.**
 
-**From 1.0.0-rc.3 to 1.0.0-rc.4** (Home Assistant integration 1.0.0rc5), while
+**From 1.0.0-rc.4 to 1.0.0-rc.5** (Home Assistant integration 1.0.0rc6), while
 someone is home:
 
-1. Update OpenThermostat in HACS to **1.0.0rc5** and restart Home Assistant
+1. Update OpenThermostat in HACS to **1.0.0rc6** and restart Home Assistant
    ([13.2](#132-update-the-integration)). HACS offers it only while the
    **Pre-release** switch is on ([9.1](#91-with-hacs-recommended)).
-2. Install E32 1.0.0-rc.4 from the **Firmware** update entity
+2. Install E32 1.0.0-rc.5 from the **Firmware** update entity
    ([13.3](#133-update-the-e32-firmware-from-home-assistant-recommended)).
 3. Confirm the takeover again. A firmware update clears it, and until you
    confirm, the E32 keeps only frost protection. In Home Assistant choose
@@ -896,8 +899,17 @@ someone is home:
    (Settings → System → Repairs), or use the **Rooms** page on the E32.
 
 Settings, rooms, programs, sensors, valves and what the E32 learned are kept,
-and so are entity IDs and history in Home Assistant. From the first morning
-after the update Smart warm-up starts heating early (see
+and so are entity IDs and history in Home Assistant. What rc.5 adds (listening
+to the boiler, the house model, the knowledge figure, free heat) starts from
+zero and fills in over the first days of heating, so **The E32 knows your
+house** starts lower than it will end up; see
+[What the E32 knows](USER-GUIDE.md#what-the-e32-knows-and-what-it-still-lacks).
+The two new sensors **Knowledge** and **Boiler response** read unknown until
+the E32 runs rc.5 and has reported.
+
+**Coming from 1.0.0-rc.3?** The same order and the same versions (integration
+1.0.0rc6, firmware 1.0.0-rc.5); the changes of rc.4 come along. From the first
+morning after the update Smart warm-up starts heating early (see
 [Warm on time](USER-GUIDE.md#warm-on-time-smart-warm-up)). The **Yesterday**
 sensors appear once the E32 has measured a day.
 

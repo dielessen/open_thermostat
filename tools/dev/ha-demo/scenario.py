@@ -124,6 +124,9 @@ class Timeline:
             for h, m in keep:
                 if 0 <= (x.hour * 60 + x.minute) - (h * 60 + m) < 3:
                     self.dhw_kind[i] = "keep_warm"
+        # Now is a heating moment, whatever the time of day: no hot water in the last 45 minutes.
+        for i in range(max(0, n - 45), n):
+            self.dhw_kind[i] = None
         # The living room: floor heating, a smart warm-up before each comfort switch, a dip shortly before now.
         temp, heating = [0.0] * n, [False] * n
         t, on = 20.9, False
@@ -354,12 +357,11 @@ def telemetry(tl, mode="active", uptime_s=86000, heat_today_s=None):
                                            "heating_starts_per_h": 2.5, "short_cycle_h": 0,
                                            "heating_kwh": 15.8, "degree_days": 13.6}}}
     insight = {"schema": 1,
-               "knowledge": {"pct": 78, "missing": ["night:woonkamer", "curve:cold"], "more": 0},
+               "knowledge": {"pct": 78, "missing": ["arrival:woonkamer", "boiler_minimum"], "more": 0},
                "house": {"ua_kw_per_k": 0.21, "kw_per_flow_k": 0.42, "slope": SLOPE, "state": "learned"},
                "boiler": {"held": 0, "rest_s": 600, "ceiling_c": None, "absorbed_kw": 6.8, "kw_per_k": 0.42,
                           "state": "learned", "return": True},
-               "insights": [{"kind": "warmup_faster", "pct": 12, "room": "woonkamer"},
-                            {"kind": "night_saving", "pct": 6, "room": "woonkamer"}]}
+               "insights": [{"kind": "gas_per_dd_down", "pct": 8}]}
     messages += [("fw/telemetry/summary", summary), ("fw/telemetry/flow", flow), ("fw/telemetry/tuning", tuning),
                  ("fw/telemetry/scoreboard", scoreboard), ("fw/telemetry/insight", insight),
                  ("fw/telemetry/learned/woonkamer", learned_room(tl))]

@@ -120,6 +120,7 @@ class Demo:
             os.chmod(secret, 0o600)
         self.user = json.loads(secret.read_text(encoding="utf-8"))
         self.entry_id = None
+        self.token = None
 
     # -- processes -----------------------------------------------------------------------------------
     def start_broker(self):
@@ -284,9 +285,9 @@ class Demo:
     async def shoot(self, hass, language):
         dashboard, views = await self.dashboard(hass)
         say(f"dashboard /{dashboard}: " + ", ".join(f"{v['title']} ({v['path']})" for v in views))
-        await hass.refresh_access()
-        job = {"base": self.base, "tokens": {"access_token": hass.access, "refresh_token": hass.refresh,
-                                            "expires_in": hass.expires_in},
+        # The browser signs in with the long-lived token: it never needs a refresh within its lifetime.
+        job = {"base": self.base, "tokens": {"access_token": self.token, "refresh_token": "",
+                                            "expires_in": 86400},
                "dashboard": dashboard, "views": views, "language": language, "widths": self.args.widths,
                "themes": self.args.themes, "out": str(self.out), "closeups": True, "learningPath": "learned",
                "chrome": self.args.chrome}
@@ -341,6 +342,12 @@ class Demo:
         async with Hass(self.base) as hass:
             await self.ha_ready(hass)
             await self.onboard(hass)
+            # A long-lived access token (a day) for everything after this first run; kept in the work directory.
+            self.token = await hass.ws("auth/long_lived_access_token", client_name="OpenThermostat demo", lifespan=1)
+            token_file = self.work / "demo-token.json"
+            token_file.write_text(json.dumps({"base": self.base, "token": self.token}), encoding="utf-8")
+            os.chmod(token_file, 0o600)
+            say("long-lived access token created (work directory, demo-token.json)")
             await self.mqtt_entry(hass)
             await self.ot_entry(hass)
             await self.house_states(hass)
@@ -357,7 +364,7 @@ class Demo:
         self.start_ha()
         async with Hass(self.base) as hass:
             await self.ha_ready(hass)
-            await hass.login(self.user["username"], self.user["password"])
+            hass.access = self.token
             await self.house_states(hass)
             await self.wait_for(hass, self.live, "the E32 after the restart")
             await asyncio.sleep(8)  # the dashboard rebuilds after the start (registry and language)

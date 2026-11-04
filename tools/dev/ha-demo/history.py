@@ -153,7 +153,7 @@ def write_statistics(db, tl, units):
     for key in ("tapping_gas", "keep_warm_gas"):
         for when, value in increments[key].items():
             increments.setdefault("hot_water_gas", {})[when] = increments["hot_water_gas"].get(when, 0) + value
-    totals, today = {}, {}
+    totals = {}
     now_ts = time.time()
     for key, unit in units.items():
         statistic_id = unit["entity_id"]
@@ -196,10 +196,9 @@ def write_statistics(db, tl, units):
                        "values (?, ?, ?, ?, ?)", [(now_ts, metadata_id, s.timestamp(), scale(c), scale(c)) for s, c in short])
         final = short[-1][1] if short else (hourly[-1][1] if hourly else 0.0)
         totals[key] = final
-        today[key] = final - next((c for s, c in hourly if s == midnight.astimezone(timezone.utc) - timedelta(hours=1)), 0.0)
-    if True:
-        last = (tl.now.replace(minute=tl.now.minute - tl.now.minute % 5) - timedelta(minutes=5))
-        db.execute("insert into statistics_runs (start) values (?)", (last.strftime("%Y-%m-%d %H:%M:%S.000000"),))
+    # The recorder compiles the 5-minute periods after the newest run it finds: the rows above are its own.
+    last = tl.now.replace(minute=tl.now.minute - tl.now.minute % 5) - timedelta(minutes=5)
+    db.execute("insert into statistics_runs (start) values (?)", (last.strftime("%Y-%m-%d %H:%M:%S.000000"),))
     return totals
 
 

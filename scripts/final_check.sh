@@ -354,7 +354,19 @@ print('approved',len(approved))
 PY
   ! grep -qE '^NEW' "$L/unreviewed.txt"
 }
-s_unittests(){ "$HA_VENV/bin/python" -m unittest discover -s scripts -p 'test_*.py' > "$L/unittests-full.log" 2>&1; local rc=$?; grep -E "^(ERROR|FAIL):|^Ran |^OK|^FAILED" "$L/unittests-full.log"; return $rc; }
+s_unittests(){
+  "$HA_VENV/bin/python" -m unittest discover -s scripts -p 'test_*.py' > "$L/unittests-full.log" 2>&1; local rc=$?
+  grep -E "^(ERROR|FAIL):|^Ran |^OK|^FAILED" "$L/unittests-full.log"
+  # The suites of tools/ that the CI job "gates" runs (no device): the switch-over tools, the install acceptance kit
+  # and the release preparation script.
+  local dir
+  for dir in tools/switchover tools/acceptance tools/dev; do
+    if "$HA_VENV/bin/python" -I -B -m unittest discover -s "$dir" -p 'test_*.py' > "$L/unittests-${dir//\//-}.log" 2>&1; then
+      echo "$dir: $(grep -E '^(Ran|OK)' "$L/unittests-${dir//\//-}.log" | tr '\n' ' ')"
+    else rc=1; echo "FAIL $dir"; tail -15 "$L/unittests-${dir//\//-}.log"; fi
+  done
+  return $rc
+}
 s_replay_or_skip(){ if [ -f "$REPLAY_FIXTURE" ]; then step replay s_replay; else record replay "SKIP  replay (no $REPLAY_FIXTURE)"; fi; }
 
 # --- dry run ------------------------------------------------------------------

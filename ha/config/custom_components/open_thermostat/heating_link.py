@@ -1688,6 +1688,9 @@ def wanted_sensors(hub):
             # Only readings the sensor actually reports (not every profile has humidity).
             if sensor.get(metric) is not None:
                 yield ("ble", sensor_id, metric), lambda sensor=sensor, metric=metric: BleSensor(hub, sensor, metric)
+    # Yesterday's scoreboard (E32 rc.4): each figure once the E32 reported a value for it.
+    from .scoreboard import wanted_scoreboard
+    yield from wanted_scoreboard(hub)
 
 
 def wanted_demand(hub):

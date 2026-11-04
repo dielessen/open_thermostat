@@ -109,8 +109,10 @@ def boiler_group(name):
 
 # E32 room entities: unique ID f"{prefix}_e32_room_{room id}_{key}" (longest key first).
 ROOM_KEYS = ("valve_position", "valve_battery", "valve_problem", "valve_control", "fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "thermostat",
-             "learning", "reason",
+             "learning", "reason", "warm_on_time", "overshoot",
              "setpoint", "status", "demand", "state")
+# Yesterday's scoreboard of the house (scoreboard.py, E32 rc.4): unique ID f"{prefix}_hub_{key}".
+SCOREBOARD_HOUSE = ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day")
 # Today's hot water from the E32 (unique ID f"{prefix}_hub_{key}").
 DHW_TODAY = ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")
 BLE_KEYS = ("temperature", "humidity", "battery")
@@ -234,6 +236,15 @@ TEXT = {
         "day_room_no_step": "{room}: asked for heat {h} h; missed comfort {missed} min.",
         "day_outdoor": "Outdoor {low} to {high} °C.",
         "day_partial": "Partial day: the E32 was not heard all day, so the figures are incomplete.",
+        "scoreboard_on_time": "warm on time",
+        "scoreboard_late": "warm {m} min late",
+        "scoreboard_early": "warm {m} min early",
+        "scoreboard_overshoot": "{c} °C too warm",
+        "scoreboard_burner": "Burner: {n} starts per heating hour",
+        "scoreboard_short": "{h} h switching on and off too often",
+        "scoreboard_gas": "Gas for heating: {kwh} kWh",
+        "scoreboard_degree_day": "{v} kWh per degree-day",
+        "scoreboard_note": "Every day the thermostat checks whether each room was warm on time without getting too warm, how often the burner started and how much gas went to heating. It learns from this; every figure keeps its history on its own sensor.",
         "day_none": "The first full day appears here tomorrow.",
         "outdoor": "Outdoor",
         "flow_settings": "Weather compensation and learning",
@@ -381,6 +392,15 @@ TEXT = {
         "day_room_no_step": "{room}: vroeg {h} uur warmte; gemiste comfort {missed} min.",
         "day_outdoor": "Buiten {low} tot {high} °C.",
         "day_partial": "Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig.",
+        "scoreboard_on_time": "op tijd warm",
+        "scoreboard_late": "{m} min te laat warm",
+        "scoreboard_early": "{m} min te vroeg warm",
+        "scoreboard_overshoot": "{c} °C te warm",
+        "scoreboard_burner": "Brander: {n} starts per uur verwarmen",
+        "scoreboard_short": "{h} uur te vaak aan en uit",
+        "scoreboard_gas": "Gas voor verwarmen: {kwh} kWh",
+        "scoreboard_degree_day": "{v} kWh per graaddag",
+        "scoreboard_note": "Elke dag kijkt de thermostaat of elke ruimte op tijd warm was zonder te warm te worden, hoe vaak de brander startte en hoeveel gas naar verwarmen ging. Hij leert daarvan; elk getal houdt zijn geschiedenis bij op zijn eigen sensor.",
         "day_none": "Morgen staat hier de eerste volledige dag.",
         "outdoor": "Buiten",
         "flow_settings": "Weerafhankelijke regeling en leren",
@@ -530,6 +550,15 @@ TEXT = {
         "day_room_no_step": "{room}: żądanie ciepła przez {h} godz.; utracony komfort {missed} min.",
         "day_outdoor": "Na zewnątrz od {low} do {high} °C.",
         "day_partial": "Niepełny dzień: E32 nie był słyszalny przez cały dzień, więc dane są niekompletne.",
+        "scoreboard_on_time": "ciepło na czas",
+        "scoreboard_late": "ciepło {m} min za późno",
+        "scoreboard_early": "ciepło {m} min za wcześnie",
+        "scoreboard_overshoot": "{c} °C za ciepło",
+        "scoreboard_burner": "Palnik: {n} startów na godzinę grzania",
+        "scoreboard_short": "{h} godz. zbyt częstego włączania i wyłączania",
+        "scoreboard_gas": "Gaz na ogrzewanie: {kwh} kWh",
+        "scoreboard_degree_day": "{v} kWh na stopniodzień",
+        "scoreboard_note": "Każdego dnia termostat sprawdza, czy każde pomieszczenie było ciepłe na czas i nie za ciepłe, jak często startował palnik i ile gazu poszło na ogrzewanie. Uczy się z tego; każda liczba ma swoją historię na własnym czujniku.",
         "day_none": "Pierwszy pełny dzień pojawi się tu jutro.",
         "outdoor": "Na zewnątrz",
         "flow_settings": "Kompensacja pogodowa i nauka",
@@ -821,6 +850,67 @@ def _yesterday_section(t, summary, burner_time, missed, gas_unit):
                "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"}
               for entity_id, title in ((burner_time, t["burner_per_day"]), (missed, t["missed_per_day"])) if entity_id]
     return _section(_heading(t["yesterday"], "mdi:calendar-today"), {"type": "markdown", "content": content}, *charts)
+
+
+def _figure(t, digits):
+    """A Jinja expression: the number in v with digits decimals and the language's decimal sign."""
+    return "(('%." + str(digits) + "f' % (v | float)) | replace('.', " + json.dumps(t["decimal"]) + "))"
+
+
+def _jinja_text(text, **values):
+    """A translated text with {name} placeholders as one Jinja string expression: "warm " ~ (m) ~ " min late"."""
+    pieces = []
+    for k, piece in enumerate(re.split(r"\{(\w+)\}", text)):
+        if k % 2:
+            pieces.append("(" + values[piece] + ")")
+        elif piece:
+            pieces.append(json.dumps(piece, ensure_ascii=False))
+    return " ~ ".join(pieces) or '""'
+
+
+def _scoreboard_section(t, rooms, names, house):
+    """Yesterday's scoreboard (scoreboard.py, E32 rc.4) in plain words: each room warm on time and how far it got
+    above its target, the burner's starts and short cycling, the gas for heating and per degree-day.
+
+    rooms: {room id: {"warm_on_time": entity, "overshoot": entity}}; house: {key: entity}. The text follows the
+    sensors' states, so a new day needs no rebuild; hidden while none has a value (firmware before rc.4).
+    """
+    entities = [entity for keys in rooms.values() for entity in keys.values()] + list(house.values())
+    if not entities:
+        return None
+
+    def part(entity, expression):
+        return ("{% set v = states(" + json.dumps(entity) + ") %}{% if is_number(v) %}{% set parts = parts + ["
+                + expression + "] %}{% endif %}")
+
+    def line(prefix):
+        return "{% if parts %}- " + prefix + "{{ parts | join(' · ') }}\n{% endif %}"
+    content = ""
+    for room_id, keys in rooms.items():
+        content += "{% set parts = [] %}"
+        if keys.get("warm_on_time"):  # minutes after the switch time: late, early or on time
+            content += ("{% set v = states(" + json.dumps(keys["warm_on_time"]) + ") %}{% if is_number(v) %}"
+                        "{% set m = v | float | round(0) | int %}{% set parts = parts + [("
+                        + _jinja_text(t["scoreboard_late"], m="m") + ") if m > 0 else ("
+                        + _jinja_text(t["scoreboard_early"], m="-m") + ") if m < 0 else "
+                        + json.dumps(t["scoreboard_on_time"], ensure_ascii=False) + "] %}{% endif %}")
+        if keys.get("overshoot"):
+            content += part(keys["overshoot"], _jinja_text(t["scoreboard_overshoot"], c=_figure(t, 1)))
+        content += line("**{{ " + json.dumps(names.get(room_id, room_id), ensure_ascii=False) + " }}**: ")
+    for figures in ((("burner_starts_per_heating_hour", "scoreboard_burner", "n", 1),
+                     ("short_cycling_hours", "scoreboard_short", "h", 1)),
+                    (("heating_gas_yesterday", "scoreboard_gas", "kwh", 1),
+                     ("gas_per_degree_day", "scoreboard_degree_day", "v", 2))):
+        if any(house.get(key) for key, *_ in figures):
+            content += "{% set parts = [] %}"
+            for key, text, name, digits in figures:
+                if house.get(key):
+                    content += part(house[key], _jinja_text(t[text], **{name: _figure(t, digits)}))
+            content += line("")
+    section = _section(_heading(t["yesterday"], "mdi:scoreboard-outline"), {"type": "markdown", "content": content},
+                       _note(t, t["scoreboard_note"]))
+    section["visibility"] = _any_known(entities)  # the whole section, until one figure has a value
+    return section
 
 
 # The boiler's display code in words (display_codes.py: its attributes), for a look at a glance:
@@ -1485,6 +1575,13 @@ class RoomDashboard:
 
         # -- Learning and settings -----------------------------------------------------------------
         learning = _learned_sections(t, learned_overview)
+        # Yesterday's scoreboard (E32 rc.4): is it getting better? Only once the E32 reports it.
+        scoreboard = _scoreboard_section(
+            t, {room_id: {key: room[key] for key in ("warm_on_time", "overshoot") if room.get(key)}
+                for room_id, room in e32_room_entities.items() if room.get("warm_on_time") or room.get("overshoot")},
+            names, {key: hub[key] for key in SCOREBOARD_HOUSE if key in hub})
+        if scoreboard:
+            learning.append(scoreboard)
         # The heating curve and learning switches (stored on the E32), and the rooms editor.
         settings = _section(
             _heading(t["smart_heating"], "mdi:chart-bell-curve-cumulative"),

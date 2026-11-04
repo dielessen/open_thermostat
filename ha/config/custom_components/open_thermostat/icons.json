@@ -306,6 +306,24 @@
       },
       "field_thermostat_requested_pump_modulation": {
         "default": "mdi:pump"
+      },
+      "room_warm_on_time": {
+        "default": "mdi:clock-check-outline"
+      },
+      "room_overshoot": {
+        "default": "mdi:thermometer-chevron-up"
+      },
+      "burner_starts_per_heating_hour": {
+        "default": "mdi:counter"
+      },
+      "short_cycling_hours": {
+        "default": "mdi:sync-alert"
+      },
+      "heating_gas_yesterday": {
+        "default": "mdi:fire"
+      },
+      "gas_per_degree_day": {
+        "default": "mdi:sun-thermometer-outline"
       }
     },
     "switch": {

@@ -148,6 +148,36 @@ TEST(BoilerResponse, WarmUpsHotWaterOtherControllersAndOwnStopsAreNoHeldTargets)
     EXPECT_EQ(low.r.heldToday(), 1u) << "request - 2 degC counts";
 }
 
+// The owner's recording (30 Oct - 2 Nov 2026): a keep-warm round drops its hot-water bit one report
+// before the burner stops, at 72..76 degC, while the boiler holding a request stopped 3..6 degC above
+// it. That tail is no heating burn holding the E32's request: no hot water in the minute before the
+// stop, a heating burn of at least 1 min, and the water at most 8 degC above the request.
+TEST(BoilerResponse, TheTailOfAKeepWarmRoundIsNoHeldTarget) {
+    Bench b;
+    b.s.requestC = 31;
+    b.run(11 * minute);
+    const auto round = [&](uint64_t tailMs) {      // 3 min of hot water up to 75 degC, then the tail
+        b.s.burnerOn = true; b.s.hotWater = true; b.s.modulationPct = 100;
+        for (int k = 0; k < 18; ++k) { b.s.flowCentiC = int16_t(5000 + 140 * k); b.step(); }
+        b.s.hotWater = false; b.s.modulationPct = 37;
+        for (uint64_t t = 0; t < tailMs; t += 10 * second) b.step();
+        b.s.burnerOn = false; b.s.modulationPct = 0; b.run(5 * minute);
+    };
+    round(10 * second);                             // the recording's tail: one report
+    EXPECT_EQ(b.r.heldToday(), 0u);
+    round(2 * minute);                              // two minutes on: no longer a tail, but 73 degC is no 31 degC request
+    EXPECT_EQ(b.r.heldToday(), 0u);
+    b.s.flowCentiC = 3000; b.run(minute);
+    b.burn(50 * second, 3400);                      // a heating burn under a minute
+    b.run(5 * minute);
+    EXPECT_EQ(b.r.heldToday(), 0u);
+    b.burn(2 * minute, 3900);                       // 8 degC above: still the boiler holding the request
+    b.run(5 * minute);
+    EXPECT_EQ(b.r.heldToday(), 1u);
+    b.burn(2 * minute, 4000); b.run(5 * minute);
+    EXPECT_EQ(b.r.heldToday(), 1u) << "9 degC above";
+}
+
 // Hot water, a silence over 60 s, the end of the request or another controller close an open
 // rest without counting it; a rest outside 60..1800 s is no observation either.
 TEST(BoilerResponse, AnInterruptedRestIsNoObservation) {

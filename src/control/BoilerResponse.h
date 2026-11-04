@@ -18,10 +18,11 @@ namespace heating::control {
 // (flow, return, burner, hot water, burner power) tell how it answers the E32's request,
 // without reading or changing any boiler setting:
 //  - a held target: while the E32 drives the boiler and asks heat that a room wants (no hot
-//    water, past the first 10 min of the request, no warm-up: the lead room less than 1 degC
-//    short), the burner stops by itself with the water at most 2 degC below the request, or it
-//    burns at its least power for 3 min while the water rises 2 degC above the request: the
-//    circuit takes less heat than the boiler's least. Two in one request: over-asked; that
+//    water in the last minute, past the first 10 min of the request, no warm-up: the lead room
+//    less than 1 degC short), the burner stops by itself after a heating burn of at least 1 min
+//    with the water between 2 degC below and 8 degC above the request, or it burns at its least
+//    power for 3 min while the water rises 2 degC above the request: the circuit takes less heat
+//    than the boiler's least. Two in one request: over-asked; that
 //    request - 2 degC is a candidate ceiling for the outdoor band of the request (6 bands of
 //    5 K from -10 degC; unknown outdoor: 5..10). A band's ceiling is an EMA (0.3) of its
 //    candidates, raised 1 degC per 6 hours of heat asked at or above it without a held event
@@ -54,6 +55,13 @@ public:
     static constexpr float water = 4.186f;                            // kJ per kg and K
     struct Params {
         int16_t heldMarginCentiC = 200;            // a stop with the water at least request - 2 degC
+        // ... and at most request + 8 degC, after a heating burn of at least 1 min with no hot water in
+        // the minute before the stop. The owner's recording (30 Oct - 2 Nov 2026): the boiler stopped
+        // 3..6 degC above the flow the thermostat asked when it held it (7 times), while a keep-warm
+        // round often drops its hot-water bit one report before the burner stops, 19..42 degC above
+        // (the round's tail, not a request held; AutoTuner's dhwLookMs, the same boiler habit).
+        int16_t heldAboveCentiC = 800;
+        uint32_t minBurnMs = 60000, hotWaterLookMs = 60000;
         uint32_t settleMs = 600000;                // the first 10 min of a request fill the circuit
         int16_t warmupCentiC = 100;                // the lead room this far below its target: a warm-up
         uint8_t minModulationPct = 25;             // the burner's least power (or the lowest seen this boot)
@@ -121,6 +129,7 @@ public:
         const bool heating = known && *s.burnerOn && !hot; // the burner heats the circuit
         const bool asked = s.ownRequest && s.requestC > 0;
         if (heating && s.modulationPct && *s.modulationPct) lowestPct_ = std::min(lowestPct_, *s.modulationPct);
+        if (hot) hotAt_ = s.now;
         // An open rest ends without counting: hot water, a silence, an unknown burner, the request ended.
         if (gap || !known || hot || !asked) rest_.reset();
         // One request: from the E32's heat request to its end (or a silence).
@@ -128,12 +137,14 @@ public:
         if (asked && !run_.active) { run_.active = true; run_.since = s.now; }
         if (run_.active && s.outdoorCentiC) { run_.outdoorSum += *s.outdoorCentiC; ++run_.outdoorN; }
         const bool countable = asked && s.demand && known && !hot && !gap && s.now - run_.since >= p_.settleMs
-            && !(s.shortfallCentiC && *s.shortfallCentiC >= p_.warmupCentiC);
+            && !(s.shortfallCentiC && *s.shortfallCentiC >= p_.warmupCentiC) && !(hotAt_ && s.now - *hotAt_ <= p_.hotWaterLookMs);
+        const int request = int(s.requestC) * 100;
         if (!gap && wasHeating_ && !heating && known && !hot) {
             // The burner stopped by itself with the water at its target (the highest of this and the
-            // last sample): a held target, and the boiler's own rest starts.
+            // last sample) after a heating burn: a held target, and the boiler's own rest starts.
             const int peak = std::max<int>(s.flowCentiC.value_or(INT16_MIN), lastFlow_.value_or(INT16_MIN));
-            if (countable && (burn_.held || peak >= int(s.requestC) * 100 - p_.heldMarginCentiC)) {
+            const bool atTarget = peak >= request - p_.heldMarginCentiC && peak <= request + p_.heldAboveCentiC;
+            if (countable && (burn_.held || (atTarget && s.now - burn_.since >= p_.minBurnMs))) {
                 if (!burn_.held) held(s);
                 rest_ = s.now;
             }
@@ -147,8 +158,8 @@ public:
             burn_ = {}; burn_.since = s.now;
         }
         // Burning at its least power while the water rises above the request: held as well.
-        if (heating && countable && !burn_.held && s.modulationPct && s.flowCentiC
-            && *s.modulationPct <= std::min(p_.minModulationPct, lowestPct_) && *s.flowCentiC >= int(s.requestC) * 100 + p_.risingCentiC) {
+        if (heating && countable && !burn_.held && s.modulationPct && s.flowCentiC && *s.modulationPct <= std::min(p_.minModulationPct, lowestPct_)
+            && *s.flowCentiC >= request + p_.risingCentiC && *s.flowCentiC <= request + p_.heldAboveCentiC) {
             if (!burn_.leastSince) { burn_.leastSince = s.now; burn_.leastFlow = *s.flowCentiC; }
             else if (s.now - *burn_.leastSince >= p_.minModulationMs && *s.flowCentiC > burn_.leastFlow) held(s);
         } else burn_.leastSince.reset();
@@ -361,7 +372,7 @@ private:
     uint64_t lastMs_ = 0;
     uint8_t lowC_ = 0, highC_ = 0, lowestPct_ = UINT8_MAX;
     std::optional<int16_t> outdoor_, lastFlow_;
-    std::optional<uint64_t> returnAt_, rest_;
+    std::optional<uint64_t> returnAt_, rest_, hotAt_;
     std::optional<float> absorbed_;
     Run run_;
     Burn burn_;

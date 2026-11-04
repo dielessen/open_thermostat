@@ -33,6 +33,7 @@
 #include "control/NewPlanDefault.h"
 #include "control/HeatingInput.h"
 #include "control/HeatingTelemetry.h"
+#include "control/Scoreboard.h"
 #include "control/HeatingHistory.h"
 #include <esp_heap_caps.h>
 #include "diagnostics/BlackBox.h"
@@ -223,7 +224,10 @@ public:
             std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
             const auto now = bleReceiptClock();
             return control::heatingSummaryTelemetry(flowLearner_, learnedContext(now, temperatures), ems_.dhwSummaryJson(), &flowPolicy_,
-                [&](cJSON* root) { return autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual, control::AutoTuner::mqttEntries); });
+                [&](cJSON* root) {
+                    return autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual, control::AutoTuner::mqttEntries)
+                        && scoreboard_.addJson(root, autoTuner_, roomEngine_.plan()); // rc.4 (F1)
+                });
         });
 #endif
 	}
@@ -344,9 +348,17 @@ public:
         if (saved == HeatingPlanSave::storage_full) return "storage_full";
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
         planStored_ = true;
+        // rc.4 (L5): only a change of the control itself (rooms, sources, programs, limits) gives the
+        // tuner a day of its own; a renamed room or an away temperature keeps its evidence.
+        const bool controlChanged = control::AutoTuner::controlChanged(roomEngine_.plan(), plan);
+        const auto roomMap = control::Scoreboard::roomMap(roomEngine_.plan(), plan);
+        scoreboard_.remap(roomMap);
+        readiness_.remap(roomMap);  // rc.4 (R1-04): the last known targets follow their rooms
         roomEngine_.setPlan(plan);
         flowLearner_.setPlan(plan);
-        autoTuner_.restart(bleReceiptClock()); // a new plan: a day of its own before the tuner moves
+        flowPolicy_.setPlan(plan);  // rc.4 (R1-04): the start latch, the curve window and the arrival factors follow the ids
+        autoTuner_.setPlan(plan);
+        if (controlChanged) autoTuner_.restart(bleReceiptClock());
         // Valves of rooms the plan no longer has leave their record (stored), so a later valve
         // save is not refused as unknown_room and their fw/state/trv/<room> topic is cleared.
         auto valves = trv_.config();
@@ -540,6 +552,8 @@ public:
         if (mqtt) return root;
         // The self-tuning (AutoTuner): its state, the knobs in effect, yesterday and the change log.
         if (!autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual)) { cJSON_Delete(root); return nullptr; }
+        // rc.4 (F1): the daily scoreboard (on time, overshoot, starts, short cycling, gas, degree-days).
+        if (!scoreboard_.addJson(root, autoTuner_, roomEngine_.plan())) { cJSON_Delete(root); return nullptr; }
         // What the learner found (report only) and, with a trusted clock, its plans.
         std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
         cJSON* learned = control::learnedJson(flowLearner_, roomEngine_.plan(), learnedContext(now, temperatures));
@@ -911,6 +925,10 @@ private:
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)
     control::FlowSettings flowSettings_; // as stored: the options, the owner's knobs and which are manual
     control::AutoTuner autoTuner_;       // rc.2: the automatic knobs from the measured days (NVS "autotune")
+    control::Scoreboard scoreboard_;     // rc.4: the daily scoreboard (NVS "scoreboard")
+    std::string scoreboardStored_;       // the stored record until the clock knows the local day
+    bool scoreboardAdopted_ = false;
+    uint64_t scoreboardLastMs_ = 0;
     control::LearnedStore learnedStore_; // rc.2: the learner's, curve's and night ledger's state over restarts (NVS "learned_a", "learned_b")
     // A plan or Bluetooth save erased optional NVS records to make room (NvsOptionalRecords.h):
     // what was learned and the knobs are written again where they fit (readiness: its next save).
@@ -949,8 +967,10 @@ private:
         const auto raw = readHeatingPlan(&planStored_);
         const auto root = control::parseNestedJson(raw);
         control::RoomPlan plan;
-        if (root && !control::RoomPlan::parse(root.get(), plan)) { roomEngine_.setPlan(plan); flowLearner_.setPlan(plan); }
-        else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms\n");
+        if (root && !control::RoomPlan::parse(root.get(), plan)) {
+            roomEngine_.setPlan(plan); flowLearner_.setPlan(plan);
+            flowPolicy_.setPlan(plan); autoTuner_.setPlan(plan); // rc.4: per-room state keyed by id
+        } else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms\n");
     }
     // ha/heating_input: room states and the learner's gas, price, outdoor and
     // boiler power (control/HeatingInput.h). Anything else is ignored.
@@ -969,6 +989,7 @@ private:
         if (networkTimeTrusted) context.utc = static_cast<int64_t>(std::time(nullptr));
         context.temperatures = temperatures.data();
         context.outdoorCentiC = outdoor.centiC; context.outdoorSource = outdoor.source; context.now = now;
+        context.arrival = &flowPolicy_.arrival(); // rc.4 (L2)
         return context;
     }
     // Every 10 s: feed the Bluetooth sources, then compute the (shadow) request.
@@ -1012,6 +1033,7 @@ private:
                                         tuning.minOnS * 1000u, tuning.minOffS * 1000u);
         stepActiveHeat(now, valved, ems);
         stepAutoTuner(now, unixNow, valved, ems);
+        stepScoreboard(now, unixNow);
         trv_.step(now, trvRooms_, activeGuard_.confirmedOutput(), [this](const std::string& topic, const std::string& payload) {
             return mqtt_.publishExternal(topic, payload);
         });
@@ -1090,7 +1112,27 @@ private:
         }
         flowLearner_.sample(now, boiler, rooms.data(), count);
     }
-    void loadFlowSettings() { AutoTunerNvs::read(autoTuner_); applyFlowSettings(FlowSettingsNvs::read()); }
+    void loadFlowSettings() {
+        const bool restored = AutoTunerNvs::read(autoTuner_);
+        applyFlowSettings(FlowSettingsNvs::read());
+        autoTuner_.boot(bleReceiptClock(), restored); // rc.4 (L5): 2 h after a boot with its record, else a day
+        scoreboardStored_ = ScoreboardNvs::read();    // adopted once the clock knows the local day
+    }
+    // rc.4 (F1): the scoreboard follows the clock; the arrival learner's judged mornings go in.
+    void stepScoreboard(uint64_t now, std::optional<uint32_t> unixNow) {
+        if (!unixNow) return;
+        const int32_t day = control::RoomSchedule::localDay(*unixNow);
+        if (!scoreboardAdopted_) {
+            scoreboardAdopted_ = true;
+            autoTuner_.adoptDay(day);
+            if (!scoreboardStored_.empty() && !scoreboard_.restore(scoreboardStored_.c_str(), day)) DBGLOGFI(log_, logFeature_, "Scoreboard record not for today; dropped\n");
+            scoreboardStored_.clear();
+        }
+        const uint32_t dtS = scoreboardLastMs_ && now > scoreboardLastMs_ ? uint32_t(std::min<uint64_t>(now - scoreboardLastMs_, 60000) / 1000) : 0;
+        scoreboardLastMs_ = now;
+        scoreboard_.step(*unixNow, dtS, learnerOutdoor(now).centiC, flowLearner_.gas().heatingKwh());
+        for (control::ArrivalLearner::Event ev; flowPolicy_.arrival().pop(ev);) scoreboard_.arrival(ev.room, ev.atUtc, ev.errorMin);
+    }
     control::ControlTuning effectiveTuning() const { return autoTuner_.effective(flowSettings_.tuning, flowSettings_.manual); }
     // The stored settings with the knobs in effect for every part.
     void applyFlowSettings(const control::FlowSettings& settings) {
@@ -1115,7 +1157,13 @@ private:
         s.now = now; s.utc = unixNow; s.request = request; s.burnerOn = ems.burnerOn; s.hotWater = ems.hotWater;
         s.shortCycling = ems_.burnerCycles().shortCycling; s.active = activeGuard_.confirmedOutput();
         s.tuning = &tuning; s.rooms = rooms.data(); s.count = count;
-        if (!autoTuner_.sample(s)) return;
+        const bool closed = autoTuner_.sample(s);
+        // rc.4 (L5): the day counters and the scoreboard every hour, so a restart loses at most an hour.
+        if (unixNow && autoTuner_.dayStoreDue(now)) {
+            if (!AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries())) DBGLOGFI(log_, logFeature_, "Tuning day not saved (NVS short of room or write failed)\n");
+            if (const auto text = scoreboard_.stored(); !text.empty() && !ScoreboardNvs::write(text)) DBGLOGFI(log_, logFeature_, "Scoreboard not saved (NVS short of room or write failed)\n");
+        }
+        if (!closed && !(unixNow && autoTuner_.evaluationPending(now))) return;
         std::array<control::AutoTuner::Learned, control::RoomPlan::maxRooms> learned{};
         const auto outdoor = learnerOutdoor(now).centiC;
         for (size_t i = 0; i < count && i < flowLearner_.rooms(); ++i) {

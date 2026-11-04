@@ -458,3 +458,27 @@ TEST(TakeoverReadiness, TheJsonStaysWithinTheTelemetryBudget) {
     }
 }
 }
+
+// rc.4 (R1-04): a plan edit that reorders the rooms moves their last known targets with them,
+// so the reorder itself is no night setback (and no morning rise).
+TEST(TakeoverReadiness, APlanReorderIsNoSetback) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    TakeoverReadiness r;
+    TakeoverReadiness::Inputs in;
+    in.planMaximumC = 60; in.boilerLimitC = 70; in.limitRead = true; in.boilerHeardAtMs = 0;
+    in.roomCount = 2; in.rooms[0] = {RoomDemand::Status::ok, int16_t(2100), 2}; in.rooms[1] = {RoomDemand::Status::ok, int16_t(1700), 2};
+    in.utc = midnight + 20 * 3600;                                    // 20:00 local: a drop counts as a setback
+    r.sample(0, in); r.sample(10 * second, in);
+    std::array<int8_t, TakeoverReadiness::maxRooms> from{}; from.fill(-1); from[0] = 1; from[1] = 0;
+    r.remap(from);
+    std::swap(in.rooms[0], in.rooms[1]);
+    r.sample(20 * second, in);
+    EXPECT_EQ(r.totals().setbacks, 0u);
+    in.rooms[1].setpoint = int16_t(2000);                              // the warm room's real setback
+    r.sample(30 * second, in);
+    EXPECT_EQ(r.totals().setbacks, 1u);
+    TakeoverReadiness other;                                           // without the remap the swap itself would count
+    in.rooms[0] = {RoomDemand::Status::ok, int16_t(2100), 2}; in.rooms[1] = {RoomDemand::Status::ok, int16_t(1700), 2};
+    other.sample(0, in); std::swap(in.rooms[0], in.rooms[1]); other.sample(10 * second, in);
+    EXPECT_EQ(other.totals().setbacks, 1u);
+}

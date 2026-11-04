@@ -109,9 +109,17 @@ struct Bench {
     RoomEngine engine;
     std::vector<std::optional<int16_t>> temperatures;
     LearnedContext context;
+    ArrivalLearner arrival; // worst: a judged morning in every room (rc.4, the "arrival" of the plan)
     Bench(bool worst, bool trained, bool clock) : plan(eightRooms(worst)) {
         learner.setPlan(plan);
         if (trained) train(learner, plan.rooms.size());
+        if (worst) {
+            arrival.setPlan(plan);
+            const ArrivalLearner::Rise rise{wednesday23 - 16 * 3600, wednesday23 - 18 * 3600, 2100}; // this morning's rise
+            for (size_t i = 0; i < plan.rooms.size(); ++i)
+                for (int64_t t = rise.startUtc; t <= rise.atUtc + 3 * 3600; t += 60) arrival.observe(i, t, rise, true, int16_t(1850)); // never arrived
+            context.arrival = &arrival;
+        }
         engine.setPlan(plan);
         for (size_t i = 0; i < plan.rooms.size(); ++i) {
             for (const auto& s : plan.rooms[i].sources)
@@ -397,16 +405,18 @@ TEST(HeatingTelemetry, BurnerKeepsItsKeysWhileUnknown) {
     EXPECT_EQ(print(active.get()), R"({"burner":{"starts_last_hour":7,"heating_starts_last_hour":6,"short_cycling":true,"activity":"keep_warm"}})");
 }
 
-TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder900Bytes) {
+// The budget (TELEMETRIEBUDGET.nl.md, the soak chain's sizes and fuzz_room_plan): 1000 B. rc.4
+// added "readiness_timing", "estimate" and "arrival" (an object once a morning was judged).
+TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder1000Bytes) {
     for (const bool worst : {false, true}) {
-        Bench b(worst, true, true);                      // worst: 32-character ids
+        Bench b(worst, true, true);                      // worst: 32-character ids and a judged morning
         if (worst) b.learner.gasPrice(FlowLearner::maxGasPrice); // the longest prices and savings
         size_t largest = 0;
         for (size_t i = 0; i < b.plan.rooms.size(); ++i) {
             const auto payload = learnedRoomTelemetry(b.learner, b.plan, i, b.context);
             ASSERT_FALSE(payload.empty());
             largest = std::max(largest, payload.size());
-            EXPECT_LE(payload.size(), 900u) << i;
+            EXPECT_LE(payload.size(), 1000u) << i;
             Json j(cJSON_Parse(payload.c_str()), cJSON_Delete);
             ASSERT_TRUE(j);
             EXPECT_EQ(cJSON_GetObjectItem(j.get(), "schema")->valuedouble, 1);
@@ -428,6 +438,13 @@ TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder900Bytes) {
             const cJSON* next = cJSON_GetObjectItem(start, "next_switch");
             EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(next, "utc"))); EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(next, "target_c")));
             EXPECT_EQ(cJSON_GetArraySize(next), 2);
+            // rc.4: the timing readiness, the estimate flag and the arrival feedback (null while no
+            // morning was judged, else factor/events/last_error_min/last_at_utc).
+            EXPECT_TRUE(cJSON_IsString(cJSON_GetObjectItem(learned, "readiness_timing")));
+            EXPECT_TRUE(cJSON_IsBool(cJSON_GetObjectItem(start, "estimate")));
+            const cJSON* arrival = cJSON_GetObjectItem(plan, "arrival");
+            if (worst) { ASSERT_TRUE(cJSON_IsObject(arrival)); EXPECT_EQ(cJSON_GetObjectItem(arrival, "last_error_min")->valueint, 180); EXPECT_EQ(cJSON_GetArraySize(arrival), 4); }
+            else EXPECT_TRUE(cJSON_IsNull(arrival));
             const cJSON* night = cJSON_GetObjectItem(plan, "night");
             EXPECT_STREQ(cJSON_GetObjectItem(night, "reason")->valuestring, "estimated");
             EXPECT_TRUE(cJSON_IsString(cJSON_GetObjectItem(night, "recommended")));

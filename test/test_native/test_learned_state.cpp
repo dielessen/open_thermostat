@@ -1027,3 +1027,45 @@ TEST(LearnedNvsBudget, ARollbackFindsThePreviousFirmwaresRoom) {
         EXPECT_TRUE(oldGates(pending.stats())) << "a bootloader rollback finds its room";
     }
 }
+
+// rc.4 (L2): the arrival factors travel as their own frame, come back by room id, and an older
+// bundle without the frame (or a damaged frame) leaves them neutral.
+TEST(LearnedState, TheArrivalFactorsTravelInTheBundleAndComeBackById) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const auto plan2 = [](std::initializer_list<const char*> ids) {
+        RoomPlan p;
+        for (const char* id : ids) { RoomPlan::Room r; r.id = r.name = id; r.state = RoomDemand::State::active; r.emitter = RoomPlan::Emitter::floor; p.rooms.push_back(r); }
+        return p;
+    };
+    FlowLearner l; l.setPlan(plan2({"woonkamer", "keuken"}));
+    FlowPolicy p; p.setPlan(plan2({"woonkamer", "keuken"}));
+    using heating::control::ArrivalLearner;
+    const ArrivalLearner::Rise rise{1'800'000'000 + 8 * 3600, 1'800'000'000 + 6 * 3600, 2100};
+    for (int64_t t = rise.startUtc - 600; t <= rise.atUtc + 1800; t += 60) {                 // keuken arrives 20 min late
+        const int16_t temp = t < rise.startUtc ? 1900 : int16_t(std::min<int64_t>(2100, 1900 + 200 * (t - rise.startUtc) / (rise.atUtc + 1200 - rise.startUtc)));
+        p.arrival().observe(1, t, rise, t >= rise.startUtc, temp);
+    }
+    ASSERT_EQ(p.arrival().events(1), 1u);
+    const auto all = LearnedState::bundle(l, p, 4096);
+    const auto g = LearnedState::globalFrame(l, p);
+    ASSERT_GT(all.size(), g.size());
+    EXPECT_EQ(all[g.size() + 1], 'A');
+    EXPECT_TRUE(LearnedState::validBundle(all));
+    FlowLearner m; m.setPlan(plan2({"keuken", "woonkamer"}));
+    FlowPolicy q; q.setPlan(plan2({"keuken", "woonkamer"}));
+    EXPECT_EQ(LearnedState::restoreBundle(all, m, q), 0) << "no room frames";
+    EXPECT_NEAR(q.arrival().lead(0).factor, 1.10f, 1e-5);
+    EXPECT_EQ(q.arrival().events(0), 1u);
+    EXPECT_FLOAT_EQ(q.arrival().lead(1).factor, 1.0f);
+    // A damaged arrival frame: the bundle is invalid; the store path skips just that frame.
+    auto bad = all; bad[g.size() + 9] = char(bad[g.size() + 9] ^ 0x55);
+    EXPECT_FALSE(LearnedState::validBundle(bad));
+    FlowPolicy r; r.setPlan(plan2({"keuken"}));
+    uint32_t done = 0; bool global = false;
+    LearnedState::restoreFrames(bad, m, r, done, global);
+    EXPECT_TRUE(global); EXPECT_FLOAT_EQ(r.arrival().lead(0).factor, 1.0f);
+    // Without any judged morning there is no frame at all.
+    FlowPolicy none; none.setPlan(plan2({"woonkamer"}));
+    EXPECT_EQ(LearnedState::arrivalFrame(none), "");
+    EXPECT_EQ(LearnedState::bundle(l, none, 4096), g);
+}

@@ -1639,10 +1639,10 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
             const auto payload = learnedRoomTelemetry(learner_, engine_.plan(), room, learnedContext(temperatures));
             noteLocaltime("mqtt_learned_room", localtimeCalls - calls0, utc_);
             EXPECT(topicSafeRoomId(engine_.plan().rooms[room].id), "topic_unsafe_id", "room id %s", engine_.plan().rooms[room].id.c_str());
-            checkPayload("mqtt_learned_room", payload, 900);
+            checkPayload("mqtt_learned_room", payload, 1000);
             // The id appears once; a 32-character id (the plan maximum) would add this much.
             const size_t worst = payload.size() + (32 - std::min<size_t>(32, engine_.plan().rooms[room].id.size()));
-            EXPECT(worst <= 900, "mqtt_learned_room_32_char_id", "%zu B with a 32-character room id", worst);
+            EXPECT(worst <= 1000, "mqtt_learned_room_32_char_id", "%zu B with a 32-character room id", worst);
             auto& w = counters[ctx.scenario + ":mqtt_learned_room_max_with_32_char_id"];
             w = std::max<uint64_t>(w, worst);
         });

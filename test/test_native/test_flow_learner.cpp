@@ -8,6 +8,7 @@
 
 namespace {
 using heating::control::FlowLearner;
+using heating::control::LeadFactor;
 using heating::control::RoomPlan;
 using heating::control::RoomSchedule;
 using heating::control::ShadowComparison;
@@ -475,16 +476,20 @@ TEST(WarmupPlanner, DefaultLeadWhileNotLearned) {
     EXPECT_EQ(s.rise.toCentiC, 2100); EXPECT_EQ(s.rise.fromCentiC, 1850);
     EXPECT_STREQ(s.confidence, "default");
     EXPECT_FALSE(s.coolingLearned);
+    EXPECT_TRUE(s.estimate);
     EXPECT_EQ(s.startTemperatureCentiC, 1900);             // no cooling model: the room as it is now
-    EXPECT_EQ(s.leadS, 4 * 3600u);                         // 2.0 degC x 2 h
-    EXPECT_EQ(s.startUtc, s.rise.atUtc - 4 * 3600);
+    // rc.4: 2.0 degC x 2 h would be 4 h; an estimate no morning has judged yet is capped at 3 h (floor).
+    EXPECT_EQ(s.leadS, WarmupPlanner::estimateCapFloorS);
+    EXPECT_EQ(s.startUtc, s.rise.atUtc - 3 * 3600);
     EXPECT_FALSE(s.startNow);
+    const LeadFactor trusted{1.0f, true};                  // judged mornings lift the cap
+    EXPECT_EQ(WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, int16_t(1900), std::nullopt, trusted).leadS, 4 * 3600u);
     // Without a reading the setback is assumed: 2.5 degC x 2 h, the default lead's own bound.
-    const auto blind = WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, std::nullopt, std::nullopt);
+    const auto blind = WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, std::nullopt, std::nullopt, trusted);
     EXPECT_EQ(blind.leadS, 5 * 3600u);
     EXPECT_EQ(blind.startTemperatureCentiC, 1850);
     // Colder than the setback: that reading.
-    EXPECT_EQ(WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, int16_t(1800), std::nullopt).leadS, 6 * 3600u);
+    EXPECT_EQ(WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, int16_t(1800), std::nullopt, trusted).leadS, 6 * 3600u);
     EXPECT_STREQ(WarmupPlanner::optimumStart(h.learner, 0, RoomSchedule{}, wednesday23, int16_t(1900), std::nullopt).reason, "no_schedule");
 }
 
@@ -697,4 +702,60 @@ TEST(FlowLearner, OwnMathMatchesTheLibrary) {
     for (double x : {1e-9, 2e-5, 0.123456789, 1.0, 3.0, 1e4, 7.5e8}) EXPECT_NEAR(learnmath::sqrt(x), std::sqrt(x), 1e-14 * std::sqrt(x)) << x; // LearnedState's spreads
     for (double x : {0.0, 0.5, 1.49, 2.5, -0.5, -2.5, 176.4999, 1234.5}) EXPECT_EQ(learnmath::round(x), std::round(x)) << x;
 }
+}
+
+// rc.4 (L1): a store boiler's keep-warm rounds (or taps) at night no longer restart the 2 h coast
+// wait: the cool segment pauses over them and the heat-loss rate is still learned.
+TEST(FlowLearner, KeepWarmRoundsPauseTheCoolingInsteadOfResettingIt) {
+    auto h = House::floor();
+    h.outdoorKnown = true;
+    for (int c = 0; c < 3; ++c)
+        for (const double o : {0.0, 10.0}) {
+            h.outdoor = o; h.rooms[0].T = 20;
+            h.run(210 * minute, 40.0);
+            for (int k = 0; k < 40; ++k) { h.run(11 * minute, std::nullopt); h.run(1 * minute, std::nullopt, true); } // 8 h, a round every 12 min
+        }
+    const auto m = h.learner.heatModel(0);
+    EXPECT_GE(m.coolSegments, 3);
+    ASSERT_TRUE(m.lossPerHour);
+    EXPECT_NEAR(*m.lossPerHour, 0.02, 0.005);
+    // A leaking three-way valve: the room warms (0.8 degC/h, more than the house loses) while the
+    // boiler keeps its store warm. That is no cooling (cooling_unexplained), so the model stays
+    // empty rather than wrong.
+    auto leak = House::floor();
+    leak.outdoorKnown = true;
+    bool off = false; double leakC = 0;
+    leak.hook = [&](uint64_t, size_t, FlowLearner::RoomInput& in) {
+        if (off) { leakC += 0.8 * 10 / 3600; in.temperatureCentiC = int16_t(*in.temperatureCentiC + std::lround(leakC * 100)); }
+        else leakC = 0;
+        return true;
+    };
+    for (int c = 0; c < 3; ++c)
+        for (const double o : {0.0, 10.0}) {
+            leak.outdoor = o; leak.rooms[0].T = 20;
+            off = false; leak.run(210 * minute, 40.0);
+            off = true;
+            for (int k = 0; k < 40; ++k) { leak.run(11 * minute, std::nullopt); leak.run(1 * minute, std::nullopt, true); }
+        }
+    EXPECT_EQ(leak.learner.heatModel(0).coolSegments, 0);
+    EXPECT_FALSE(leak.learner.heatModel(0).lossPerHour);
+}
+
+// rc.4 (L4): one filled bin times the warm-up at that flow; choosing the lowest flow still needs two.
+TEST(FlowLearner, OneFilledBinTimesTheWarmUpBeforeTwo) {
+    auto h = House::floor();
+    h.days({40}, 3);
+    EXPECT_STREQ(h.learner.readiness(0), "learning");
+    EXPECT_STREQ(h.learner.readinessTiming(0), "ready");
+    EXPECT_FALSE(h.learner.advise(0, 100, std::nullopt).flowC) << "the lowest sufficient flow needs two bins";
+    const auto timing = h.learner.advise(0, 100, std::nullopt, true);
+    ASSERT_TRUE(timing.flowC); ASSERT_TRUE(timing.warmupS);
+    const auto w = h.learner.warmupSeconds(0, 100, 40, std::nullopt);
+    ASSERT_TRUE(w);
+    EXPECT_NEAR(*w, 9000, 2500) << "about 0.4 degC/h at 40 degC in the synthetic floor";
+    EXPECT_FALSE(h.learner.warmupSeconds(0, 100, 30, std::nullopt)) << "below the learned range: unknown";
+    Json root(h.learner.json(), cJSON_Delete);
+    EXPECT_STREQ(cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(root.get(), "rooms"), 0), "readiness_timing")->valuestring, "ready");
+    h.days({48}, 3);
+    EXPECT_STREQ(h.learner.readiness(0), "ready");
 }

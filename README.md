@@ -10,9 +10,15 @@ needed. Home Assistant is optional: without it you set everything up on the
 E32's own web pages. With it you get a thermostat per room, a week planner card,
 energy figures and updates with one click.
 
-**Status:** version 1.0 is in its last test phase (release candidate rc.2). It
-runs every day in the developer's home. Version 1.0.0 follows once rc.2 has run
-for 14 days without problems.
+**Status:** version 1.0 is in its last test phase (release candidate rc.4). It
+runs every day in the developer's home. Version 1.0.0 follows once rc.4 has run
+for 14 days without problems with the E32 controlling the boiler.
+
+**Updating from rc.3?** Install Home Assistant integration 1.0.0rc5 first in
+HACS (switch **Pre-release** on) and restart Home Assistant. Then press
+**Install** on the E32's **Firmware** entity (E32 firmware 1.0.0-rc.4) and
+confirm the takeover again: a firmware update clears it
+([update steps](docs/INSTALL.md#13-updates)).
 
 ![The E32 Overview page with rooms, their last 24 hours and the boiler](docs/img/screenshots/e32-overview-rc2.png)
 
@@ -38,13 +44,20 @@ broker (for example the Mosquitto add-on) and the MQTT integration.
 
 - **A week program per room**, up to 8 rooms, with Comfort, Eco and Night
   temperatures. You change a time by dragging it.
-- **Warm on time.** It learns how long each room takes to warm up and starts
-  early enough. It also learns the lowest water temperature that still does
-  the job, because cooler water uses less gas.
+- **Warm on time.** It starts heating early enough to be warm at the time in
+  your program, from the first morning (as an estimate), and checks every
+  morning whether the room was on time. It also learns the lowest water
+  temperature that still does the job, because cooler water uses less gas.
+- **Why a room heats.** Each room says in one line why it heats or not (window
+  open, away, warm enough, Smart warm-up heating early), on the E32 and in
+  Home Assistant.
 - **Tunes itself.** It adjusts its burner settings by itself, in small steps,
-  and tells you in plain words what it changed and why.
+  and tells you in plain words what it changed and why. **Yesterday** shows in
+  figures how the day went: heating hours, burner starts, gas for heating and,
+  per room, how late or early it was warm.
 - **Away and holiday.** It can follow who is at home, lower the temperature
-  while everyone is out and be warm again when you come back.
+  while everyone is out and be warm again when you come back. Plan holidays
+  ahead (up to 8) with their own temperature.
 - **Windows and doors.** A contact in Home Assistant pauses a room while a
   window is open.
 - **Radiator valves** through Zigbee2MQTT or Home Assistant, set per room.

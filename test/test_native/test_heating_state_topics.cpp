@@ -2,6 +2,7 @@
 #include "control/ControlPartitionBudget.h"
 #include "control/DhwEpisodes.h"
 #include "control/HeatingStateTopics.h"
+#include "control/RoomOverrides.h"
 #include "control/RoomEngine.h"
 #include "control/ShadowComparison.h"
 #include "control/TakeoverReadiness.h"
@@ -264,6 +265,39 @@ TEST(HeatingStateTopics, WorstCasePlanMakesOnlySmallMessages) {
     }
     report("worst", "fw/telemetry/learned/<id>", learnedLargest);
     for (const auto& [kind, bytes] : largest) EXPECT_GT(bytes, 0u) << int(kind);
+}
+
+// rc.4: the house's "away" (RoomOverrides) at its longest on top of the worst-case status: a dated
+// holiday running with the next one planned and an own holiday temperature, everyone away and a
+// window pending in every room. fw/state/heating (about 1.1 KB then) and every room stay below the
+// hard limit; above the soft one a message is still sent, counted as large (TelemetryPublisher).
+TEST(HeatingStateTopics, WorstCaseHeatingWithTheHouseAwayStaysBelowTheHardLimit) {
+    const auto plan = worstPlan();
+    auto status = worstStatus(plan);
+    RoomOverrides o;
+    const uint32_t utc = uint32_t(wednesday23);
+    bool persist = false, holidays = false;
+    const std::string body = "{\"holidays\":[{\"from\":" + std::to_string(utc - 3600) + ",\"until\":" + std::to_string(utc + 30 * 86400)
+        + "},{\"from\":" + std::to_string(utc + 31 * 86400) + ",\"until\":" + std::to_string(utc + 60 * 86400) + "}],\"holiday_temperature\":12.25}";
+    Json command(cJSON_Parse(body.c_str()), cJSON_Delete);
+    ASSERT_EQ(o.command(command.get(), plan, statusNow, utc, persist, &holidays), nullptr);
+    Json temperature(cJSON_Parse(R"({"house_mode":"auto","temperature":15.25})"), cJSON_Delete);
+    ASSERT_EQ(o.command(temperature.get(), plan, statusNow, utc, persist, &holidays), nullptr);
+    ASSERT_TRUE(o.input(R"({"kind":"presence","home":false})", plan, statusNow));
+    for (const auto& room : plan.rooms)
+        ASSERT_TRUE(o.input("{\"kind\":\"contact\",\"room\":\"" + room.id + "\",\"open\":true,\"delay_s\":1800}", plan, statusNow));
+    o.step(plan, statusNow, utc, [](size_t, uint32_t, int16_t, int16_t) { return uint32_t(0); });
+    ASSERT_TRUE(o.addStatus(status.get(), plan, statusNow));
+    size_t heating = 0, room = 0;
+    for (const auto& m : split(status.get())) {
+        EXPECT_LE(m.payload.size(), telemetryHardBytes) << m.topic;
+        if (m.kind == HeatingTopic::heating) heating = m.payload.size();
+        if (m.kind == HeatingTopic::room) room = std::max(room, m.payload.size());
+        if (m.kind == HeatingTopic::room) EXPECT_LE(m.payload.size(), telemetrySoftBytes) << m.topic;
+    }
+    report("away", "fw/state/heating", heating);
+    report("away", "fw/state/room/<id>", room);
+    EXPECT_GT(heating, 0u);
 }
 
 TEST(HeatingStateTopics, EveryStatusMemberLandsInExactlyOneTopic) {

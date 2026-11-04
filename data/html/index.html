@@ -124,9 +124,9 @@ summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}d
 .device-navbar{background:var(--ot-nav)!important;padding:4px 12px}.device-navbar .navbar-brand{display:flex;align-items:center;gap:.5rem;min-width:0;font-weight:700;color:#fff}.device-navbar .navbar-brand svg{flex-shrink:0}.device-navbar .navbar-brand span{min-width:0;overflow:hidden;text-overflow:ellipsis}.device-navbar .navbar-brand{min-height:var(--ot-tap)}.device-navbar .navbar-toggler{min-height:var(--ot-tap);min-width:48px}
 .device-navbar .nav-link{color:#e3eeef!important;min-height:var(--ot-tap);display:flex;align-items:center;padding:8px 12px!important;border-radius:var(--ot-r1)}
 .device-navbar .nav-link:hover{background:rgba(255,255,255,.1)}.device-navbar .nav-link.active{color:#fff!important;background:rgba(255,255,255,.14);box-shadow:inset 0 -3px #4cc2b0}
-.device-navbar .dropdown-menu{right:0;left:auto}#auth-sign-out{white-space:nowrap;min-height:var(--ot-tap);color:#fff;border-color:#a3b7bb}
+.device-navbar .dropdown-menu{right:0;left:auto}
 .ot-foot{max-width:1140px;margin:32px auto 0;padding:8px 15px 24px;border-top:1px solid var(--ot-border);color:var(--ot-muted);display:flex;justify-content:flex-end}#ui-language-choice{min-height:var(--ot-tap);border-radius:var(--ot-r1);border:1px solid var(--ot-field);background:var(--ot-surface);color:var(--ot-text);padding:0 8px}
-@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}@media (max-width:400px){.device-navbar .navbar-brand{font-size:.95rem;gap:.35rem}.device-navbar .navbar-brand svg{width:1.25rem;height:1.25rem}.device-navbar{padding:4px 6px}.device-navbar .navbar-toggler{margin-right:4px!important;padding:4px 8px}#auth-sign-out{padding:6px 10px}}
+@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}@media (max-width:400px){.device-navbar .navbar-brand{font-size:.95rem;gap:.35rem}.device-navbar .navbar-brand svg{width:1.25rem;height:1.25rem}.device-navbar{padding:4px 6px}.device-navbar .navbar-toggler{margin-right:4px!important;padding:4px 8px}}
 /* Components (pd-* names are kept for tests and older markup) */
 .product-dashboard,.ot-page{overflow-wrap:anywhere;max-width:1180px;margin:20px auto;padding:8px}.product-dashboard p{margin:8px 0}
 .pd-heading,.ot-head,.pd-section-title,.pd-room-title{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.pd-room-title h3{max-width:100%;overflow-wrap:anywhere}.pd-heading,.ot-head{margin-bottom:20px}.pd-heading p,.ot-head p{margin:4px 0 0;color:var(--ot-muted)}.pd-section-title{margin:24px 0 12px}.pd-section-title h2,.pd-heading h1,.ot-head h1{margin:0}
@@ -317,11 +317,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
 							<li><a class="dropdown-item" href="#about" data-page="about" data-nav="about"><span data-i18n="About">About</span></a></li>
 							<li role="separator" class="dropdown-divider"></li>
 							<li><button type="button" class="dropdown-item" id="device-restart" hidden><span data-i18n="Restart device">Restart device</span></button></li>
+							<li role="separator" class="dropdown-divider" data-sign-out-item hidden></li>
+							<li data-sign-out-item hidden><button type="button" class="dropdown-item" id="auth-sign-out"><span data-i18n="Sign out">Sign out</span></button></li>
 						</ul>
 					</li>
 				</ul>
 			</div>
-			<button type="button" class="btn btn-outline-light order-2 order-lg-3" id="auth-sign-out" hidden><span data-i18n="Sign out">Sign out</span></button>
 		</div>
 	</nav>
 	<small class="d-block text-muted px-3" id="device-restart-status" role="status" aria-live="polite"></small>

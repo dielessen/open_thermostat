@@ -27,7 +27,7 @@ const words={
   });
   if(lang==='nl')await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
-  await page.locator('#auth-sign-out').waitFor();
+  await page.locator('[data-sign-out-item]:not([hidden]) #auth-sign-out').waitFor({state:'attached'}); // Sign out: a System menu item (rc.4)
   // 1. Top level in one fixed order; Sensors and Settings are no longer next to Rooms.
   const top=await page.locator('#navbarNavDropdown > ul > li:not([hidden]) > a.nav-link').allInnerTexts();
   assert.deepEqual(top.map(t=>t.trim()),words[lang].top);
@@ -47,6 +47,10 @@ const words={
   }
   await backupItem.waitFor({state:'visible'});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll with the menu open');
+  // Sign out is the last item of System (rc.4, WP-5), no longer a large button beside the menu.
+  const signOut=page.locator('ul[aria-labelledby="navbarDropdownMenuLink"] > li:last-child > button#auth-sign-out');
+  assert.equal(await signOut.isVisible(),true);assert.equal((await signOut.innerText()).trim(),lang==='en'?'Sign out':'Afmelden');
+  assert.equal(await page.locator('.device-navbar > .container-fluid > #auth-sign-out').count(),0);
   // 4. System → Backup and restore opens that panel on the settings page, and System is the active menu.
   await page.locator('ul[aria-labelledby="navbarDropdownMenuLink"] a[data-page="backup"]').click();
   await page.waitForFunction(()=>document.getElementById('ConfigBackup')?.open===true);

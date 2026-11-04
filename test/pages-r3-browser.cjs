@@ -2,7 +2,8 @@
 // R3-02 no polling in a hidden tab, R3-03 one "Save rooms" during the boiler bus check that keeps edits made meanwhile,
 // R3-06 a typed away temperature or holiday date survives the 10 s refresh, R3-17 failed refreshes are not silent,
 // R3-24 "Inactive until" uses the time zone offset of its own date, R3-25 "$&" in a room name stays literal,
-// R3-34 the Overview's boiler card retries a failed selection read.
+// R3-34 the Overview's boiler card retries a failed selection read, R3-14 Sign out (now a System menu item) appears
+// also when the first session check failed.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
@@ -17,7 +18,7 @@ const heatingStatus=()=>({schema:1,revision:4,mode:'shadow',request:{heat:false,
  try{for(const width of [1280,390]){
   const context=await browser.newContext({viewport:{width,height:900},timezoneId:'Europe/Amsterdam'});
   const page=await context.newPage(),errors=[],requests=[],posts=[],dialogs=[];
-  let status=heatingStatus(),failStatus=0,boilerDisplayFails=1,dismiss=false;
+  let status=heatingStatus(),failStatus=0,boilerDisplayFails=1,dismiss=false,failSession=0;
   let plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]};
   page.on('pageerror',e=>errors.push(e.message));
   page.on('dialog',d=>{dialogs.push(d.message());dismiss?d.dismiss():d.accept();});
@@ -33,7 +34,7 @@ const heatingStatus=()=>({schema:1,revision:4,mode:'shadow',request:{heat:false,
   await page.route('http://opth.test/**',async route=>{
    const request=route.request(),p=new URL(request.url()).pathname;requests.push(p);
    const json=(body,code=200)=>route.fulfill({status:code,contentType:'application/json',body:JSON.stringify(body)});
-   if(p==='/auth/session')return json({authenticated:true,csrf:'c'.repeat(64)});
+   if(p==='/auth/session'){if(failSession>0){failSession--;return json({error:'busy'},503);}return json({authenticated:true,csrf:'c'.repeat(64)});}
    if(p==='/status')return json({controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}});
    if(p==='/status/heating'){if(failStatus>0){failStatus--;return json({error:'busy'},500);}return json(status);}
    if(p==='/config/boiler-display'){
@@ -157,6 +158,11 @@ const heatingStatus=()=>({schema:1,revision:4,mode:'shadow',request:{heat:false,
   assert.equal(count('/status/heating'),quiet,'no reads while hidden');
   await visibility('visible');await until(()=>count('/status/heating')===quiet+1,'one read when shown');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
+  // R3-14: the first session check fails (a busy E32); Sign out appears with the next good one, without a reload.
+  failSession=1;await page.clock.resume();await page.goto('http://opth.test/');await page.locator('#dashboard-poll-error').waitFor();
+  assert.equal(await page.locator('[data-sign-out-item]:not([hidden])').count(),0);
+  await pause();await tick(12000);
+  await page.locator('[data-sign-out-item]:not([hidden]) #auth-sign-out').waitFor({state:'attached'});
   assert.deepEqual(errors,[]);
   results.push({width,result:'PASS'});await context.close();
  }}finally{await browser.close();}

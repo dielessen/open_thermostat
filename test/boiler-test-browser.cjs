@@ -44,7 +44,7 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     // Boiler essentials: burner starts with a short-cycling warning, and hot water today.
     await page.locator('[data-short-cycling]').waitFor();
     assert.match(await page.locator('[data-essentials]').innerText(),/Branderstarts \(afgelopen uur\)\s+9/);
-    assert.equal(await page.locator('[data-short-cycling]').innerText(),'De brander slaat erg vaak aan en uit');
+    assert.equal(await page.locator('[data-short-cycling]').innerText(),'De brander gaat vaak kort aan. Als de E32 de ketel regelt, verlengt hij de rusttijd stap voor stap.'); // information (rc.4 F5)
     const dhw = await page.locator('[data-dhw]').innerText();
     assert.match(dhw,/Tappen\s+3 × · 9 min/); assert.match(dhw,/Warmhouden\s+2 × · 5 min/); assert.match(dhw,/Brandertijd\s+16 min/);
     assert.doesNotMatch(dhw,/Hoogste warmwaterdoorstroming/); assert.match(dhw,/dalende warmwatertemperatuur/);

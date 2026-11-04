@@ -1342,7 +1342,6 @@ window.OT_UI_PAGE_MESSAGES = {
   "Hot water today": "Warm water vandaag",
   "Burner starts (last hour)": "Branderstarts (afgelopen uur)",
   "Typical heating run": "Gangbare branderduur verwarming",
-  "The burner switches on and off very often": "De brander slaat erg vaak aan en uit",
   "Counts how often the burner switched on in the last hour. Starting very often wears the boiler.": "Telt hoe vaak de brander het afgelopen uur aansloeg. Heel vaak aanslaan verslijt de ketel.",
   "Keeping warm: the boiler reheats its hot water without anyone using a tap.": "Warmhouden: de ketel warmt zijn tapwater op zonder dat er een kraan open is.",
   "This adapter does not report how much hot water flows, so a tap is recognised by the hot water temperature dropping.": "Deze adapter meldt niet hoeveel warm water er stroomt; tappen wordt herkend aan de dalende warmwatertemperatuur.",

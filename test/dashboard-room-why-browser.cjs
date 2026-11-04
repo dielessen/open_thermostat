@@ -92,6 +92,17 @@ const luminance=rgb=>{const [r,g,b]=rgb.match(/\d+(\.\d+)?/g).slice(0,3).map(Num
   assert.equal(await page.locator('.pd-why[data-why="warm_up"]').count(),1);
   assert.equal(await rooms.nth(0).locator('.pd-warmup').count(),0,'the Smart warm-up line is not said twice');
   delete engine.learned;
+  // F5: frequent burner starts are learning information: the steps the E32 took to lengthen the burner rest.
+  const day=Math.round(Date.now()/1000)-86400;
+  engine.burner.short_cycling=true;engine.tuning={state:'active',log:[[day,'min_off_s',450,600,'many_starts',14,''],[day-86400,'min_off_s',300,450,'many_starts',16,''],[day,'heat_stop_c',0.2,0.15,'overshoot',0.4,'living']]};
+  await page.evaluate(s=>updateRooms({controlMode:'shadow',ems:{},control:{},heating:s}),engine);
+  const cycling=page.locator('.pd-status [data-dashboard-key="cycling"]');
+  assert.equal(await cycling.innerText(),lang==='en'?'The burner starts often; the E32 lengthens the burner rest step by step (step 2).':'De brander gaat vaak kort aan; de E32 verlengt de rusttijd stap voor stap (stap 2).');
+  assert.equal(await page.locator('.pd-status .ot-chip--warn, .pd-status .ot-chip--err, .pd-status .alert').count(),0,'information, not a warning');
+  engine.mode='shadow';await page.evaluate(s=>updateRooms({controlMode:'shadow',ems:{},control:{},heating:s}),engine);
+  assert.equal(await cycling.innerText(),lang==='en'?'The burner starts often. When the E32 controls the boiler, it lengthens the burner rest step by step.':'De brander gaat vaak kort aan. Als de E32 de ketel regelt, verlengt hij de rusttijd stap voor stap.');
+  engine.mode='active';engine.burner.short_cycling=false;await page.evaluate(s=>updateRooms({controlMode:'shadow',ems:{},control:{},heating:s}),engine);
+  assert.equal(await cycling.count(),0);delete engine.tuning;
   // The boiler takes over: a room that wants heat waits; in shadow mode it only wants heat.
   engine.burner.activity='tapping';await page.evaluate(s=>updateRooms({controlMode:'shadow',ems:{},control:{},heating:s}),engine);
   assert.match(await why(0),lang==='en'?/^Waiting: the boiler is making hot water$/:/^Wacht: de ketel maakt warm water$/);

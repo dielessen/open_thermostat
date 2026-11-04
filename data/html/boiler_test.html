@@ -185,8 +185,8 @@
         if (codeInWords.advice) { const advice = document.createElement('small'); advice.className = 'd-block'; advice.textContent = codeInWords.advice; essentials.lastElementChild.append(advice); }
       }
       if (shortCycling && label === uiText("Burner starts (last hour)")) {
-        const chip = document.createElement('span'); chip.className = 'ot-chip ot-chip--warn ml-2'; chip.dataset.shortCycling = '';
-        chip.textContent = uiText("The burner switches on and off very often"); essentials.lastElementChild.append(chip);
+        const chip = document.createElement('small'); chip.className = 'd-block'; chip.dataset.shortCycling = ''; // information, not a fault (F5)
+        chip.textContent = uiText("The burner starts often. When the E32 controls the boiler, it lengthens the burner rest step by step."); essentials.lastElementChild.append(chip);
       }
     }
   }

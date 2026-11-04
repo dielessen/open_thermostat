@@ -624,6 +624,10 @@ window.OT_UI_MESSAGES = {
   "Window or door open": "Raam of deur open",
   "Window or door open, pausing soon": "Raam of deur open, pauzeert zo",
   "Radiator valves open": "Radiatorkranen open",
+  // Frequent burner starts as learning information (F5); the self-tuning lengthens the rest.
+  "The burner starts often. When the E32 controls the boiler, it lengthens the burner rest step by step.": "De brander gaat vaak kort aan. Als de E32 de ketel regelt, verlengt hij de rusttijd stap voor stap.",
+  "The burner starts often; the E32 lengthens the burner rest step by step.": "De brander gaat vaak kort aan; de E32 verlengt de rusttijd stap voor stap.",
+  "The burner starts often; the E32 lengthens the burner rest step by step (step {n}).": "De brander gaat vaak kort aan; de E32 verlengt de rusttijd stap voor stap (stap {n}).",
   "Change temporarily": "Tijdelijk wijzigen",
   "Boost 1 hour": "Boost 1 uur",
   "Duration": "Duur",

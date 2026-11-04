@@ -111,9 +111,10 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').t
   // House and boiler; the self-tuning's state and its changes in words, the newest first.
   assert.deepEqual(await texts(learned.locator('[data-learned-house] li')),lang==='en'?[
    'Weather compensation, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside. Weather compensation sets the water temperature, so the boiler runs as cool as the weather allows.',
-   'Yesterday the burner started 59 times for heating; a burn lasted 7 min on average. That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that.']:[
+   // rc.4 F5: often, and the self-tuning lengthened the rest once (the "many_starts" change in its log).
+   'Yesterday the burner started 59 times for heating; a burn lasted 7 min on average. The burner starts often; the E32 lengthens the burner rest step by step (step 1).']:[
    'Weerafhankelijke regeling, geleerd van je huis: het water wordt ongeveer 0,62 °C warmer voor elke graad kouder buiten. De weerafhankelijke regeling bepaalt de watertemperatuur, zodat de ketel zo koel draait als het weer toelaat.',
-   'Gisteren startte de brander 59 keer voor verwarmen; hij brandde gemiddeld 7 min. Dat is vaak. Minder en langer branden is beter voor de ketel; de thermostaat werkt daaraan.']);
+   'Gisteren startte de brander 59 keer voor verwarmen; hij brandde gemiddeld 7 min. De brander gaat vaak kort aan; de E32 verlengt de rusttijd stap voor stap (stap 1).']);
   assert.equal(await learned.locator('[data-learned-state]').innerText(),t('The thermostat adjusts its settings itself, at most one small step a day.',
    'De thermostaat past zijn instellingen zelf aan, hooguit één kleine stap per dag.'));
   const log=await texts(learned.locator('[data-learned-log] li'));

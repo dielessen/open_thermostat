@@ -1305,6 +1305,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
         if (typeof matchMedia === 'function') matchMedia('(max-width:560px)').addEventListener?.('change', function() {
             if (intervalID && lastLoadedStatus && document.querySelector('#maincontainer > .product-dashboard')) updateRooms(lastLoadedStatus);
         });
+        // Frequent burner starts are learning information, not a fault (F5): the self-tuning lengthens the burner rest
+        // one step a day ("many_starts" in its log). TODO(rc.4 F5): a warning only when it persists (the tuner's rest
+        // ceiling reached, or 3 days without improvement), once the firmware reports tuning.short_cycling_persists.
+        function restSteps(tuning) {
+            return tuning && Array.isArray(tuning.log) ? tuning.log.filter(function(e) { return Array.isArray(e) && e[1] === 'min_off_s' && e[4] === 'many_starts'; }).length : 0;
+        }
+        function cyclingLine(engine, active) {
+            if (!engine || !engine.burner || engine.burner.short_cycling !== true) return '';
+            var steps = active ? restSteps(engine.tuning) : 0;
+            return !active ? uiText("The burner starts often. When the E32 controls the boiler, it lengthens the burner rest step by step.") : steps ? uiText("The burner starts often; the E32 lengthens the burner rest step by step (step {n}).").replace('{n}', steps) : uiText("The burner starts often; the E32 lengthens the burner rest step by step.");
+        }
         function dashboardKnown(map, key) { return typeof key === 'string' && Object.prototype.hasOwnProperty.call(map, key) ? map[key] : null; }
         function dashboardAge(s) { return s < 120 ? s + ' s' : s < 7200 ? Math.round(s/60) + ' min' : Math.round(s/3600) + ' h'; }
         function dashboardSourceName(sensors, id) {
@@ -1407,6 +1418,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 // A fault or lockout is the first thing to read: its meaning and what to do, not only a chip.
                 (boilerCode && boilerCode.fault ? dashboardBoilerCodeHtml(boilerCode,'boiler-alert') : '')+
                 (statusHelp?'<p class="pd-help">'+dashboardText(statusHelp)+'</p>':'')+
+                (function(line) { return line ? '<p class="pd-help" data-dashboard-key="cycling">'+dashboardText(line)+'</p>' : ''; })(cyclingLine(engine, activePlan))+
                 (freshText?'<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p>':'')+'</section>'+
                 uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2>")+(engine && !haFresh ? '<a href="#rooms" data-page="heating">'+uiText("Change rooms and week programs")+'</a>' :
                 uiHtml("<span class=\"pd-help\">Controls and programs in Home Assistant</span>"))+'</div>'+(engine && cards.length ? comfortAway(engine.away) : '')+'<div class="pd-rooms">';

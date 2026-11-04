@@ -49,12 +49,12 @@
   </section>
   <section class="pd-panel" data-house-presence>
     <h2 data-i18n="Presence">Presence</h2>
-    <p class="pd-help" data-i18n="Who is home comes from Home Assistant (OpenThermostat → Configure → Home → Presence). The E32 hears only “someone is home” or “everyone is away”.">Who is home comes from Home Assistant (OpenThermostat → Configure → Home → Presence). The E32 hears only “someone is home” or “everyone is away”.</p>
+    <p class="pd-help" data-i18n="Who is home comes from Home Assistant (OpenThermostat → Configure → House → Presence and away temperature). The E32 hears only “someone is home” or “everyone is away”.">Who is home comes from Home Assistant (OpenThermostat → Configure → House → Presence and away temperature). The E32 hears only “someone is home” or “everyone is away”.</p>
     <p role="status" aria-live="polite" data-house-presence-now></p>
   </section>
   <section class="pd-panel" data-house-heating>
     <h2 data-i18n="Heating settings">Heating settings</h2>
-    <div class="alert alert-info ot-actions" data-house-lock hidden><span data-i18n="Managed in Home Assistant: OpenThermostat → Configure → Home.">Managed in Home Assistant: OpenThermostat → Configure → Home.</span>
+    <div class="alert alert-info ot-actions" data-house-lock hidden><span data-i18n="Managed in Home Assistant: OpenThermostat → Configure → Heating and boiler.">Managed in Home Assistant: OpenThermostat → Configure → Heating and boiler.</span>
       <button type="button" class="btn btn-outline-primary" data-house-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
     <!-- Flow limits of the room plan (GET/POST /config/heating), for all rooms together (until beta.22 on the Boiler page). -->
     <div data-boiler-limits id="boiler-limits">
@@ -116,7 +116,7 @@
     <h2 data-i18n="Comfort and boiler care">Comfort and boiler care</h2>
     <p class="pd-help" data-i18n="The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently.">The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently.</p>
     <!-- Locked (Home Assistant is the main editor): one notice instead of a disabled button on every row. -->
-    <div class="alert alert-info" data-care-lock><span data-i18n="Managed in Home Assistant: OpenThermostat → Configure → Home.">Managed in Home Assistant: OpenThermostat → Configure → Home.</span>
+    <div class="alert alert-info" data-care-lock><span data-i18n="Managed in Home Assistant: OpenThermostat → Configure → Heating and boiler → Comfort and boiler care.">Managed in Home Assistant: OpenThermostat → Configure → Heating and boiler → Comfort and boiler care.</span>
       <button type="button" class="btn btn-outline-primary" data-care-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
     <ul class="hc-list" data-care-list></ul>
     <details class="ot-advanced hc-more"><summary data-i18n="More settings">More settings</summary><ul class="hc-list" data-care-fixed></ul></details>
@@ -126,7 +126,7 @@
   </section>
   <section class="pd-panel" data-house-energy>
     <h2 data-i18n="Energy">Energy</h2>
-    <p class="pd-help" data-i18n="Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and weather compensation.">Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and weather compensation.</p>
+    <p class="pd-help" data-i18n="Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Energy and outdoor temperature. The E32 uses them for the gas estimate and weather compensation.">Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Energy and outdoor temperature. The E32 uses them for the gas estimate and weather compensation.</p>
   </section>
 </section>
 <style>#house-settings .hs-modes{flex-wrap:wrap;margin:4px 0 10px}#house-settings .hs-modes .btn{min-height:44px}#house-settings .hs-field .btn,#house-settings .hs-holiday .btn,#house-settings .hs-field input,#house-settings .hs-holiday input{min-height:44px}#house-settings .hs-modes .btn[aria-pressed=true]{background:var(--ot-accent);border-color:var(--ot-accent);color:var(--ot-accent-ink)}

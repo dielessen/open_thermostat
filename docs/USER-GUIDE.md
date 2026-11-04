@@ -78,25 +78,58 @@ back in the menu, and **Done** closes Configure.
 
 The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
 
-- **Overview**: the house (its mode, the next planned holiday, the rooms that
-  want heat and the boiler request) and one **status card** per room. The card shows the room's
-  temperature and target and, in one line, why it heats or not: window open,
-  away, warm enough, Smart warm-up heating early, and so on. The same line is
-  the **Reason** sensor of the room. A problem tile appears only while there is
-  a problem, and a tap on it opens Repairs.
+- **Overview** opens with the **house card**, then the house mode, the next
+  planned holiday and one **status card** per room. A status card shows the
+  room's temperature and target and, in one line, why it heats or not: window
+  open, away, warm enough, Smart warm-up heating early, and so on. The same
+  line is the **Reason** sensor of the room. The house card shows:
+  - A **status strip** in the colour of what the boiler does now: heating
+    (with the water temperature), hot water, or "Boiler resting". The house
+    mode is on the right of the strip; tap it to open the house mode control.
+    While rooms want heat, a second line says how many and what the boiler
+    request is. A problem comes first: the strip turns red and says
+    "Attention" with the first reason. Tap it to open Repairs; **All reasons**
+    lists every reason.
+  - Today's figures: **Heating** (on, with the water temperature, or off),
+    **Hot water** (the taps so far today, or "running now"), **Gas today**
+    (heating and hot water together) with a small line of the last 7 days, and
+    **Burner starts today**. A figure that your boiler or the E32 does not
+    report is left out. The gas and the burner starts are read from Home
+    Assistant's statistics; on the first day, until it has some, they show "—".
+  - A **day strip** from midnight until now: when the boiler was heating,
+    making hot water or keeping it warm. Point at a part for its start and end
+    time.
+  - In a house with only one room switched on, that room is the first figure
+    of the card, with its temperature, its target and why it heats or not. The
+    other rooms are then listed under **Other rooms**.
 - **Rooms**: per room its thermostat, a 24-hour graph, its sensors, windows and
   people, and what it learned for that room.
 - **Week program**: the visual week planner for all rooms.
-- **Boiler**: what the boiler does in words, the display code, burner starts,
-  hot water, the heating advice, the values the boiler reports, the gas per
-  day and yesterday.
-- **Learning and settings**: what the E32 knows and what it still lacks, how
-  your boiler responds and yesterday compared with usual (E32 rc.5), what the
-  thermostat learned about your house and boiler, **Yesterday** in figures,
-  Smart warm-up, Weather compensation with its chart, the burner as
-  information and the check before the E32 takes over.
-- **Diagnostics**: the E32 itself, hot water, the energy and hot water counters
-  and the raw boiler data.
+- **Boiler**, in the order you need it. From top to bottom: **Now** (what the
+  boiler does in words, with the display code, then the water to heating and
+  back, the burner power and the burner starts per hour), **Advice**
+  (the heating advice, when there is any), **Today and this week** (the gas
+  for heating and for hot water, the burner starts and the burner time of
+  today, one chart with the gas per day of the last week, and the burner hours
+  per day), **Hot water** (its temperature and target, the taps of today and a
+  24-hour timeline), **Last 24 hours** (graphs of the water temperatures, the
+  burner power and the hot water), **What the boiler reports** (the values your
+  boiler sends, in groups) and **Boiler settings**. A section is hidden while
+  the boiler reports nothing for it, so a heading never stands over nothing.
+  Yesterday is not here; it is on the **Learning and settings** tab.
+- **Learning and settings**: what the E32 learned, so you read what it did. It
+  starts with what the E32 knows and what it still lacks, how your boiler
+  responds and yesterday compared with usual (E32 rc.5). Then comes **Yesterday
+  in figures**, the only Yesterday of the dashboard. After it: what the
+  thermostat learned about your rooms, your house and your boiler, with the
+  free heat of sun, cooking and people; Smart warm-up and Weather compensation
+  with the chart **Water temperature by outdoor temperature**; and **Who
+  controls the boiler**, with the burner as information and the check before
+  the E32 takes over.
+- **Diagnostics**: the E32 itself, **Thermostat on the bus** (what a
+  thermostat on the boiler bus asks, as the E32 hears it; mostly of use in the
+  trial run), the energy and hot water counters, the raw boiler data and the
+  hot water capability.
 
 During a trial run a **Comparison** page opens from the **Learning and
 settings** tab.
@@ -157,8 +190,8 @@ The words come from the manufacturer's manual for the chosen boiler model, or
 from a general EMS table; a code that is not in the table stays the raw code.
 A fault or lockout is marked as a warning or an error. In Home Assistant the
 **Display code** sensor keeps the raw code as its state, with the meaning,
-severity and advice as attributes, and the **Boiler** tab of the dashboard
-shows the meaning.
+severity and advice as attributes, and the **Now** section of the dashboard's
+**Boiler** tab shows the meaning.
 
 Not every boiler reports every value. **Boiler → What your boiler reports** shows which
 values your boiler has (**Values available**), which it does not have (**Not
@@ -710,9 +743,10 @@ learning information.
 
 Each problem except the water pressure (which has its own message) also
 appears under **Settings → System → Repairs** as **Heating needs attention**,
-and clears itself once the cause is gone. The sensor's `problems` and
-`reasons` attributes say what is wrong, so you can use it in your own
-notification automation.
+and clears itself once the cause is gone. On the dashboard, the strip of the
+**house card** turns red while the sensor is on and names the first reason; a
+tap on it opens Repairs. The sensor's `problems` and `reasons` attributes say
+what is wrong, so you can use it in your own notification automation.
 
 The **Daily summary** sensor on the OpenThermostat device shows the last
 finished day; its attributes hold the last two weeks (three weeks are kept).
@@ -723,8 +757,10 @@ long it took to reach a raised target (late after 2 hours) and the missed
 comfort minutes. Only time with E32 data counts; a day with less than 20
 hours of data is marked partial. **Burner time**, **Burner starts** and
 **Missed comfort time** are running totals with long-term statistics, so
-their change per day is the daily figure. The **Boiler** tab of the dashboard
-shows yesterday in words and the last days as bars.
+their change per day is the daily figure. The **Learning and settings** tab of
+the dashboard shows yesterday in figures, with the missed comfort of the last
+days as bars. The gas and the burner hours of the last days are bars under
+**Today and this week** on the **Boiler** tab.
 
 ### Radiator valves
 
@@ -956,12 +992,14 @@ restart; whatever the E32 did not measure is left out.
 | Degree days (how cold it was) | A measure of how cold the day was (base 18 °C), so you can compare days. |
 | Per room | How many minutes late or early the room was warm ("warm 12 min late", "warm 5 min early" or "warm on time") and how far it went above its target ("0.3 °C too warm"). |
 
-In Home Assistant it is a section of the **Learning and settings** tab ("Living
-room: warm 12 min late · 0.3 °C too warm", "Burner: 2.1 starts per heating
-hour", "Gas for heating: 8.4 kWh"). On the E32 it is on the **Home** page, under
-**What the thermostat has learned**. The **Boiler** tab of the dashboard has its
-own **Yesterday** section, the daily summary (see above); this one is the
-thermostat's scoreboard.
+In Home Assistant it is the section **Yesterday in figures** on the **Learning
+and settings** tab ("Living room: warm 12 min late · 0.3 °C too warm", "Burner:
+2.1 starts per heating hour", "Gas for heating: 8.4 kWh"). It is the only
+Yesterday of the dashboard, so it also holds the daily summary (see
+[Daily summary and warnings](#daily-summary-and-warnings)): the burner time and
+starts, the gas for heating and hot water and, per room, how long it asked for
+heat. Under it is a chart of the missed comfort per day. On the E32 it is on
+the **Home** page, under **What the thermostat has learned**.
 
 Each figure is also a sensor, so Home Assistant keeps its history: per room
 **Warm on time** (minutes) and **Overshoot** (°C), and on the OpenThermostat
@@ -1216,12 +1254,14 @@ are parts of hot water, so leave them out there.
 *Boiler activity* says what the boiler does now: idle, heating, tapping,
 keeping warm, charging the cylinder, or hot water it cannot sort. A tap shows
 as keeping warm until its fall is clear, usually within half a minute. On the
-dashboard's **Boiler** tab, the hot-water section shows this as a 24-hour timeline next to
-the boiler's heating state, and, once tapping or keeping warm has counted gas,
-the gas per day for heating, tapping and keeping warm over the last week. On
-the E32's own Overview, the boiler history has a hot-water strip: the share of
-each 5 minutes tapping and keeping warm (a cylinder's charging counts as
-keeping warm there).
+dashboard's **Boiler** tab, the **Hot water** section shows this as a 24-hour
+timeline next to the boiler's heating state; the day strip of the house card
+on the Overview shows it for today. The gas per day for heating, tapping and
+keeping warm over the last week is the one chart under **Today and this
+week**. Without the separate gas for tapping and for keeping warm, that chart
+shows heating and hot water. On the E32's own Overview, the boiler history has
+a hot-water strip: the share of each 5 minutes tapping and keeping warm (a
+cylinder's charging counts as keeping warm there).
 
 ## Backup and restore
 

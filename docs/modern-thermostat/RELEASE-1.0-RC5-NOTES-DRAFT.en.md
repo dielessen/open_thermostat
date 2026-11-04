@@ -8,7 +8,8 @@ starts a warm-up later when sun or people warm a room for free. There is
 nothing new to set: it tunes itself and the pages say in plain words what it
 found. If it runs 14 days unchanged and without problems with the E32
 controlling the boiler, the same code becomes 1.0.0. Install it with HA
-1.0.0rc6.
+1.0.0rc6, whose dashboard has been redesigned (details in its release
+notes).
 
 ## New
 

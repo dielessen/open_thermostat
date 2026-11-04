@@ -1,4 +1,4 @@
-# HA 1.0.0rc6 — the companion of E32 rc.5: what the E32 knows, in Home Assistant
+# HA 1.0.0rc6 — the companion of E32 rc.5: what the E32 knows, and a redesigned dashboard
 <!-- user-release-notes:v2:en -->
 
 Companion release for the E32 1.0.0-rc.5 (install both). Needs Home
@@ -31,6 +31,24 @@ Assistant 2026.10.0 or newer.
   always shows it), and the Weather compensation line estimated from your
   house ("for now, learning more (2 of 6 steady periods)").
 - English, Dutch and Polish texts for all of it.
+
+## The dashboard, redesigned
+
+- **A house card opens the Overview:** a strip in the colour of what the boiler
+  does now (a problem turns it red and names the reason), the house mode,
+  today's gas with its last 7 days, hot water and burner starts, and the day
+  so far from midnight.
+- **The Boiler tab in order of need:** Now, Advice, Today and this week, Hot
+  water, Last 24 hours, What the boiler reports and Boiler settings. The gas
+  per day is one chart now.
+- **Yesterday once:** Yesterday in figures is only on the Learning and settings
+  tab, next to the new cards above.
+- **No lone headings:** a section hides as a whole while its cards have
+  nothing to show.
+
+The integration's dashboard is rebuilt by itself and your own dashboards keep
+working; the house card and the water temperature chart are there for them
+too, as `custom:openthermostat-house` and `custom:openthermostat-heating-curve`.
 
 ## Fixed
 

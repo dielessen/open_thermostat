@@ -3,10 +3,13 @@ import contextlib
 import hashlib
 import io
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import publish_github_release as publisher  # noqa: E402
@@ -23,6 +26,8 @@ class FakeGitHub:
 
     def __call__(self, args):
         self.calls.append(list(args))
+        if args == ['--version']:
+            return 'gh version 2.99.0 (fake)\n'
         if args[:3] == ['api', '--paginate', '--slurp']:
             return json.dumps([[json.loads(json.dumps(r)) for r in self.releases]])
         if args[:2] == ['release', 'create']:
@@ -63,6 +68,51 @@ class FakeGitHub:
 
     def verbs(self):
         return [' '.join(c[:2]) for c in self.calls if c[0] == 'release']
+
+
+class ListLags(FakeGitHub):
+    """GitHub's release list does not show a draft that was created a moment ago (it shows an untagged one)."""
+
+    def __call__(self, args):
+        if args[:3] == ['api', '--paginate', '--slurp'] and any(c[:2] == ['release', 'create'] for c in self.calls):
+            self.calls.append(list(args))
+            return json.dumps([[{'id': 9, 'tag_name': 'untagged-8a3f', 'name': 'Title', 'draft': True, 'prerelease': True,
+                                 'assets': []}]])
+        return super().__call__(args)
+
+
+class DropsAnAsset(FakeGitHub):
+    """An upload that GitHub accepted, but whose last asset is not on the release when it is read back."""
+
+    def __call__(self, args):
+        result = super().__call__(args)
+        if args[:2] == ['release', 'upload']:
+            self.releases[0]['assets'].pop()
+        return result
+
+
+class KeepsTheDraft(FakeGitHub):
+    """The edit that publishes the draft has no effect."""
+
+    def __call__(self, args):
+        if args[:2] == ['release', 'edit'] and '--draft=false' in args:
+            self.calls.append(list(args))
+            return ''
+        return super().__call__(args)
+
+
+class Answers(FakeGitHub):
+    """The release list is whatever the test says (not JSON, or a list of the wrong things)."""
+
+    def __init__(self, answer):
+        super().__init__()
+        self.answer = answer
+
+    def __call__(self, args):
+        if args[:3] == ['api', '--paginate', '--slurp']:
+            self.calls.append(list(args))
+            return self.answer
+        return super().__call__(args)
 
 
 class PublishTests(unittest.TestCase):
@@ -215,6 +265,227 @@ class PublishTests(unittest.TestCase):
             gh.fail_upload_after = None
             self.assertEqual(publisher.main(arguments, gh=gh), 0)
         self.assertFalse(gh.releases[0]['draft'])
+
+
+    # ---- --verbose: the job log of a first attempt, and a failure that names its step ----------------------------
+
+    def arguments(self, *extra):
+        return ['--repository', REPO, '--tag', TAG, '--title', 'Title', '--notes-file', str(self.notes),
+                '--assets-dir', str(self.assets), '--sums', 'SUMS.txt', '--channel', 'prerelease', *extra]
+
+    def run_main(self, gh, *extra):
+        lines, out, err = [], io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            status = publisher.main(self.arguments(*extra), gh=gh, log=lines.append)
+        return status, lines, out.getvalue(), err.getvalue()
+
+    def test_verbose_logs_every_gh_command_before_it_runs_and_every_step(self):
+        gh = FakeGitHub()
+        status, lines, out, err = self.run_main(gh, '--verbose')
+        self.assertEqual(status, 0)
+        commands = [line for line in lines if line.startswith('$ ')]
+        self.assertEqual(len(commands), len(gh.calls), 'every gh command is logged, once')
+        self.assertTrue(commands[0].endswith(' --version'), commands[0])
+        self.assertEqual(len([c for c in commands if ' release create ' in c]), 1)
+        text = '\n'.join(lines)
+        names = ('verify the local assets', 'find the release of the tag', 'prepare the release', 'upload the assets',
+                 'read the release back', 'publish the draft')
+        starts = [text.index(f'step {n} of 6 ({name}): start') for n, name in enumerate(names, 1)]
+        ends = [text.index(f'step {n} of 6 ({name}): done in') for n, name in enumerate(names, 1)]
+        self.assertEqual(starts, sorted(starts))
+        self.assertTrue(all(start < end for start, end in zip(starts, ends)))
+        self.assertTrue(all(ends[i] < starts[i + 1] for i in range(5)), 'a step ends before the next one starts')
+        self.assertIn('preflight (check the environment): done', text)
+        self.assertIn('exit code 0', text)
+        self.assertIn('no release has the tag', text)
+        self.assertIn(f'release 1 {TAG!r} (draft, pre-release): 0 asset(s)', text)
+        self.assertIn(f'release 1 {TAG!r} (published, pre-release): 4 asset(s)', text)
+        self.assertEqual(json.loads(out)['tag'], TAG, 'the summary stays on stdout')
+        self.assertEqual(err, '')
+
+    def test_without_verbose_nothing_is_logged_and_gh_is_not_asked_for_its_version(self):
+        gh = FakeGitHub()
+        status, lines, out, err = self.run_main(gh)
+        self.assertEqual((status, lines, err), (0, [], ''))
+        self.assertNotIn(['--version'], gh.calls)
+
+    def test_verbose_goes_to_stderr_by_default(self):
+        gh, out, err = FakeGitHub(), io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(publisher.main(self.arguments('--verbose'), gh=gh), 0)
+        self.assertIn('[publish] step 1 of 6 (verify the local assets): start', err.getvalue())
+        self.assertIn('[publish] $ gh --version', err.getvalue())
+        self.assertEqual(json.loads(out.getvalue())['tag'], TAG)
+
+    def test_a_dry_run_can_be_verbose_too(self):
+        gh = FakeGitHub()
+        status, lines, out, err = self.run_main(gh, '--verbose', '--dry-run')
+        self.assertEqual(status, 0)
+        self.assertEqual(gh.releases, [])
+        self.assertIn('as a prerelease release (dry run)', '\n'.join(lines))
+        self.assertIn('dry run: not read', '\n'.join(lines))
+
+    def failing_cases(self):
+        """(label, a FakeGitHub, what the failure text starts with), each with the assets of a fresh setUp."""
+        def stray():
+            gh = FakeGitHub()
+            gh.releases.append({'id': 1, 'tag_name': TAG, 'draft': True, 'prerelease': True, 'name': 'x', 'body': '',
+                                'assets': [{'name': 'stray.bin', 'size': 1, 'state': 'uploaded'}]})
+            return gh
+
+        def duplicate():
+            gh = FakeGitHub()
+            row = {'id': 1, 'tag_name': TAG, 'draft': True, 'prerelease': True, 'name': 'x', 'body': '', 'assets': []}
+            gh.releases += [row, {**row, 'id': 2}]
+            return gh
+
+        return [
+            ('two releases with the tag', duplicate(), 'step 2 of 6 (find the release of the tag): 2 releases'),
+            ('a list that is not JSON', Answers('<html>502 Bad Gateway</html>'),
+             'step 2 of 6 (find the release of the tag): GitHub did not answer with a list of releases'),
+            ('a list of the wrong things', Answers('[[1, 2]]'),
+             'step 2 of 6 (find the release of the tag): unexpected AttributeError'),
+            ('a list that lags behind the creation', ListLags(),
+             f'step 3 of 6 (prepare the release): release {TAG} was not found after creating it'),
+            ('an asset that is not part of the package', stray(),
+             f'step 3 of 6 (prepare the release): release {TAG} has assets that are not part of this package'),
+            ('a failing upload', FakeGitHub(fail_upload_after=1), 'step 4 of 6 (upload the assets): HTTP 502 while uploading'),
+            ('an upload that is not on the release afterwards', DropsAnAsset(),
+             'step 5 of 6 (read the release back): after the upload the release is not complete'),
+            ('a draft that stays a draft', KeepsTheDraft(),
+             f'step 6 of 6 (publish the draft): release {TAG} is still a draft after publishing it'),
+        ]
+
+    def test_every_failure_names_the_step_it_came_from(self):
+        for label, gh, expected in self.failing_cases():
+            with self.subTest(label):
+                with self.assertRaises(publisher.Failure) as caught:
+                    self.publish(gh)
+                self.assertTrue(str(caught.exception).startswith(expected), str(caught.exception))
+                self.assertEqual(str(caught.exception), f'{caught.exception.step}: {caught.exception.message}')
+
+    def test_a_tampered_local_file_is_step_one(self):
+        (self.assets / 'firmware.bin').write_bytes(b'tampered')
+        with self.assertRaises(publisher.Failure) as caught:
+            self.publish(FakeGitHub())
+        self.assertEqual(str(caught.exception), 'step 1 of 6 (verify the local assets): firmware.bin does not match SUMS.txt')
+
+    def test_a_published_release_with_a_different_asset_fails_in_the_preparation(self):
+        gh = FakeGitHub()
+        self.publish(gh)
+        gh.releases[0]['assets'][0]['size'] += 1
+        with self.assertRaisesRegex(publisher.Failure, r'^step 3 of 6 \(prepare the release\): .*nothing is overwritten'):
+            self.publish(gh)
+
+    def test_the_failure_line_of_the_command_line_names_the_step_and_the_log_says_what_was_running(self):
+        gh = FakeGitHub(fail_upload_after=1)
+        status, lines, out, err = self.run_main(gh, '--verbose')
+        self.assertEqual(status, 1)
+        self.assertIn('FAIL step 4 of 6 (upload the assets): HTTP 502 while uploading', err)
+        text = '\n'.join(lines)
+        self.assertIn('step 4 of 6 (upload the assets): FAILED after', text)
+        upload = [line for line in lines if line.startswith('$ ') and ' release upload ' in line]
+        self.assertEqual(len(upload), 1)
+        self.assertIn(' --clobber', upload[0], 'the command that failed is in the log')
+        self.assertEqual(out, '')
+
+    def test_a_failure_without_verbose_still_names_the_step(self):
+        status, lines, out, err = self.run_main(FakeGitHub(fail_upload_after=1))
+        self.assertEqual((status, lines), (1, []))
+        self.assertTrue(err.startswith('FAIL step 4 of 6 (upload the assets): HTTP 502'), err)
+
+    def test_a_listing_that_lags_shows_the_drafts_it_does_contain(self):
+        status, lines, out, err = self.run_main(ListLags(), '--verbose')
+        self.assertEqual(status, 1)
+        self.assertIn("drafts: 'untagged-8a3f' named 'Title'", '\n'.join(lines))
+        self.assertIn('FAIL step 3 of 6 (prepare the release)', err)
+
+    def test_an_unexpected_error_still_names_its_step_and_keeps_its_traceback(self):
+        status, lines, out, err = self.run_main(Answers('[[1]]'), '--verbose')
+        self.assertEqual(status, 1)
+        self.assertIn('FAIL step 2 of 6 (find the release of the tag): unexpected AttributeError', err)
+        self.assertIn('Traceback', err)
+
+    def test_the_real_runner_reports_exit_code_stderr_and_stdout_of_a_failed_command(self):
+        code = 'import sys; sys.stdout.write("partial answer"); sys.stderr.write("HTTP 422: Validation Failed"); sys.exit(3)'
+        lines = []
+        with mock.patch.dict(os.environ, {'GH_BIN': sys.executable}):
+            with self.assertRaisesRegex(publisher.Failure, r'failed \(3\): HTTP 422: Validation Failed') as caught:
+                publisher.traced(publisher.gh_command, lines.append)(['-c', code])
+        self.assertEqual((caught.exception.result.returncode, caught.exception.result.stderr), (3, 'HTTP 422: Validation Failed'))
+        text = '\n'.join(lines)
+        self.assertTrue(lines[0].startswith('$ ' + sys.executable + ' -c '), lines[0])
+        self.assertIn('exit code 3 after', text)
+        self.assertIn('HTTP 422: Validation Failed', text)
+        self.assertIn('partial answer', text)
+
+    def test_the_real_runner_reports_a_successful_command_and_keeps_only_the_tails(self):
+        code = 'import sys; sys.stdout.write("x" * 2000 + "END"); sys.stderr.write("a warning")'
+        lines = []
+        with mock.patch.dict(os.environ, {'GH_BIN': sys.executable}):
+            result = publisher.traced(publisher.gh_command, lines.append)(['-c', code])
+        self.assertEqual((str(result)[-3:], result.returncode, result.stderr), ('END', 0, 'a warning'))
+        text = '\n'.join(lines)
+        self.assertIn('exit code 0 after', text)
+        self.assertIn('stdout 2003 bytes, stderr 9 bytes', text)
+        self.assertIn('[...] ', text)
+        self.assertIn('a warning', text)
+        self.assertLess(len(text), 1800)
+
+    def test_a_successful_api_read_logs_its_size_and_not_its_tail(self):
+        big = json.dumps([[{'tag_name': 'v0.0.1-e32v2', 'body': 'x' * 5000}]])
+        lines = []
+        publisher.traced(lambda args: big, lines.append)(['api', '--paginate', '--slurp', 'repos/o/p/releases'])
+        text = '\n'.join(lines)
+        self.assertIn(f'stdout {len(big)} bytes', text)
+        self.assertNotIn('stdout tail', text)
+
+    def test_a_missing_gh_program_is_a_failure_that_names_it(self):
+        with mock.patch.dict(os.environ, {'GH_BIN': str(self.root / 'no-such-gh')}):
+            with self.assertRaisesRegex(publisher.Failure, 'cannot run .*no-such-gh') as caught:
+                publisher.gh_command(['--version'])
+            lines = []
+            with self.assertRaises(publisher.Failure):
+                publisher.traced(publisher.gh_command, lines.append)(['--version'])
+        self.assertIn('not run: cannot run', '\n'.join(lines))
+        self.assertIsNone(caught.exception.result)
+
+    def test_gh_command_failures_keep_their_text_for_the_job_log(self):
+        def run(command, **kwargs):
+            return subprocess.CompletedProcess(command, 1, stdout='', stderr='gh: HTTP 403: Resource not accessible')
+        with mock.patch.dict(os.environ, {'GH_BIN': 'gh-test'}):
+            with self.assertRaisesRegex(publisher.Failure, r'^gh release create failed \(1\): gh: HTTP 403: Resource not accessible$'):
+                publisher.gh_command(['release', 'create', 'v1'], run=run)
+
+    def test_the_token_is_never_logged(self):
+        token = 'ghs_0123456789abcdefABCDEF'
+        gh = FakeGitHub(fail_upload_after=0)
+        original = gh.__call__
+
+        def leaky(args):
+            try:
+                return original(args)
+            except publisher.Failure as error:
+                raise publisher.Failure(f'{error.message} (token {token})') from None
+
+        err = io.StringIO()
+        with mock.patch.dict(os.environ, {'GH_TOKEN': token}), contextlib.redirect_stderr(err), \
+                contextlib.redirect_stdout(io.StringIO()):
+            publisher.stderr_log(f'gh said: bad credentials {token}\nsecond line')
+            self.assertEqual(publisher.main(self.arguments('--verbose'), gh=leaky), 1)
+        self.assertNotIn(token, err.getvalue())
+        self.assertIn('[publish] gh said: bad credentials ***', err.getvalue())
+        self.assertIn('FAIL step 4 of 6 (upload the assets): HTTP 502 while uploading', err.getvalue())
+
+    def test_the_workflow_runs_both_publish_steps_verbosely(self):
+        workflow = Path(__file__).resolve().parents[1] / '.github' / 'workflows' / 'build.yml'
+        if not workflow.is_file():
+            self.skipTest('no workflow in this tree')
+        calls = [line for line in workflow.read_text(encoding='utf-8').splitlines()
+                 if 'scripts/publish_github_release.py' in line and '--repository' in line]
+        self.assertEqual(len(calls), 2, 'one publish step for the E32 firmware and one for Home Assistant')
+        for call in calls:
+            self.assertIn(' --verbose', call)
 
 
 if __name__ == '__main__':

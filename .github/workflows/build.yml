@@ -778,8 +778,10 @@ jobs:
           PYTHON
           then channel=stable; fi
           # A draft first, the assets, a read-back, then publication: a failed upload leaves a draft that a re-run of
-          # this job completes (R5-14). See scripts/publish_github_release.py.
-          python scripts/publish_github_release.py --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md --assets-dir release-assets --sums RELEASE-SHA256SUMS.txt --channel "$channel"
+          # this job completes (R5-14). See scripts/publish_github_release.py. --verbose puts every gh command, its
+          # exit code and its output tails in this log, and a failure names its step: the first attempts of rc.3 and
+          # rc.4 failed in this step within seconds and the cause could not be read afterwards.
+          python scripts/publish_github_release.py --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md --assets-dir release-assets --sums RELEASE-SHA256SUMS.txt --channel "$channel" --verbose
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}
@@ -916,7 +918,8 @@ jobs:
           sys.exit(0 if is_stable(*classify(sys.argv[1])) else 1)
           PYTHON
           then channel=stable; fi
-          python scripts/publish_github_release.py --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md --assets-dir ha-release-assets --sums HA-SHA256SUMS.txt --channel "$channel"
+          # --verbose: every gh command with its exit code and output tails goes to this log (as in the E32 job).
+          python scripts/publish_github_release.py --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md --assets-dir ha-release-assets --sums HA-SHA256SUMS.txt --channel "$channel" --verbose
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}

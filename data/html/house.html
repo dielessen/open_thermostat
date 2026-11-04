@@ -25,6 +25,28 @@
     <p class="pd-help" data-i18n="Frost protection always stays on: any room below 8 °C asks for heat, also while away or switched off.">Frost protection always stays on: any room below 8 °C asks for heat, also while away or switched off.</p>
     <p class="pd-help" role="status" aria-live="polite" data-house-message></p>
   </section>
+  <!-- rc.4 holidays (house.holidays.v1, the list away.holidays): GET/POST /config/heating/comfort {"holidays":[..],"holiday_temperature"}. -->
+  <section class="pd-panel" data-house-holidays hidden>
+    <h2 data-i18n="Holidays">Holidays</h2>
+    <p class="pd-help" data-i18n="Plan your holidays ahead. On holiday every room stays at most the holiday temperature and the house is warm again when you are back; then the house mode is as before.">Plan your holidays ahead. On holiday every room stays at most the holiday temperature and the house is warm again when you are back; then the house mode is as before.</p>
+    <div class="hs-now ot-actions" data-holiday-running hidden><span role="status" aria-live="polite" data-holiday-now></span>
+      <button type="button" class="btn btn-outline-primary" data-holiday-stop><span data-i18n="Stop holiday">Stop holiday</span></button></div>
+    <ul class="hh-list" data-holiday-list></ul>
+    <p class="pd-help" data-holiday-empty><span data-i18n="No holidays planned.">No holidays planned.</span></p>
+    <div class="hh-form" data-holiday-form hidden>
+      <label><span data-i18n="From">From</span><input class="form-control" type="datetime-local" data-holiday-from></label>
+      <label><span data-i18n="Until">Until</span><input class="form-control" type="datetime-local" data-holiday-to data-hint="The house is warm again at this time: the E32 starts heating early enough."></label>
+      <p class="ot-actions"><button type="button" class="btn btn-primary" data-holiday-save><span data-i18n="Save holiday">Save holiday</span></button>
+        <button type="button" class="btn btn-outline-secondary" data-holiday-cancel><span data-i18n="Cancel">Cancel</span></button></p>
+    </div>
+    <p class="ot-actions"><button type="button" class="btn btn-outline-primary" data-holiday-add><span data-i18n="Add a holiday">Add a holiday</span></button></p>
+    <div class="hs-field">
+      <label for="house-holiday-temperature" data-i18n="Temperature on holiday (°C)">Temperature on holiday (°C)</label>
+      <div class="ot-actions"><input id="house-holiday-temperature" class="form-control" type="number" min="5" max="25" step="0.5" data-holiday-c data-hint="Every room stays at most this warm on holiday. Until you change it, it is the temperature when nobody is home.">
+        <button type="button" class="btn btn-outline-primary" data-holiday-c-save><span data-i18n="Save">Save</span></button></div>
+    </div>
+    <p class="pd-help" role="status" aria-live="polite" data-holiday-message></p>
+  </section>
   <section class="pd-panel" data-house-presence>
     <h2 data-i18n="Presence">Presence</h2>
     <p class="pd-help" data-i18n="Who is home comes from Home Assistant (OpenThermostat → Configure → Home → Presence). The E32 hears only “someone is home” or “everyone is away”.">Who is home comes from Home Assistant (OpenThermostat → Configure → Home → Presence). The E32 hears only “someone is home” or “everyone is away”.</p>
@@ -109,6 +131,7 @@
 #house-settings .hs-now{margin:0 0 12px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}
 #house-settings .hs-holiday,#house-settings .hs-field{margin:0 0 12px;max-width:30rem}#house-settings .hs-holiday label,#house-settings .hs-field label{display:block;margin-bottom:4px}
 #house-settings .hs-field input{max-width:8rem}#house-settings .hs-holiday input{max-width:16rem}
+#house-settings .hh-list{list-style:none;padding:0;margin:0 0 8px}#house-settings .hh-item{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ot-border,rgba(127,127,127,.25));overflow-wrap:anywhere}#house-settings .hh-item>span{min-width:0}#house-settings .hh-item .ot-actions{margin:0}#house-settings [data-house-holidays] .btn,#house-settings .hh-form input{min-height:44px}#house-settings .hh-form{display:grid;gap:8px;max-width:30rem;margin:0 0 12px}#house-settings .hh-form label{display:block}#house-settings .hh-form input{max-width:16rem;margin-top:4px}#house-settings .hh-badge{font-weight:600;margin-left:6px}#house-settings [data-holiday-message]:empty{display:none}
 #house-settings [data-house-message]:empty,#house-settings [data-flow-message]:empty,#house-settings [data-limits-message]:empty,#house-settings [data-curve-state]:empty,#house-settings [data-learned-flow-state]:empty,#house-settings [data-smart-warmup-state]:empty{display:none}
 #house-settings h3{font-size:1.05rem;margin:14px 0 6px}#house-settings .bl-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));max-width:480px}#house-settings .bl-grid label{display:block;margin-bottom:8px}
 #house-settings .bp-summary{color:var(--ot-muted);font-weight:400;font-size:.85rem}
@@ -174,7 +197,8 @@
     const t = fixed(away.target_c) + ' °C';
     now.textContent = mode === 'home' ? uiText("At home: the rooms follow their week programs, also when everyone is away.")
       : mode === 'away' ? fill(uiText("Away: every room at most {t} until you switch back."), {t})
-      : mode === 'holiday' ? fill(uiText("Holiday until {date}: every room at most {t}, and warm again in time."), {date: when(away.until), t})
+      : mode === 'holiday' ? fill(uiText("Holiday until {date}: every room at most {t}, and warm again in time."), {date: when(away.until),
+        t: Number.isFinite(away.holiday_temperature_c) ? fixed(away.holiday_temperature_c) + ' °C' : t})
       : away.on ? fill(uiText("Automatic: everyone is away, so every room is at most {t}."), {t})
       : away.presence === 'home' ? uiText("Automatic: someone is home, so the rooms follow their week programs.")
       : uiText("Automatic: presence is not known, so the rooms follow their week programs.");
@@ -242,6 +266,121 @@
   const removal = new MutationObserver(() => { if (!root.isConnected) { lifecycle.abort(); clearInterval(timer); removal.disconnect(); } });
   removal.observe(document.body, {childList: true, subtree: true});
   paint(); refresh(); timer = setInterval(refresh, 10000);
+})();
+</script>
+<script>
+// Holidays (rc.4, house.holidays.v1: the status lists the next ones as away.holidays): the planned periods and the holiday
+// temperature. GET/POST /config/heating/comfort {"holidays":[{"from","until"}],"holiday_temperature"}: the whole list each
+// time, so changing, removing and "Stop holiday" (the list without the running one) are one save. Local date and time in
+// the inputs (the offset of that date, also across a DST change); the E32 keeps unix seconds. Hidden on older firmware.
+(() => {
+  'use strict';
+  const root = document.getElementById('house-settings'), box = root && root.querySelector('[data-house-holidays]');
+  if (!box) return;
+  const q = s => box.querySelector(s), list = q('[data-holiday-list]'), form = q('[data-holiday-form]'), from = q('[data-holiday-from]');
+  const to = q('[data-holiday-to]'), temperature = q('[data-holiday-c]'), message = q('[data-holiday-message]');
+  const lifecycle = new AbortController(), on = (el, type, f) => el.addEventListener(type, f, {signal: lifecycle.signal});
+  const errorText = {holiday_in_past: "This holiday is already over. Choose an end in the future.",
+    holiday_too_far: "Choose an end at most a year ahead.", invalid_holidays: "Check the dates: a holiday ends after it starts.",
+    too_many_holidays: "At most 8 holidays can be planned. Remove one first.",
+    no_clock: "The E32 clock is not set yet, so a holiday date cannot be used. Try again in a minute.",
+    invalid_temperature: "Use a temperature between 5 and 25 °C.",
+    save_unconfirmed: "The E32 could not confirm the save. Reload the page and check the holidays."};
+  const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.split('{' + k + '}').join(v), uiText(text));
+  const when = utc => new Date(utc * 1000).toLocaleString(OpenThermostatLanguage.locale, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+  const local = utc => { const d = new Date(utc * 1000); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+  const unix = value => value ? Math.floor(new Date(value).getTime() / 1000) : NaN;
+  const nowS = () => Math.floor(Date.now() / 1000);
+  let holidays = null, shownC = null, editing = null, busy = false, seen = '';
+  async function json(url, options = {}) {
+    const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000), stop = () => controller.abort();
+    lifecycle.signal.addEventListener('abort', stop, {once: true});
+    try {
+      const response = await fetch(url, {cache: 'no-store', ...options, signal: controller.signal});
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw Object.assign(Error('request'), {code: body.error || response.status});
+      return body;
+    } finally { clearTimeout(deadline); lifecycle.signal.removeEventListener('abort', stop); }
+  }
+  const running = () => (holidays || []).find(h => h.from <= nowS() && nowS() < h.until);
+  function paint() {
+    box.hidden = !holidays;
+    if (!holidays) return;
+    const current = running();
+    q('[data-holiday-running]').hidden = !current;
+    q('[data-holiday-now]').textContent = current ? fill("On holiday until {date}.", {date: when(current.until)}) : '';
+    q('[data-holiday-empty]').hidden = holidays.length > 0;
+    list.replaceChildren(...holidays.map(h => {
+      const item = document.createElement('li'), text = document.createElement('span'), actions = document.createElement('span');
+      item.className = 'hh-item'; actions.className = 'ot-actions';
+      text.textContent = fill("{from} to {until}", {from: when(h.from), until: when(h.until)});
+      if (h === current) { const badge = document.createElement('span'); badge.className = 'hh-badge'; badge.textContent = uiText("now"); text.append(badge); }
+      for (const [label, act] of [["Change", () => open(h)], ["Remove", () => save(holidays.filter(x => x !== h), "Holiday removed.")]]) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn btn-outline-secondary'; b.textContent = uiText(label); b.disabled = busy;
+        b.setAttribute('aria-label', uiText(label) + ': ' + text.textContent); b.addEventListener('click', act);
+        actions.append(b);
+      }
+      item.append(text, actions);
+      return item;
+    }));
+    for (const b of box.querySelectorAll('[data-holiday-stop],[data-holiday-add],[data-holiday-save],[data-holiday-c-save]')) b.disabled = busy;
+    form.hidden = editing === null;
+  }
+  // The full list from the E32 (also its answer to a save); the status only names the next ones.
+  function take(state) {
+    if (!state || !Array.isArray(state.holidays)) return;
+    holidays = state.holidays.filter(h => Number.isFinite(h?.from) && Number.isFinite(h?.until));
+    if (Number.isFinite(state.holiday_temperature) && document.activeElement !== temperature) temperature.value = shownC = state.holiday_temperature;
+    paint();
+  }
+  async function load() {
+    try { take(await json('/config/heating/comfort')); } catch (_) { /* the next status tries again */ }
+  }
+  async function send(body, done) {
+    busy = true; paint(); message.textContent = uiText("Saving…");
+    try {
+      take(await json('/config/heating/comfort', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}));
+      editing = null; message.textContent = uiText(done);
+    } catch (error) {
+      if (lifecycle.signal.aborted) return;
+      message.textContent = errorText[error.code] ? uiText(errorText[error.code])
+        : error.code ? uiText("The E32 refused the change.") + ' (' + error.code + ')'
+        : uiText("The E32 could not be reached. Check the connection and try again.");
+    } finally { busy = false; paint(); }
+  }
+  const save = (next, done) => send({holidays: next.map(h => ({from: h.from, until: h.until}))}, done);
+  function open(holiday) {
+    editing = holiday || 'new'; message.textContent = '';
+    from.value = holiday ? local(holiday.from) : ''; to.value = holiday ? local(holiday.until) : '';
+    paint(); from.focus();
+  }
+  on(q('[data-holiday-add]'), 'click', () => open(null));
+  on(q('[data-holiday-cancel]'), 'click', () => { editing = null; message.textContent = ''; paint(); });
+  on(q('[data-holiday-save]'), 'click', () => {
+    const start = unix(from.value), end = unix(to.value);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) { message.textContent = uiText("Choose when the holiday starts and ends."); (from.value ? to : from).focus(); return; }
+    if (end <= start) { message.textContent = uiText(errorText.invalid_holidays); to.focus(); return; }
+    if (end <= nowS()) { message.textContent = uiText(errorText.holiday_in_past); to.focus(); return; }
+    save([...holidays.filter(h => h !== editing), {from: start, until: end}], "Holiday saved.");
+  });
+  on(q('[data-holiday-stop]'), 'click', () => { const current = running(); if (current) save(holidays.filter(h => h !== current), "Holiday stopped."); });
+  on(q('[data-holiday-c-save]'), 'click', () => {
+    const v = Number(temperature.value);
+    if (!temperature.value || !Number.isFinite(v) || v < 5 || v > 25) { message.textContent = uiText(errorText.invalid_temperature); temperature.focus(); return; }
+    send({holiday_temperature: v}, "Temperature saved.");
+  });
+  // The 10 s status: the list is read again when its next holidays changed elsewhere (Home Assistant), never while editing;
+  // the holiday temperature follows it unless its field is being edited.
+  on(root, 'heating-status', event => {
+    const away = event.detail?.away, next = Array.isArray(away?.holidays) ? JSON.stringify(away.holidays) : null;
+    if (next === null) { holidays = null; paint(); return; }
+    const c = away.holiday_temperature_c;
+    if (Number.isFinite(c) && c !== shownC && document.activeElement !== temperature && !busy) temperature.value = shownC = c;
+    if ((next !== seen || !holidays) && editing === null && !busy) { seen = next; load(); } else paint();
+  });
+  const removal = new MutationObserver(() => { if (!root.isConnected) { lifecycle.abort(); removal.disconnect(); } });
+  removal.observe(document.body, {childList: true, subtree: true});
 })();
 </script>
 <script>

@@ -58,5 +58,6 @@
 4 test/ui-language-browser.cjs  # 6 s
 4 test/boiler-profile-browser.cjs  # 3 s
 4 test/boiler-test-confirm-browser.cjs  # 30 s
+4 test/house-holidays-browser.cjs  # 4 s (rc.4 holiday planner on the Home page)
 4 test/week-editor-browser.cjs  # 17 s
 4 test/week-levels-browser.cjs  # 20 s (beta.23)

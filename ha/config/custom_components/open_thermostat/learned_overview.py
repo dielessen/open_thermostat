@@ -439,10 +439,11 @@ def smart_warm_up_line(start, on, lang, clock):
 def arrival_line(arrival, lang, clock, day=None, today=None):
     """(text, meaning) on how the room's last program step up turned out (E32 rc.4), or None.
 
-    ``arrival`` (the room's plan): ``last_at_utc`` when the room was warm, ``last_error_min`` how many
-    minutes after the switch time (negative: before it), ``factor`` what the E32 now does with the
-    warm-up time (above 1: it starts earlier). clock: utc -> "09:12"; day: utc -> the local date;
-    today: the local date now ("Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier.").
+    ``arrival`` (the room's plan): ``last_at_utc`` the program's switch time of the last judged morning,
+    ``last_error_min`` how many minutes after it the room was warm (negative: before it; the room was
+    warm at last_at_utc + last_error_min, ArrivalLearner::resolve), ``factor`` what the E32 now does
+    with the warm-up time (above 1: it starts earlier). clock: utc -> "09:12"; day: utc -> the local
+    date; today: the local date now ("Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier.").
     """
     t = TEXT[lang]
     arrival = arrival if type(arrival) is dict else {}
@@ -463,7 +464,8 @@ def arrival_line(arrival, lang, clock, day=None, today=None):
            else t["how_on_time"])
     change = round(abs(factor - 1) * 100) if _ok(factor) and 0.1 <= factor <= 10 else 0
     key = "arrival" if not change else "arrival_earlier" if factor > 1 else "arrival_later"
-    return t[key].format(when=when, time=clock(at), how=how, p=change), t["arrival_mean"]
+    # The moment the room was warm: the switch time plus the error (the E32's Home page shows the same moment).
+    return t[key].format(when=when, time=clock(at + minutes * 60), how=how, p=change), t["arrival_mean"]
 
 
 def room_overview(name, learned, plan, lang, clock, smart=None, day=None, today=None):

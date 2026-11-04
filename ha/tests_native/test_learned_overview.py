@@ -363,11 +363,14 @@ def test_the_warm_up_time_can_be_learned_before_the_coolest_water():
     assert "warm-up time is learned" not in str(ready["lines"])
 
 
+# The firmware (ArrivalLearner::resolve) sends the program's switch time as last_at_utc and the minutes the
+# room was late as last_error_min: the room was warm at last_at_utc + last_error_min (09:12 in every case
+# here, the only moment the clock below knows), as the E32's Home page shows it.
 @pytest.mark.parametrize("arrival,english,dutch", [
-    ({"factor": 1.1, "events": 3, "last_error_min": 12, "last_at_utc": 1793265120},
+    ({"factor": 1.1, "events": 3, "last_error_min": 12, "last_at_utc": 1793265120 - 12 * 60},
      "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier.",
      "Gisteren warm om 09:12 (12 min te laat); morgen 10 % eerder."),
-    ({"factor": 0.92, "events": 4, "last_error_min": -25, "last_at_utc": 1793265120},
+    ({"factor": 0.92, "events": 4, "last_error_min": -25, "last_at_utc": 1793265120 + 25 * 60},
      "Yesterday warm at 09:12 (25 min early); tomorrow 8 % later.",
      "Gisteren warm om 09:12 (25 min te vroeg); morgen 8 % later."),
     ({"factor": 1.0, "events": 1, "last_error_min": 0.4, "last_at_utc": 1793265120},
@@ -378,7 +381,7 @@ def test_every_morning_is_checked(arrival, english, dutch):
     clock = {1793265120: "09:12"}.get
 
     def day(utc):
-        return date(2026, 10, 29) if utc == 1793265120 else None
+        return date(2026, 10, 29) if abs(utc - 1793265120) <= 3600 else None
     text, meaning = lo.arrival_line(arrival, "en", clock, day, date(2026, 10, 30))
     assert text == english
     assert meaning == "It checks every morning whether the room was warm on time and adjusts its warm-up time."
@@ -401,7 +404,8 @@ def test_no_arrival_line_without_a_checked_morning():
 
 def test_the_room_lines_end_with_how_the_morning_went():
     from datetime import date
-    plan = {**PLAN, "arrival": {"factor": 1.1, "events": 3, "last_error_min": 12, "last_at_utc": 1793265120},
+    # The switch time was 09:00 (last_at_utc); the room was warm 12 min later, at 09:12.
+    plan = {**PLAN, "arrival": {"factor": 1.1, "events": 3, "last_error_min": 12, "last_at_utc": 1793265120 - 12 * 60},
             "optimum_start": {**PLAN["optimum_start"], "applies": True, "estimate": True}}
     clock = {**CLOCK, 1793265120: "09:12"}.get
     room = lo.room_overview("Woonkamer", LEARNED, plan, "en", clock, True,

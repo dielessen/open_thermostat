@@ -8,7 +8,8 @@ const root=path.resolve(__dirname,'..');
 const config=JSON.parse(fs.readFileSync(path.join(root,'test/fixtures/ha-dashboard-views.json'),'utf8'));
 const out=path.resolve(process.env.OPENTHERMOSTAT_DASHBOARD_VIEWS_EVIDENCE||path.join(root,'out/ha-dashboard-views-20261103'));
 const HEIGHT={heading:40,tile:64,thermostat:300,'history-graph':200,'statistics-graph':200,markdown:90,entities:150,glance:90,button:56,
- 'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':260};
+ 'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':330,
+ 'custom:openthermostat-yesterday':130};
 const label=card=>card.heading||card.name||card.title||card.entity||(card.content||'').replace(/<[^>]+>|\{[%{#][^}]*[%}#]\}/g,' ').replace(/\s+/g,' ').trim().slice(0,70)||card.type;
 // Half-width by default (6 of 12 columns), as in Home Assistant's sections view; grid_options override both.
 const HALF=['tile','button','statistic','gauge'];

@@ -280,6 +280,22 @@ TEST(HttpRequestBounds, AnUploadWhoseSenderVanishesInsideAFormFieldEndsAndIsNotH
     EXPECT_LE(s.blockedMs, 1000u) << s.blockedMs;
 }
 #ifndef OT_OLD_RESPONSIVE_SERVER
+// Review R2-08: an upload the update gate refuses anyway (a boot not confirmed yet, an update or a
+// boiler session) is refused by the admission, 409 before a byte of its body is read; before, the
+// parser read the whole image and every 1436-byte chunk ran the authorization and wrote a refusal.
+TEST(HttpRequestBounds, ABlockedUploadIsRefusedBeforeItsBodyIsRead) {
+    HttpServer s; httpTestNow = 100;
+    admit(s, [](const heating::control::HttpRequestHead &head) { return head.path == "/ota" ? 409 : 0; });
+    const std::string image(500000, 'x');
+    auto socket = connect(s, "POST /ota HTTP/1.1\r\nHost: 192.168.1.40\r\nContent-Type: multipart/form-data; boundary=OTB\r\n"
+                             "Content-Length: " + std::to_string(image.size()) + "\r\n\r\n" + image);
+    run(s, 200);
+    EXPECT_EQ(s.parses, 0u); EXPECT_EQ(s.handled, 0u);
+    EXPECT_EQ(socket->out.rfind("HTTP/1.1 409 Conflict\r\n", 0), 0u) << socket->out;
+    EXPECT_NE(socket->out.find(R"({"error":"device_busy"})"), std::string::npos);
+    EXPECT_LT(socket->pos, 4096u); // the image was never read
+    EXPECT_EQ(socket->stops, 1u);
+}
 // Review R2-03: an upload waits unread, without blocking the loop, while the admission holds it
 // (the E32 first withdraws its boiler request); admitted, it is parsed and gets its full deadline.
 // A hold that never ends is refused after holdMs, the body never read.

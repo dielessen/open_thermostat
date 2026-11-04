@@ -411,6 +411,8 @@ window.OT_UI_MESSAGES = {
   // rc.3 Smart warm-up, one line per room (index.html smartWarmupLine; also the Home page's learned rooms).
   "Smart warm-up: starts at {start} so it is {target} °C at {time}.": "Slim opwarmen: begint om {start}, zodat het om {time} {target} °C is.",
   "Smart warm-up: heating now so it is {target} °C at {time}.": "Slim opwarmen: verwarmt nu, zodat het om {time} {target} °C is.",
+  "Smart warm-up: starts at {start} so it is {target} °C at {time} (estimate; it learns from every morning).": "Slim opwarmen: begint om {start}, zodat het om {time} {target} °C is (schatting; hij leert van elke ochtend).",
+  "Smart warm-up: heating now so it is {target} °C at {time} (estimate; it learns from every morning).": "Slim opwarmen: verwarmt nu, zodat het om {time} {target} °C is (schatting; hij leert van elke ochtend).",
   "Smart warm-up: heating now; {target} °C may come a little after {time}.": "Slim opwarmen: verwarmt nu; {target} °C wordt misschien pas iets na {time} gehaald.",
   "Smart warm-up: warm enough for {target} °C at {time}, no early start needed.": "Slim opwarmen: warm genoeg voor {target} °C om {time}, eerder beginnen is niet nodig.",
   "Smart warm-up is still learning: for now heating starts at {time} (estimate: from {start} it would be {target} °C on time).": "Slim opwarmen leert nog: voorlopig begint verwarmen om {time} (schatting: vanaf {start} zou het op tijd {target} °C zijn).",

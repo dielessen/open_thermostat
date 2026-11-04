@@ -3,6 +3,26 @@
    the firmware or a Home script (see test/ui-language.test.cjs) can show belong in
    ui-messages.js instead. Never replaces an entry of ui-messages.js. */
 window.OT_UI_PAGE_MESSAGES = {
+  // rc.4: the learned card shorter ("More"), what the learning reports and the scoreboard's yesterday (house.html).
+  "More": "Meer",
+  "Today": "Vandaag",
+  "Yesterday": "Gisteren",
+  "estimate": "schatting",
+  "The warm-up time is learned; the coolest water is still being learned.": "De opwarmtijd is geleerd; het koelste water leert hij nog.",
+  "{day} warm at {time} ({n} min late)": "{day} warm om {time} ({n} min te laat)",
+  "{day} warm at {time} ({n} min early)": "{day} warm om {time} ({n} min te vroeg)",
+  "{day} warm at {time}, on time": "{day} warm om {time}, op tijd",
+  "tomorrow {pct} % earlier": "morgen {pct} % eerder",
+  "tomorrow {pct} % later": "morgen {pct} % later",
+  "Heating time": "Stooktijd",
+  "Burner starts per heating hour": "Branderstarts per stookuur",
+  "Short burner runs": "Korte branderrondes",
+  "Gas for heating (estimate)": "Gas voor verwarmen (schatting)",
+  "Degree days (how cold it was)": "Graaddagen (hoe koud het was)",
+  "warm {n} min late": "{n} min te laat warm",
+  "warm {n} min early": "{n} min te vroeg warm",
+  "warm on time": "op tijd warm",
+  "{c} °C too warm": "{c} °C te warm",
   // Radiator valves in the room cards (heating.html, beta.24).
   "Radiator valves": "Radiatorkranen",
   "Bosch BTH-RA (position, external temperature)": "Bosch BTH-RA (stand, externe temperatuur)",

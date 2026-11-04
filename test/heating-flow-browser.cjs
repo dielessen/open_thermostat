@@ -142,6 +142,11 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   // Both on now: the learned curve and the learned water, in plain words.
   assert.equal(await curveLine.innerText(),'Weerafhankelijke regeling: geleerd voor je huis.');
   assert.equal(await waterLine.innerText(),'Koelste water: geleerd voor je huis.');
+  // rc.4 (L3): a start planned on an estimate says so in its row.
+  const none=status.flow.optimum_start;
+  status.flow.optimum_start={state:'applied',room:'woonkamer',start_utc:1793248800,flow_c:38,confidence:'default',heating:false,estimate:true,rooms:1};
+  await box.locator('[data-flow-status]').getByText(/^In gebruik · geplande start \d\d:\d\d · schatting$/).waitFor({timeout:15000});
+  status.flow.optimum_start=none;
   // Still learning the curve (2 of 6 steady periods), and no outdoor temperature at all.
   status.flow.curve={...status.flow.curve,slope_source:'design',windows:2};
   await curveLine.getByText('Weerafhankelijke regeling: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes).').waitFor({timeout:15000});

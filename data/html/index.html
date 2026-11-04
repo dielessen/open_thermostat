@@ -1223,6 +1223,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
         // means for this room. start: "plans.rooms[].optimum_start" of /status/heating; on: the stored option
         // (apply_learned; undefined: not known, on by default). "applies": the E32 uses this start (older
         // firmware: a learned warm-up); otherwise it is an estimate and heating starts at the program time.
+        // rc.4 (L3): the E32 also starts on an estimate ("estimate": true) and learns from every morning.
         function smartWarmupLine(start, on) {
             var ok = function(v) { return typeof v === 'number' && Number.isFinite(v); }, sw = start && start.next_switch;
             if (!start || start.reason !== 'planned' || !ok(start.predicted_start_utc) || !sw || !ok(sw.utc) || !ok(sw.target_c)) return '';
@@ -1235,8 +1236,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 !applies ? "Smart warm-up is still learning: for now heating starts at {time} (estimate: from {start} it would be {target} °C on time)." :
                 start.lead_minutes === 0 && start.start_now !== true ? "Smart warm-up: warm enough for {target} °C at {time}, no early start needed." :
                 start.start_now === true ? (start.reachable === false ? "Smart warm-up: heating now; {target} °C may come a little after {time}." :
-                    "Smart warm-up: heating now so it is {target} °C at {time}.") :
-                "Smart warm-up: starts at {start} so it is {target} °C at {time}.";
+                    start.estimate === true ? "Smart warm-up: heating now so it is {target} °C at {time} (estimate; it learns from every morning)." : "Smart warm-up: heating now so it is {target} °C at {time}.") :
+                start.estimate === true ? "Smart warm-up: starts at {start} so it is {target} °C at {time} (estimate; it learns from every morning)." : "Smart warm-up: starts at {start} so it is {target} °C at {time}.";
             return Object.keys(values).reduce(function(t, k) { return t.split('{' + k + '}').join(values[k]); }, uiText(text));
         }
         function comfortNoticeHtml(room) {

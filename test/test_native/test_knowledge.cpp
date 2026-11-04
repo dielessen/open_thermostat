@@ -131,6 +131,10 @@ TEST(Knowledge, EverythingLearnedIsAHundredAndEachPartHasItsWeight) {
     // Driving (any other state): the minimum counts; the response still waits for "learned".
     l.boiler.s = "collecting";
     EXPECT_EQ(l.percent().pct, 90);
+    // rc.5: a boiler that never holds but reports its return: the output per K counts as learned (100 %).
+    l.boiler.kwPerK = 0.5f;
+    EXPECT_EQ(l.percent().pct, 100);
+    l.boiler.kwPerK.reset();
     // One of two rooms without three judged mornings: half of arrival's 15 (82.5 rounded down).
     ArrivalLearner one; one.setPlan(l.house.plan); trustArrival(one, 1);
     r = Knowledge::percent(l.house.learner, l.curve, one, &l.boiler, l.model, l.house.plan);

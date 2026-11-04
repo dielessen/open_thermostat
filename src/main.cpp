@@ -598,7 +598,8 @@ void loop() {
 		heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::health);
 		observeHealth(monotonicMs());
 #endif
-		DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d MinPeekStack: %d boxTemp: %f, UpTime: %lds\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap(), uxTaskGetStackHighWaterMark(nullptr), heating::rtcGetTemp(), esp_timer_get_time()/1000000);
+		// R2-14: debug level; at INFO this and the address line below filled the 512-record web log every 10 s.
+		DBGLOGFD(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d MinPeekStack: %d boxTemp: %f, UpTime: %lds\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap(), uxTaskGetStackHighWaterMark(nullptr), heating::rtcGetTemp(), esp_timer_get_time()/1000000);
 		DBGLOGFD(heating::logger, appLogFeature(), "SPIFFS: %zu/%zu\n", SPIFFS.usedBytes(), SPIFFS.totalBytes());
 
 #ifdef OPENTHERMOSTAT_E32V2
@@ -618,7 +619,11 @@ void loop() {
 			WiFi.reconnect();
 		} else {
 #endif
-			DBGLOGFI(heating::logger, appLogFeature(), "WiFi IP Address: %s\n", WiFi.localIP().toString().c_str());
+			static uint32_t loggedAddress = 0; // R2-14: once per address, not every 10 s
+			if (uint32_t(WiFi.localIP()) != loggedAddress) {
+				loggedAddress = uint32_t(WiFi.localIP());
+				DBGLOGFI(heating::logger, appLogFeature(), "WiFi IP Address: %s\n", WiFi.localIP().toString().c_str());
+			}
 		}
 	}
 

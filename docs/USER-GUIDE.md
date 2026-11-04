@@ -993,15 +993,19 @@ rounded down, so 100 % means nothing is missing.
 | The Weather compensation line, learned for your house | 15 % |
 | The morning check of each room: three mornings judged | 15 % |
 | The lowest water temperature your boiler heats at (known once the E32 found it, or while it controls the boiler) | 10 % |
-| How your boiler holds its temperature ([listening to the boiler](#listening-to-the-boiler)) | 10 % |
+| How your boiler holds its temperature, or how much heat your house takes per °C of water temperature ([listening to the boiler](#listening-to-the-boiler)) | 10 % |
 | How fast your house loses heat and what the radiators and floor give ([the house model](#the-house-model-and-weather-compensation)) | 10 % |
 
 The room parts are the share of your active rooms. A part that does not apply
 counts as known: the morning check, for example, only counts rooms whose E32
 week program has a rise, and only while Smart warm-up is on. The part about
-how your boiler holds its temperature counts once the E32 has seen your boiler
-stop by itself in two requests; a boiler that never does that has nothing to
-hold back, so this part can stay open.
+your boiler counts once the E32 has learned a ceiling or the boiler's own rest
+(see [listening to the boiler](#listening-to-the-boiler)), or how much heat
+your house takes per °C of water temperature. The last one needs your boiler's
+return temperature, so a boiler that reports it gets there even when it never
+stops by itself. Only a boiler that reports no return temperature and never
+stops by itself has nothing to learn here: its state stays **No return
+temperature** and the figure tops out below 100 %.
 
 On the E32 you find the figure on the **Home** page under **What the
 thermostat has learned**. In Home Assistant the **Learning and settings** tab
@@ -1026,14 +1030,18 @@ What it learns from it:
   boiler stopped by itself twice, the E32 takes the request minus 2 °C as the
   most worth asking and keeps one ceiling per outdoor temperature range
   (below −5 °C, −5 to 0, 0 to 5, 5 to 10, 10 to 15 and 15 °C and up). The
-  first such request sets a ceiling; the pages say **Learned** from the
-  second. From then on the E32 asks no more than the ceiling, also for the
-  early start of a warm-up (planned for that water temperature), as long as
-  Smart warm-up is on (the default). The result is cooler water and fewer
-  burner starts. It never goes below the lowest water temperature the E32
-  asks of your boiler or above your highest water temperature. Not counted:
-  the first 10 minutes of a request (the circuit is still filling), a room
-  that is catching up on a warm-up, and anything around hot water.
+  first such request already sets a ceiling, and the pages say **Learned**.
+  From then on the E32 asks no more than the ceiling near the target
+  temperatures (see the next point), as long as Smart warm-up is on (the
+  default). The result is cooler water and fewer burner starts. It never goes
+  below the lowest water temperature the E32 asks of your boiler or above your
+  highest water temperature. Not counted: the first 10 minutes of a request
+  (the circuit is still filling), a room that is catching up on a warm-up, and
+  anything around hot water.
+- **A cold morning is not slowed.** The ceiling is what the house takes near
+  its target temperatures, where the boiler's holds happen. While the room
+  that is furthest from its target is 1 °C or more below it, the E32 asks the
+  full water temperature, whatever the ceiling says.
 - **A ceiling that proves too low corrects itself.** For every 6 hours of
   heating at or above the ceiling in which the boiler does not stop by itself,
   the ceiling goes up 1 °C. The season or the house may have changed.
@@ -1048,24 +1056,26 @@ What it learns from it:
   temperature, the E32 works out from steady burns how much heat the radiators
   and the floor take: in kW now, and in kW per °C of water temperature above
   the rooms. The [house model](#the-house-model-and-weather-compensation) uses
-  that figure.
+  that figure, and it counts for the knowledge figure too.
 
 On the E32 the **Home** page says it in one sentence under **What the
 thermostat has learned**, for example "Your boiler rests about 6 min each time
 it reaches its temperature; the E32 asks at most 41 °C now, so it starts less
-often." Home Assistant shows the same sentence on the **Learning and settings**
-tab and has the sensor **Boiler response** on the E32 device. Its state is:
+often." (The ceiling it names holds near the target temperatures; a room that
+is 1 °C or more below its target gets more.) Home Assistant shows the same
+sentence on the **Learning and settings** tab and has the sensor **Boiler
+response** on the E32 device. Its state is:
 
 | State | Meaning |
 | --- | --- |
-| Still listening | The E32 has not yet seen enough of how your boiler holds its temperature. |
-| Learned | It has. The sentence above says what it found. |
-| No return temperature | Your boiler does not report the water coming back, so the E32 cannot see how much heat the house takes. Everything else works as usual, and the state becomes Learned as soon as the E32 has learned a ceiling from two requests. |
+| Still listening | The E32 has not yet seen enough of how your boiler holds its temperature. A boiler that never stops by itself can stay here; the knowledge figure still counts it once the heat the house takes per °C is known. |
+| Learned | The E32 knows a ceiling or the boiler's own rest. The sentence above says what it found. |
+| No return temperature | Your boiler does not report the water coming back, so the E32 cannot see how much heat the house takes. Everything else works as usual, and the state becomes Learned as soon as the E32 knows a ceiling or the boiler's own rest. |
 | E32 not controlling the boiler | The E32 listens once it controls the boiler itself (not during the trial run). |
 
 The attributes of the sensor give how often the boiler held its temperature
-today, its rest, the most the E32 asks now, the heat the house takes (kW) and
-the kW per °C of water temperature.
+today, its rest, the ceiling it learned for this outdoor temperature, the heat
+the house takes (kW) and the kW per °C of water temperature.
 
 ### The house model and Weather compensation
 
@@ -1141,9 +1151,9 @@ time. A room that never warms up by itself shows nothing and keeps its lead.
 The room's learned details say it in words, for example "In the afternoon this
 room warms up by itself, about 0.4 °C per hour (sun, cooking or people)" and,
 when it changes a start, "Smart warm-up now starts 20 min later for it, so it
-does not heat what comes for free." You find them on the E32 **Home** page
-under **What the thermostat has learned** and in Home Assistant's learned
-overview.
+does not heat what comes for free." The E32 **Home** page always shows them,
+under **What the thermostat has learned**. Home Assistant's learned overview
+shows them when the E32's report for that room has room for them.
 
 ### The heating-curve chart
 

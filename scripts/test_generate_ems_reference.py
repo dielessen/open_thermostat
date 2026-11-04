@@ -1,7 +1,6 @@
-"""Ensure compression/lookup generation never drops upstream fields or aliases."""
+"""Ensure lookup generation never drops upstream fields or aliases."""
 import collections
 import csv
-import gzip
 import io
 import json
 import re
@@ -10,9 +9,8 @@ from generate_ems_reference import ROOT,generate
 
 class ReferenceTests(unittest.TestCase):
     def test_every_exported_entity_and_access_bit_survives(self):
-        generate(check=True)
-        source=gzip.decompress((ROOT/'data/html/ems-reference.js.gz').read_bytes()).decode()
-        ref=json.loads(re.search(r'window.OT_EMS_REFERENCE = (.*);\n',source).group(1))
+        # The full reference as JSON (string keys), as ems-reference.js.gz held it before rc.4 (no longer shipped, R3-10).
+        ref=json.loads(json.dumps(generate(check=True)))
         actual=[]
         for key,group in ref['groups'].items():
             for index in group['fields']:actual.append((key,*ref['entities'][index]))

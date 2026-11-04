@@ -1,13 +1,16 @@
 /* Local UI preference only. No device configuration, control or user data is translated. */
 'use strict';
 (() => {
-    const messages = window.OT_UI_MESSAGES || {};
     const saved = document.cookie.match(/(?:^|;\s*)ot_ui_lang=(en|nl)(?:;|$)/);
     const language = saved ? saved[1] : typeof navigator !== 'undefined' && /^nl\b/i.test(navigator.language || '') ? 'nl' : 'en';
+    // The Dutch catalogue only for Dutch (R3-19): an English browser never downloads it. Written here, it runs before the
+    // next script of the page; a page that loads it itself first (the recovery page) keeps working.
+    if (language === 'nl' && !window.OT_UI_MESSAGES && document.readyState === 'loading') document.write('<script src="/ui-messages.js"><\/script>');
+    const catalogue = () => window.OT_UI_MESSAGES || {}; // read when used: the page catalogue joins it later
     const normalize = value => value.trim().replace(/\s+/g, ' ');
     function text(value) {
         if (typeof value !== 'string') return value;
-        const key = normalize(value);
+        const key = normalize(value), messages = catalogue();
         if (language !== 'nl' || !Object.hasOwn(messages, key)) return value; // English is the fallback for new source messages.
         const leading = value.match(/^\s*/)[0], trailing = value.match(/\s*$/)[0];
         return leading + messages[key] + trailing;

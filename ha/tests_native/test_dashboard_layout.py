@@ -28,7 +28,8 @@ HALF = {"tile", "button", "statistic", "gauge"}
 
 def columns(card):
     options = card.get("grid_options") or {}
-    return options.get("columns", 6 if card["type"] in HALF else 12)
+    width = options.get("columns", 6 if card["type"] in HALF else 12)
+    return 12 if width == "full" else width  # "full": the whole section, also one that spans both view columns
 
 
 def rows(cards, hidden):

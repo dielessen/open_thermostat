@@ -66,4 +66,4 @@
 4 test/week-editor-browser.cjs  # 17 s
 4 test/week-levels-browser.cjs  # 20 s (beta.23)
 4 test/pages-r3-browser.cjs  # 12 s (rc.4 review fixes of the Rooms, Home and Overview pages)
-4 test/ha-house-card-browser.cjs  # about 25 s (rc.5 the Overview's house card: status strip, figures, the day so far, throttled reads)
+4 test/ha-house-card-browser.cjs  # about 50 s (rc.5 the Overview's house card as the owner's sketch: band, figures, the day so far, throttled reads; the Yesterday figures)

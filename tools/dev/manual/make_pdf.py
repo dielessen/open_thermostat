@@ -339,7 +339,8 @@ def content():
          table([["Tabblad", "Wat je ziet"],
                 [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een strook in de kleur van wat de ketel nu doet (verwarmt, warm water of in rust), "
                  "met de huismodus rechts. Bij een probleem wordt de strook rood met de reden; een tik brengt je bij Reparaties. Onder de strook "
-                 "staan de cijfers van vandaag (verwarming, warm water, gas met de laatste 7 dagen, branderstarts) en de dag tot nu toe als balk. "
+                 "staan de cijfers van vandaag, groot (warm water, gas met de laatste 7 dagen, branderstarts; bij een probleem ook de verwarming) "
+                 "en de dag tot nu toe als balk. "
                  "Daaronder komen de huismodus, de volgende vakantie en een kaart per ruimte die in één regel zegt waarom ze verwarmt of niet. "
                  "Staat er maar één ruimte aan, dan zit die in de huiskaart en staan de andere onder " + ui("Overige ruimtes") + "."],
                 [ui("Ruimtes"), "Per ruimte de thermostaat, de dag, de sensoren, ramen en personen, en wat de E32 leerde."],

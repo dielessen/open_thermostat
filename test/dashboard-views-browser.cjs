@@ -9,7 +9,8 @@ const root=path.resolve(__dirname,'..');
 const config=JSON.parse(fs.readFileSync(path.join(root,'test/fixtures/ha-dashboard-views.json'),'utf8'));
 const out=path.resolve(process.env.OPENTHERMOSTAT_DASHBOARD_VIEWS_EVIDENCE||path.join(root,'out/ha-dashboard-views-20261103'));
 const HEIGHT={heading:40,tile:64,thermostat:300,'history-graph':200,'statistics-graph':200,markdown:90,entities:150,glance:90,button:56,
- 'custom:openthermostat-room-status':120,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':260};
+ 'custom:openthermostat-room-status':120,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':330,
+ 'custom:openthermostat-yesterday':130};
 const label=card=>card.heading||card.name||card.title||card.entity||(card.content||'').replace(/<[^>]+>|\{[%{#][^}]*[%}#]\}/g,' ').replace(/\s+/g,' ').trim().slice(0,70)||card.type;
 // Half-width by default (6 of 12 columns), as in Home Assistant's sections view; grid_options override both.
 const HALF=['tile','button','statistic','gauge'];
@@ -21,11 +22,14 @@ const height=card=>{const rows=(card.grid_options&&card.grid_options.rows)||ROWS
 const html=(view,hidden,width)=>{
  // Home Assistant fits as many section columns as the width allows (about 320 px each), up to max_columns.
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));
- // A section spans its column_span (the Overview's house card: all three columns), never more than there are.
- const sections=(view.sections||[]).map(section=>`<section style="grid-column:span ${Math.min(section.column_span||1,columns)}">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
-  const span=(card.grid_options&&card.grid_options.columns)||(HALF.includes(card.type)?6:12);
+ // A section spans its column_span (the Overview's house card: all three columns), never more than there are, and
+ // Home Assistant gives it 12 grid columns per view column: a card that asks for 12 is then a part of it (P16's real
+ // render), "full" the whole; a card that asks nothing is drawn across it.
+ const sections=(view.sections||[]).map(section=>{const wide=Math.min(section.column_span||1,columns);
+  return `<section style="grid-column:span ${wide};grid-template-columns:repeat(${12*wide},minmax(0,1fr))">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
+  const asked=card.grid_options&&card.grid_options.columns,span=asked==='full'?12*wide:asked||(HALF.includes(card.type)?6:12*wide);
   return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${height(card)}px">`+
-   `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`).join('');
+   `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`;}).join('');
  return `<style>:root{--bg:#fafafa;--fg:#212121;--card:#fff;--muted:#727272;--tile:#eef5ff;--note:#fffbe8;--chart:#f1f8f1;--tag:#b26a00}
   @media (prefers-color-scheme:dark){:root{--bg:#111111;--fg:#e1e1e1;--card:#1c1c1c;--muted:#9b9b9b;--tile:#1d2a3a;--note:#2e2a1b;--chart:#1c2b1f;--tag:#e0a040}}
   body{margin:0;padding:16px;font:13px Roboto,Arial;background:var(--bg);color:var(--fg)}h1{font-size:16px;margin:0 0 12px}

@@ -29,6 +29,8 @@ CARD_URL = "/open_thermostat/room-status-card-1.0.0rc5.js"
 # so far and, in a house with one room switched on, that room. The seventh card module, versioned like the others.
 HOUSE_CARD_URL = "/open_thermostat/house-card-1.0.0rc5.js"
 HOUSE_CARD_TYPE = "custom:openthermostat-house"
+# Yesterday's headline figures on the Learning view, large as on the house card (the same module, house-card.js).
+YESTERDAY_CARD_TYPE = "custom:openthermostat-yesterday"
 # The reasons, in the order they win: a room that is off or paused says so before
 # anything else; a room that wants heat but waits for the boiler says why it waits;
 # then the mode that sets its target (away, boost); then what it does.

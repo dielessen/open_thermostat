@@ -7,6 +7,7 @@
 #include "control/Scoreboard.h"
 #include "control/ShadowComparison.h"
 #include "control/TelemetryPolicy.h"
+#include "BoilerResponseWidest.h"
 #include "ScopedTz.h"
 #include <cmath>
 #include <cstdio>
@@ -309,20 +310,21 @@ TEST(HeatingTelemetry, WorstCaseSummaryPartsEachStayWithinTheSoftLimit) {
     ControlTuning widest; size_t kn; const auto* kk = ControlTuning::knobs(kn);
     for (size_t i = 0; i < kn; ++i) widest.*kk[i].field = kk[i].high;
     FlowPolicy policy;
+    const BoilerResponse boiler = widestBoilerResponse(); // rc.5 (P1): "boiler" at its widest, sent with the flow
     const auto more = [&](bool compact) {
         return [&, compact](cJSON* root) {
             return tuner.addStatus(root, b.context.now, widest, ControlTuning::autoKnobs, AutoTuner::mqttEntries)
-                && board.addJson(root, tuner, b.plan, compact);
+                && board.addJson(root, tuner, b.plan, compact) && boiler.addJson(root);
         };
     };
     const auto summary = heatingSummaryTelemetry(b.learner, b.context, Bench::dhw().summaryJson(), &policy, more(true));
     ASSERT_FALSE(summary.empty());
     Json doc(cJSON_Parse(summary.c_str()), cJSON_Delete);
     ASSERT_TRUE(doc);
-    // The split of TelemetryPublisher::summary(): flow and night_gas, tuning and scoreboard each with a schema.
+    // The split of TelemetryPublisher::summary(): flow, night_gas and (rc.5) boiler, tuning and scoreboard each with a schema.
     Json flow(cJSON_CreateObject(), cJSON_Delete), tuning(cJSON_CreateObject(), cJSON_Delete), score(cJSON_CreateObject(), cJSON_Delete);
     for (cJSON* part : {flow.get(), tuning.get(), score.get()}) cJSON_AddNumberToObject(part, "schema", 1);
-    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard"})
+    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "boiler"})
         if (cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key))
             cJSON_AddItemToObject(key[0] == 't' ? tuning.get() : key[0] == 's' ? score.get() : flow.get(), key, part);
     const struct { const char* topic; std::string payload; } parts[] = {
@@ -335,8 +337,9 @@ TEST(HeatingTelemetry, WorstCaseSummaryPartsEachStayWithinTheSoftLimit) {
     // The summary keeps the learned header and today's hot water; nothing of the companions.
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(doc.get(), "learned")));
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(doc.get(), "dhw")));
-    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard"}) EXPECT_FALSE(cJSON_GetObjectItem(doc.get(), key)) << key;
+    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "boiler"}) EXPECT_FALSE(cJSON_GetObjectItem(doc.get(), key)) << key;
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(tuning.get(), "tuning")));
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(flow.get(), "boiler"))) << "rc.5: the boiler's object travels with the flow";
     // The scoreboard's MQTT form: yesterday with every room, today without a "rooms" key.
     const cJSON* sb = cJSON_GetObjectItem(score.get(), "scoreboard");
     ASSERT_TRUE(cJSON_IsObject(sb));

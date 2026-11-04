@@ -46,8 +46,8 @@ public:
     static constexpr char arrivalKind = 'A';
     static constexpr uint8_t arrivalVersion = 1;
     // rc.5 (P1): frames of other learners (BoilerResponse, kind 'B') are built and read by their
-    // owners; LearnedStore keeps them in the global record after the arrival frame and hands them
-    // back by `other`. Firmware before rc.5 skips them: they are no room frames.
+    // owners; LearnedStore keeps them in the packed record after the rooms and hands them back by
+    // `other`. Firmware before rc.5 skips them: they are no room frames.
     using OtherFrames = std::function<void(std::string_view)>;
     static constexpr size_t maxFrame = 1024;
     // A version 2 room frame's size: an id of `idBytes`, bins whose segments all had the
@@ -513,15 +513,16 @@ public:
         return now - savedAt_ >= saveEveryMs;
     }
     // The changed parts; true when every frame is stored. rc.5 (P1): `more`, the frames of other
-    // learners (BoilerResponse::stored(); empty: none), go with the globals, before the rooms.
+    // learners (BoilerResponse::stored(); empty: none), come last: learned again in days where a
+    // room takes weeks, they are the first to stay in RAM when NVS is short of room.
     bool save(Backend& b, const FlowLearner& l, const FlowPolicy& p, uint64_t now, const std::vector<std::string>& more = {}) {
         savedAt_ = now;
         std::vector<std::string> frames;
         if (auto g = LearnedState::globalFrame(l, p); !g.empty()) frames.push_back(std::move(g));
         if (auto a = LearnedState::arrivalFrame(p); !a.empty()) frames.push_back(std::move(a)); // rc.4
-        for (const auto& m : more) if (!m.empty()) frames.push_back(m);
         for (size_t i = 0; i < l.rooms(); ++i)
             if (auto f = LearnedState::roomFrame(l, i); !f.empty()) frames.push_back(std::move(f));
+        for (const auto& m : more) if (!m.empty()) frames.push_back(m);
         bool complete = savePacked(b, frames);
         if (legacy_ && !complete) {
             // The old per-frame keys hold room the packed record needs: theirs is in RAM (restored).

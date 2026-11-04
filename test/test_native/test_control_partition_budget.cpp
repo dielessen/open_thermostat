@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "control/ControlPartitionBudget.h"
 #include "control/AutoTuner.h"
+#include "control/BoilerResponse.h"
 #include "control/DhwEpisodes.h"
 #include "control/FlowPolicy.h"
 #include "control/LearnedState.h"
@@ -114,6 +115,9 @@ TEST(ControlPartitionBudget, TheKnobsWithoutTheirLogFitTheirPriorityReserve) {
 // priority 0 like the readiness and the knobs, before the 6-hourly learned record.
 struct Record { const char* key; size_t bytes; };
 constexpr size_t globalBytes = 300;                                   // measured 240 (test_learned_state)
+// rc.5 (P1): the boiler's frame ('B', BoilerResponse, 41 B) is the record's last frame: within the
+// globals' allowance beside the measured 240 B, and the first to stay in RAM when NVS is short.
+static_assert(240 + BoilerResponse::frameBytes <= globalBytes && BoilerResponse::frameBytes <= BoilerResponse::storedMaxBytes);
 constexpr size_t typicalRoom = LearnedState::compactRoomBytes(10, 6);  // 6 bins with the outdoor: 190 B
 constexpr size_t worstRoom = LearnedState::compactRoomBytes(32, 0, FlowLearner::binCount); // 558 B
 std::vector<Record> typical() {
@@ -188,10 +192,12 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
         EXPECT_LE(n, 630u - B::entriesPerPage) << "never physically full";
         // The owner's unit (plan ~0.93 KB, a session without rooms): everything is kept, the
         // learned rooms beside the hourly records (rc.4: the hot water days and the scoreboard).
-        if (c.plan == 930 && c.control <= 200 && !c.graph && !worst)
+        if (c.plan == 930 && c.control <= 200 && !c.graph && !worst) {
             EXPECT_EQ(kept, "readiness autotune dhw scoreboard learned_a ")
                 << "the owner's unit: " << 630 - n << " free after the records written, the learned record (" << typical().back().bytes
                 << " B) needs 1 + " << B::blobEntries(typical().back().bytes) << " entries beside the reserve of " << reserve;
+            EXPECT_GE(630 - n, 200u) << "rc.5: the owner's unit keeps at least 200 free entries (with the boiler's frame)";
+        }
     }
     // The gate itself: the edge, the record it replaces, invalid stats, sizes and reservations.
     EXPECT_EQ(B::controlReplacementEntries(0, false), 8u);

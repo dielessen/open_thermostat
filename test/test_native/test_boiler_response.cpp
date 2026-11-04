@@ -3,6 +3,7 @@
 #include "control/LearnedState.h"
 #include "control/RestFloor.h"
 #include "control/ShadowComparison.h"
+#include "BoilerResponseWidest.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <algorithm>
@@ -468,26 +469,10 @@ TEST(BoilerResponse, TheBoilerObjectKeepsItsShapeAndSize) {
     Json fresh(cJSON_CreateObject(), cJSON_Delete);
     ASSERT_TRUE(BoilerResponse().addJson(fresh.get()));
     EXPECT_EQ(print(fresh.get()), R"({"boiler":{"held":0,"rest_s":null,"ceiling_c":null,"absorbed_kw":null,"kw_per_k":null,"state":"collecting"}})");
-    // The widest: 65535 held targets, a rest of 1800 s, no ceiling (null is wider), 999.9 kW,
-    // 19.999 kW per K and "not_driving".
-    std::string f(BoilerResponse::frameBytes, '\0');
-    f[0] = 1; f[1] = 'B'; f[2] = char(BoilerResponse::payloadBytes);
-    f[4 + 14] = char(8);
-    for (int i = 0; i < 8; ++i) f[4 + 15 + i] = char(180);
-    f[4 + 25] = char(19999 & 0xFF); f[4 + 26] = char(19999 >> 8);
-    for (int i = 0; i < 4; ++i) f[4 + 27 + i] = char(0x80 * (i == 3));
-    f[4 + 31] = char(0xFF); f[4 + 32] = char(0xFF);
-    const uint32_t c = LearnedState::crc(f.data(), f.size() - 4);
-    for (int i = 0; i < 4; ++i) f[f.size() - 4 + i] = char(c >> (8 * i));
-    BoilerResponse r;
-    ASSERT_TRUE(r.restore(f));
-    // A pump of 5 kg/s (restored as 1 kg/s would not reach 999.9 kW): learned on the bench.
-    BoilerResponse::Sample s;
-    s.ownRequest = false; s.burnerOn = true; s.hotWater = false; s.modulationPct = 100; s.nominalKw = 60;
-    s.flowCentiC = 9000; s.returnCentiC = 8700;
-    for (int k = 0; k < 100; ++k) { s.now += 10 * second; r.sample(s); }
-    s.returnCentiC = 0;
-    s.now += 10 * second; r.sample(s);
+    // The widest (BoilerResponseWidest.h): 65535 held targets, a rest of 1800 s, no ceiling for the
+    // outdoor now (null is wider), 999.9 kW, 19.999 kW per K and "not_driving".
+    ASSERT_TRUE(BoilerResponse().restore(widestBoilerFrame()));
+    const BoilerResponse r = widestBoilerResponse();
     Json worst(cJSON_CreateObject(), cJSON_Delete);
     ASSERT_TRUE(r.addJson(worst.get()));
     const auto text = print(worst.get());

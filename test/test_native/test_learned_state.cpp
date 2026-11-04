@@ -2,6 +2,7 @@
 #include "control/AutoTuner.h"
 #include "control/OptionalRecordPriority.h"
 #include "control/WarmupPlanner.h"
+#include "BoilerResponseWidest.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <algorithm>
@@ -555,6 +556,56 @@ TEST(LearnedStore, FullNvsCorruptEntriesAndPlanChangesAreHandled) {
     EXPECT_STREQ(m.readiness(1), "collecting");
 }
 
+// rc.5 (P1): the boiler's frame ('B', BoilerResponse) rides in the packed record after the rooms (the
+// first to stay in RAM when NVS is short); rooms() counts rooms only; a boot hands it back through
+// `other`. Firmware before rc.5 (no `other`) restores everything else and skips it; a damaged one
+// is lost alone.
+TEST(LearnedStore, TheBoilersFrameRidesLastAndOlderFirmwareSkipsIt) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    House h; h.learn();
+    FlowPolicy p;
+    Backend nvs;
+    LearnedStore store;
+    const auto boiler = widestBoilerFrame();
+    ASSERT_TRUE(store.save(nvs, h.learner, p, h.now, {boiler}));
+    EXPECT_EQ(store.rooms(), 2u);
+    EXPECT_EQ(store.storedRooms(), 2u);
+    const auto g = LearnedState::globalFrame(h.learner, p);
+    EXPECT_EQ(nvs.slots[0], g + LearnedState::roomFrame(h.learner, 0) + LearnedState::roomFrame(h.learner, 1) + boiler);
+    FlowLearner l; l.setPlan(plan());
+    FlowPolicy q;
+    LearnedStore boot;
+    std::vector<std::string> other;
+    EXPECT_EQ(boot.restore(nvs, l, q, 0, [&](std::string_view f) { other.emplace_back(f); }), 2u);
+    ASSERT_EQ(other.size(), 1u);
+    EXPECT_EQ(other[0], boiler);
+    expectSameLearned(derived(l, q), derived(h.learner, p));
+    FlowLearner m; m.setPlan(plan());
+    FlowPolicy r;
+    LearnedStore older;
+    EXPECT_EQ(older.restore(nvs, m, r, 0), 2u) << "before rc.5: the rooms and the globals, the boiler's frame skipped";
+    expectSameLearned(derived(m, r), derived(h.learner, p));
+    Backend bad;
+    bad.slots[0] = nvs.slots[0];
+    const size_t at = bad.slots[0].size() - boiler.size() + 10;
+    bad.slots[0][at] = char(bad.slots[0][at] ^ 0x5A);
+    heating::control::BoilerResponse response;
+    FlowLearner n; n.setPlan(plan());
+    FlowPolicy u;
+    LearnedStore third;
+    EXPECT_EQ(third.restore(bad, n, u, 0, [&](std::string_view f) { EXPECT_FALSE(response.restore(f)); }), 2u);
+    EXPECT_EQ(response.stored(), "");
+    expectSameLearned(derived(n, u), derived(h.learner, p));
+    // NVS short of room by the boiler's frame alone: the rooms are stored, the boiler's frame waits in RAM.
+    Backend tight;
+    tight.capacity = nvs.slots[0].size() - 1;
+    LearnedStore short_;
+    EXPECT_FALSE(short_.save(tight, h.learner, p, h.now, {boiler}));
+    EXPECT_EQ(tight.slots[0], g + LearnedState::roomFrame(h.learner, 0) + LearnedState::roomFrame(h.learner, 1));
+    EXPECT_EQ(short_.storedRooms(), 2u);
+    EXPECT_GT(short_.pendingEntries(), 0u);
+}
+
 // rc.2: the global frame is version 2 with the boiler's learned minimum flow at its end; a
 // version 1 global frame (firmware before rc.2) is still read, with the minimum unlearned.
 TEST(LearnedState, TheBoilerMinimumIsKeptAndAnOldGlobalFrameStillReads) {
@@ -922,7 +973,7 @@ Outcome run(const Scenario& s, EightRooms& house) {
     for (int day = 0; day < 2; ++day) {
         nvs.readiness();
         nvs.knobs(store.pendingEntries());
-        store.save(nvs, house.l, house.p, uint64_t(day) * 24 * hour);
+        store.save(nvs, house.l, house.p, uint64_t(day) * 24 * hour, {widestBoilerFrame()}); // rc.5 (P1): the boiler's frame too
     }
     const auto st = nvs.stats();
     // The invariant.
@@ -964,6 +1015,7 @@ TEST(LearnedNvsBudget, TheOwnersUnitKeepsEveryRoomAndControlKeepsItsRoom) {
         if (plan == 930 && control <= 200 && !graph) {
             EXPECT_EQ(o.stored, 8u) << baseline << (w ? " worst" : " typical");
             if (!w) { EXPECT_TRUE(o.log); }
+            EXPECT_GE(630 - o.used, 200u) << "rc.5: at least 200 free entries with the boiler's frame";
         }
     }
 }

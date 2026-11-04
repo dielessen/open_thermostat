@@ -2,6 +2,8 @@
 #include "control/ControlPartitionBudget.h"
 #include "control/FlowPolicy.h"
 #include "control/HeatingTelemetry.h"
+#include "control/TelemetryPolicy.h"
+#include "BoilerResponseWidest.h"
 #include "FlowSettingsRc2.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
@@ -711,5 +713,113 @@ TEST(FlowPolicy, WorstCaseSummaryStaysSmall) {
     const cJSON* curve = at(at(root.get(), "flow"), "curve");
     EXPECT_TRUE(cJSON_IsNumber(at(curve, "windows")));
     EXPECT_EQ(at(curve, "windows")->valuedouble, s.policy.curveLearner().windows());
+    // rc.5 (P1): fw/telemetry/flow as TelemetryPublisher::summary() splits it, with the boiler's object
+    // at its widest (BoilerResponseWidest.h) and no cap in effect ("ceiling_c": null is wider than a number).
+    const auto withBoiler = heatingSummaryTelemetry(h.learner, c, cJSON_CreateObject(), &s.policy,
+                                                    [](cJSON* root) { return widestBoilerResponse().addJson(root); });
+    Json doc(cJSON_Parse(withBoiler.c_str()), cJSON_Delete), flowTopic(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(doc);
+    cJSON_AddNumberToObject(flowTopic.get(), "schema", 1);
+    for (const char* key : {"flow", "night_gas", "boiler"}) {
+        cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key);
+        ASSERT_TRUE(part) << key;
+        cJSON_AddItemToObject(flowTopic.get(), key, part);
+    }
+    char* text = cJSON_PrintUnformatted(flowTopic.get());
+    const std::string flow = text ? text : "";
+    cJSON_free(text);
+    std::printf("[ flow policy ] worst-case fw/telemetry/flow %zu B: %s\n", flow.size(), flow.c_str());
+    EXPECT_LE(flow.size(), heating::control::telemetrySoftBytes);
+    EXPECT_TRUE(cJSON_IsNull(at(at(flowTopic.get(), "flow"), "ceiling_c")));
+    EXPECT_STREQ(at(at(flowTopic.get(), "boiler"), "state")->valuestring, "not_driving");
+}
+
+// rc.5 (P1): the ceiling the boiler itself showed (BoilerResponse). With Smart warm-up on and the
+// E32 driving the boiler no request goes above it, never below the plan's minimum either; the flow
+// document shows the cap in effect ("ceiling_c", null without one) and "held" while it bound.
+TEST(FlowPolicy, TheBoilersCeilingCapsTheRequestWhileTheE32Drives) {
+    Step s;
+    s.in.outdoorCentiC = -1000;
+    const FlowDemand::Request rule{true, 50, FlowDemand::Reason::heating};
+    const auto summary = [&](const char* key) {
+        Json o(cJSON_CreateObject(), cJSON_Delete);
+        EXPECT_TRUE(s.policy.addSummary(o.get()));
+        const cJSON* flow = at(o.get(), "flow");
+        const cJSON* v = std::string(key) == "learned" ? at(at(flow, "learned"), "state") : at(flow, key);
+        return v && cJSON_IsString(v) ? std::string(v->valuestring) : v && cJSON_IsNumber(v) ? std::to_string(v->valueint) : "null";
+    };
+    s.in.ceilingC = 42;
+    EXPECT_EQ(s.apply(rule).flowC, 50) << "options off: the rule, byte for byte";
+    s.in.ownRequest = true;
+    EXPECT_EQ(s.apply(rule).flowC, 50) << "Smart warm-up off";
+    EXPECT_EQ(summary("ceiling_c"), "null");
+    FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
+    s.in.ownRequest = false;
+    EXPECT_EQ(s.apply(rule).flowC, 50) << "another controller drives the boiler";
+    EXPECT_EQ(summary("ceiling_c"), "null");
+    s.in.ownRequest = true;
+    auto out = s.apply(rule);
+    EXPECT_TRUE(out.heat); EXPECT_EQ(out.flowC, 42); EXPECT_EQ(out.reason, rule.reason); EXPECT_FALSE(out.capped);
+    EXPECT_EQ(summary("ceiling_c"), "42");
+    EXPECT_EQ(summary("learned"), "held");
+    Json status(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.policy.addStatus(status.get(), false));     // the page's form
+    EXPECT_EQ(at(at(status.get(), "flow"), "ceiling_c")->valuedouble, 42);
+    EXPECT_STREQ(at(at(at(status.get(), "flow"), "learned"), "state")->valuestring, "held");
+    // Asking less than the ceiling: unchanged and not "held"; the cap still shows.
+    EXPECT_EQ(s.apply(FlowDemand::Request{true, 38, FlowDemand::Reason::heating}).flowC, 38);
+    EXPECT_EQ(summary("ceiling_c"), "42");
+    EXPECT_EQ(summary("learned"), "not_ready");
+    // The weather curve above it (42 + (40 - 30) / 2 = 47): capped as well.
+    on.weatherCurve = true; s.policy.setSettings(on);
+    EXPECT_EQ(s.apply(FlowDemand::Request{true, 40, FlowDemand::Reason::heating}).flowC, 42);
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::curve);
+    // Never below the plan's minimum (30), and the boiler's own limit still wins below it.
+    s.in.ceilingC = 25;
+    EXPECT_EQ(s.apply(rule).flowC, 30);
+    s.in.boilerLimitC = 28;
+    EXPECT_EQ(s.apply(rule).flowC, 28);
+    s.in.boilerLimitC.reset();
+    // None learned: the curve's 52 again. Whether to heat stays the rule's.
+    s.in.ceilingC.reset();
+    EXPECT_EQ(s.apply(rule).flowC, 52);
+    s.in.ceilingC = 42;
+    EXPECT_FALSE(s.apply(idle).heat);
+}
+
+// rc.5 (P1): an optimum start under the boiler's ceiling asks at most the ceiling, and its lead is
+// the learned warm-up time at that lower flow: it starts earlier, so the room is still warm on time.
+TEST(FlowPolicy, AnOptimumStartUnderTheCeilingStartsEarlierAtThatFlow) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    House h(plan(RoomPlan::Emitter::floor, true)); h.learn();
+    const auto schedule = plan(RoomPlan::Emitter::floor, true).rooms[0].schedule;
+    const auto free = WarmupPlanner::optimumStart(h.learner, 0, schedule, wednesday23, int16_t(1850), int16_t(500));
+    ASSERT_STREQ(free.confidence, "learned");
+    ASSERT_GE(free.flowC, 38);
+    const uint8_t ceiling = uint8_t(free.flowC - 4);
+    const auto capped = WarmupPlanner::optimumStart(h.learner, 0, schedule, wednesday23, int16_t(1850), int16_t(500), {}, ceiling);
+    EXPECT_EQ(capped.flowC, ceiling);
+    EXPECT_GT(capped.leadS, free.leadS) << "a lower flow warms slower";
+    ASSERT_LT(capped.startUtc, free.startUtc);
+    const auto expected = h.learner.warmupSeconds(0, int16_t(free.rise.toCentiC - capped.startTemperatureCentiC), ceiling, int16_t(500));
+    ASSERT_TRUE(expected);
+    EXPECT_GE(capped.leadS, std::min<uint32_t>(*expected, WarmupPlanner::maxLeadS)) << "the learned time at the ceiling";
+    EXPECT_EQ(WarmupPlanner::optimumStart(h.learner, 0, schedule, wednesday23, int16_t(1850), int16_t(500), {}, uint8_t(free.flowC + 6)).leadS, free.leadS)
+        << "a ceiling above the start's flow changes nothing";
+    // Applied: between the two start times only the capped plan heats, at the ceiling.
+    const int64_t between = capped.startUtc + (free.startUtc - capped.startUtc) / 2;
+    const auto run = [&](std::optional<uint8_t> c) {
+        Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.in.outdoorCentiC = 500;
+        FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
+        s.rooms[0] = room(1850, 1850);
+        s.in.ownRequest = true; s.in.ceilingC = c; s.in.utc = between;
+        const auto out = s.apply(idle, &h.learner);
+        if (out.heat) EXPECT_EQ(s.policy.source(), FlowPolicy::Source::optimumStart);
+        return out;
+    };
+    const auto withCeiling = run(ceiling);
+    ASSERT_TRUE(withCeiling.heat);
+    EXPECT_LE(withCeiling.flowC, ceiling);
+    EXPECT_FALSE(run(std::nullopt).heat) << "without the ceiling it is not time yet";
 }
 }

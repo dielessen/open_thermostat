@@ -107,8 +107,8 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
     making hot water or keeping it warm, with the hours and "now" under it.
     Point at a part for its start and end time.
   - In a house with only one room switched on, that room is the first figure
-    of the card, with its temperature, its target and why it heats or not. The
-    other rooms are then listed under **Other rooms**.
+    of the card, with its temperature, its target and why it heats or not. Its
+    status card stays under **Rooms** too, first, before the rooms that are off.
 - **Rooms**: per room its thermostat, a 24-hour graph, its sensors, windows and
   people, and what it learned for that room.
 - **Week program**: the visual week planner for all rooms.

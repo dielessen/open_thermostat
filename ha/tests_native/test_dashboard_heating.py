@@ -611,7 +611,8 @@ async def test_registry_events_of_other_integrations_never_rebuild_the_dashboard
     later = []
     monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: later.append((delay, action))
                         or (lambda: None))
-    # Never a deprecated registry read (DeviceEntry.config_entries, Core 2026.10): each one is a repair for the user.
+    # Never a deprecated registry read (DeviceEntry.config_entries, Core 2026.10): each one logs a deprecation warning,
+    # and the shim is gone in Core 2027.10.
     deprecated = []
     monkeypatch.setattr(dr, "report_usage", lambda what, **kwargs: deprecated.append(what))
     e, rooms, sensors, hub, fields = installation(hass)

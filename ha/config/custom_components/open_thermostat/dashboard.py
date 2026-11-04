@@ -337,8 +337,6 @@ TEXT = {
         "insights": "Yesterday compared with usual",
         "knowledge_note": "The E32 learns all this by itself while the heating runs. Yesterday is compared with your "
                           "house's own usual days; that is information and changes nothing.",
-        # rc.5 (P11): the Overview's rooms beside the one room the house card shows.
-        "other_rooms": "Other rooms",
         # rc.5 (P18): the Overview's Today (when each room warms up, what weather compensation asks) and House rows.
         "today": "Today", "home_or_away": "Home or away", "holiday": "Holiday", "plan": "Plan",
         "when_today": "Today", "when_tomorrow": "Tomorrow", "when_date": "On {date}",
@@ -522,7 +520,6 @@ TEXT = {
         "insights": "Gisteren vergeleken met normaal",
         "knowledge_note": "De E32 leert dit allemaal zelf terwijl de verwarming draait. Gisteren wordt vergeleken met de "
                           "gewone dagen van je eigen huis; dat is informatie en verandert niets.",
-        "other_rooms": "Overige ruimtes",
         "today": "Vandaag", "home_or_away": "Thuis of weg", "holiday": "Vakantie", "plan": "Plannen",
         "when_today": "Vandaag", "when_tomorrow": "Morgen", "when_date": "Op {date}",
         "warm_up_at": "{when} warmt {room} vanaf **{start}** op om **{time}** op {target} °C te zijn.",
@@ -708,7 +705,6 @@ TEXT = {
         "insights": "Wczoraj w porównaniu ze zwykłymi dniami",
         "knowledge_note": "E32 uczy się tego wszystkiego sam, gdy ogrzewanie pracuje. Wczoraj jest porównywane ze "
                           "zwykłymi dniami Twojego domu; to tylko informacja i niczego nie zmienia.",
-        "other_rooms": "Pozostałe pomieszczenia",
         # The room name before a colon, so the sentence fits any name (docs/UX-GLOSSARY.md, Room).
         "today": "Dziś", "home_or_away": "W domu czy poza domem", "holiday": "Urlop", "plan": "Zaplanuj",
         "when_today": "dziś", "when_tomorrow": "jutro", "when_date": "{date}",
@@ -1676,7 +1672,7 @@ class RoomDashboard:
             return True
         device = dr.async_get(self.hass).async_get(device_id) if type(device_id) is str else None
         # A device belongs to one config entry (Core 2026.10, the minimum): DeviceEntry.config_entries is a deprecated
-        # shim there, and every read of it is reported as deprecated use (a warning and a repair the user sees).
+        # shim there; every read of it logs a deprecation warning, and it stops working in Core 2027.10.
         return device is not None and device.config_entry_id == self.entry_id
 
     @staticmethod
@@ -1998,8 +1994,9 @@ class RoomDashboard:
         # problem first, with its reason, a tap to Repairs and all reasons inside), today in figures and the day so
         # far, read from Home Assistant alone. It replaces the rooms-that-want-heat card and the problem tile with its
         # reasons, which stay as before only without a heat request and boiler activity (then there is no card). A
-        # house with exactly one room switched on shows that room in the card (its Reason sensor), the others under
-        # "Other rooms"; _signature follows the rooms' state, so switching a room on or off rebuilds the dashboard.
+        # house with exactly one room switched on shows that room in the card (its Reason sensor) as a summary; as the
+        # owner's sketch, every room keeps its status card under Rooms, the rooms that are on first (rc.5, P18).
+        # _signature follows the rooms' state, so switching a room on or off rebuilds the dashboard.
         from .room_overview import HOUSE_CARD_TYPE
         activity = hub.get("boiler_activity")
         reported = heating_hub.rooms if heating_hub is not None else {}
@@ -2045,9 +2042,10 @@ class RoomDashboard:
                     in_room[source["id"]] = None if source["id"] in in_room else room_id
         names = {room_id: self._room_name(room_id, heating_hub, label) for room_id in e32_room_entities}
         room_cards = []
-        for room_id, room in e32_room_entities.items():
-            if room_id == inline:  # rc.5 (P11): inside the house card
-                continue
+        # rc.5 (P18, the owner's sketch): every room under Rooms, also the one the house card shows (the card is its
+        # summary; the status card its line, its chips and the tap to its history); the rooms that are on first.
+        for room_id in [*switched_on, *(room_id for room_id in e32_room_entities if room_id not in switched_on)]:
+            room = e32_room_entities[room_id]
             if room.get("reason"):
                 # rc.5 (P18): its chips "Smart warm-up on" (the switch) and at home, away or on holiday (the house mode).
                 room_cards.append({"type": ROOM_STATUS_CARD_TYPE, "entity": room["reason"], "name": names[room_id],
@@ -2072,8 +2070,7 @@ class RoomDashboard:
         house = _shown_while_one_is(house, house["cards"][1:])
         overview = [section for section in (
             top,
-            _section(_heading(t["other_rooms"] if inline else t["rooms"], "mdi:thermostat"), *room_cards)
-            if any(room_cards) else None,
+            _section(_heading(t["rooms"], "mdi:thermostat"), *room_cards) if any(room_cards) else None,
             today, house) if section]
 
         # -- Rooms ---------------------------------------------------------------------------------

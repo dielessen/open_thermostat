@@ -147,14 +147,16 @@ async def test_each_room_card_gets_smart_warm_up_and_the_house_mode(hass):
 
 
 @pytest.mark.asyncio
-async def test_the_one_room_rule_stays(hass):
-    """The owner's house: the living room on (inside the house card), the bathroom off under "Other rooms"."""
+async def test_the_room_that_is_on_is_in_the_house_card_and_first_under_rooms(hass):
+    """The owner's house as the sketch shows it: the living room on (inside the house card, its summary, and first
+    under "Ruimtes" with its line, chips and tap), the bathroom off after it. No "Other rooms" heading."""
     config, rooms, hub, fields, flow, board = sketch(hass, "nl", inactive=("badkamer",))
     top = overview(config)["sections"][0]["cards"][0]
     assert top["rooms"] == [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]
-    others = overview(config)["sections"][1]["cards"]
-    assert others[0]["heading"] == "Overige ruimtes" and [c["entity"] for c in others[1:]] == [rooms["badkamer"]["reason"]]
-    assert [s["cards"][0].get("heading") for s in overview(config)["sections"]] == [None, "Overige ruimtes", "Vandaag", "Huis"]
+    cards = overview(config)["sections"][1]["cards"]
+    assert cards[0]["heading"] == "Ruimtes"
+    assert [c["entity"] for c in cards[1:]] == [rooms["woonkamer"]["reason"], rooms["badkamer"]["reason"]]
+    assert [s["cards"][0].get("heading") for s in overview(config)["sections"]] == [None, "Ruimtes", "Vandaag", "Huis"]
 
 
 @pytest.mark.asyncio

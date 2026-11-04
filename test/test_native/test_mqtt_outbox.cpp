@@ -233,6 +233,36 @@ TEST(MqttOutbox, AFullQueueRejectsWholeFramesWithoutCorruptingTheStream) {
     EXPECT_GE(b.box.peak(), 4 * accepted[0].size());
 }
 
+// Review R2-13: a newer frame that no longer fits must not cost the waiting one of its topic
+// (retained state would vanish until the next cadence); one that fits still replaces it.
+TEST(MqttOutbox, ALargerFrameThatDoesNotFitKeepsTheWaitingOneOfItsTopic) {
+    Bench b(4096, 1024, 2048);
+    b.socket.blockedUntil = 100;
+    const auto a = publish("p/v1/fw/state/room/a", std::string(700, 'a'));
+    std::vector<std::vector<uint8_t>> queued{a};
+    ASSERT_EQ(b.push(a), MqttOutbox::Push::queued);
+    for (int i = 0; i < 3; ++i) {
+        queued.push_back(publish("p/v1/fw/state/room/r" + std::to_string(i), std::string(700, char('b' + i))));
+        ASSERT_EQ(b.push(queued.back()), MqttOutbox::Push::queued);
+    }
+    const size_t bytes = b.box.bytes();
+    EXPECT_EQ(b.push(publish("p/v1/fw/state/room/a", std::string(1200, 'A'))), MqttOutbox::Push::rejected);
+    EXPECT_EQ(b.box.bytes(), bytes); // the waiting frame of room/a is still there
+    const auto fits = publish("p/v1/fw/state/room/a", std::string(400, 'z'));
+    EXPECT_EQ(b.push(fits), MqttOutbox::Push::replaced); // smaller: it takes the old one's place
+    queued.erase(queued.begin()); queued.push_back(fits);
+    b.socket.now = 100;
+    b.run(2000);
+    EXPECT_EQ(b.socket.packets(), queued);
+    // A full frame table: a replacement keeps the count, so it is still taken.
+    Bench full(1 << 20, 0, 1 << 20);
+    full.socket.blockedUntil = 100;
+    for (size_t i = 0; i < MqttOutbox::maxFrames; ++i)
+        ASSERT_EQ(full.push(publish("p/v1/fw/state/room/" + std::to_string(i), "1")), MqttOutbox::Push::queued);
+    EXPECT_EQ(full.push(publish("p/v1/fw/state/room/new", "1")), MqttOutbox::Push::rejected);
+    EXPECT_EQ(full.push(publish("p/v1/fw/state/room/7", "2")), MqttOutbox::Push::replaced);
+}
+
 TEST(MqttOutbox, ADirectDeadlineWriteWaitsForAHalfSentFrameAndQueuedControl) {
     Bench b;
     EXPECT_TRUE(b.box.idleForDeadline());

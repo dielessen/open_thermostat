@@ -273,7 +273,7 @@ NAMES = {
                "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur"),
                "room_learning": ("Learning status", "Leerstatus"),
                "room_flow_advice": ("Recommended water temperature", "Geadviseerde watertemperatuur"),
-               "room_heating_start": ("Predicted heating start", "Verwachte start verwarmen"),
+               "room_heating_start": ("Smart warm-up start", "Start slim opwarmen"),
                "dhw_taps_today": ("Hot water taps today", "Warmwatertappen vandaag"),
                "dhw_keep_warm_today": ("Keeping hot water warm today", "Warm water warmhouden vandaag"),
                "dhw_burner_time_today": ("Hot water burner time today", "Brandertijd warm water vandaag")},
@@ -437,8 +437,8 @@ def test_shadow_sensor_names_are_translated():
     assert names["strings.json"] == ["E32 heating time today (trial run)", "Thermostat heating time today (trial run)",
                                      "E32 burner starts today (trial run)", "Thermostat burner starts today (trial run)",
                                      "Agreement with thermostat today"]
-    assert names["translations/nl.json"] == ["E32-verwarmingstijd vandaag (proef)",
-                                             "Thermostaat-verwarmingstijd vandaag (proef)",
+    assert names["translations/nl.json"] == ["E32-stooktijd vandaag (proef)",
+                                             "Thermostaat-stooktijd vandaag (proef)",
                                              "E32-branderstarts vandaag (proef)",
                                              "Thermostaat-branderstarts vandaag (proef)",
                                              "Overeenstemming met thermostaat vandaag"]
@@ -525,9 +525,9 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
         # The learned values read like the room's other entities, on the same room device.
         assert [e.entity_id for e in learned] == ["sensor.woonkamer_learning_status",
                                                   "sensor.woonkamer_recommended_water_temperature",
-                                                  "sensor.woonkamer_predicted_heating_start"]
+                                                  "sensor.woonkamer_smart_warm_up_start"]
         assert hass.states.get("sensor.woonkamer_learning_status").state == "ready"
-        assert hass.states.get("sensor.woonkamer_predicted_heating_start").state == "2026-10-30T03:35:00+00:00"
+        assert hass.states.get("sensor.woonkamer_smart_warm_up_start").state == "2026-10-30T03:35:00+00:00"
         assert hass.states.get("sensor.woonkamer_recommended_water_temperature").state == "34"
         assert {entities.async_get(e.entity_id).device_id for e in learned} == {
             devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"),

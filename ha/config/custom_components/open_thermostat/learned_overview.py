@@ -203,7 +203,7 @@ TEXT = {
         "state.active": "De thermostaat past zijn instellingen zelf aan, hooguit één kleine stap per dag.",
         "state.none": "Nog niets aangepast: de beginwaarden passen nog, of er is nog te weinig om op af te gaan.",
         "learned": "Geleerd", "learning": "Aan het leren: {n} van {m} keer opwarmen gezien",
-        "learning_seen": "Aan het leren: {n} keer opwarmen gezien; hij moet nog opwarmen zien op andere dagen of bij een andere watertemperatuur",
+        "learning_seen": "Aan het leren: {n} keer opwarmen gezien; nog nodig: opwarmen op andere dagen of bij een andere watertemperatuur",
         "learning_timing": "Opwarmtijd geleerd; het koelste water leert hij nog",
         "learning_more": "Hij heeft nog een paar keer opwarmen nodig, op andere dagen of bij andere watertemperaturen.",
         "learning_first": "Hij leert van elke keer opwarmen terwijl de verwarming aan staat.",
@@ -403,7 +403,7 @@ TEXT = {
         "burner_starts": "Wczoraj palnik uruchomił się {n} razy do ogrzewania.",
         "burner_often": "To często. Rzadsza, dłuższa praca oszczędza kocioł; termostat nad tym pracuje.",
         "burner_mean": "Rzadsza, dłuższa praca oszczędza kocioł i zużywa gaz wydajniej.",
-        "boiler_minimum": "Twój kocioł zaczyna grzać dopiero od wody o temperaturze około {flow} °C; termostat zadaje co najmniej tyle.",
+        "boiler_minimum": "Twój kocioł zaczyna grzać dopiero od wody o temperaturze około {flow} °C; termostat żąda co najmniej tyle.",
         "boiler_minimum_mean": "Nauczył się tego, gdy kocioł nie uruchamiał się przy chłodniejszej wodzie.",
         "house_none": "Jeszcze nic: pojawi się po pierwszych dniach ogrzewania.",
         "unavailable": "E32 jeszcze nie przekazał, czego się nauczył.",
@@ -588,7 +588,7 @@ def smart_warm_up_line(start, on, lang, clock, trial=False, later_min=0, now=Non
     if start.get("lead_minutes") == 0 and start.get("start_now") is not True:
         key = "warmup_ready"
     elif heating:
-        key = ("warmup_trial_now" if trial else "warmup_late" if start.get("reachable") is False
+        key = ("warmup_trial_now" if trial else "warmup_late" if start.get("reachable") is False and not shift
                else "warmup_now_estimate" if start.get("estimate") is True else "warmup_now")
     elif trial:
         key = "warmup_trial"
@@ -682,6 +682,14 @@ def free_heat(learned, plan=None):
         return None
     applied = part.get("applied_min")
     return best[0], best[1], applied if type(applied) is int and 0 < applied <= 1440 else 0
+
+
+def trial_run(status):
+    """Whether the E32 heats nothing early: the trial run (mode ``shadow``) or, before the takeover is confirmed,
+    active control that waits (``active.state`` ``awaiting_confirmation``), as the house card's driving()."""
+    status = status if type(status) is dict else {}
+    active = status.get("active") if type(status.get("active")) is dict else {}
+    return status.get("mode") == "shadow" or active.get("state") == "awaiting_confirmation"
 
 
 def free_heat_later(learned, plan=None):
@@ -1003,7 +1011,7 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
         smart = smart_warm_up(self.hass, self.entry.entry_id) if getattr(self, "hass", None) is not None else None
         day, today = local_day(self.hass) if getattr(self, "hass", None) is not None and self._clock is None else (None, None)
         active = [(room_id, name) for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
-        trial = (self.hub.status or {}).get("mode") == "shadow"  # the trial run: the E32 heats nothing early
+        trial = trial_run(self.hub.status)  # the trial run or a takeover not confirmed yet: the E32 heats nothing early
         currency = getattr(getattr(getattr(self, "hass", None), "config", None), "currency", None)
         rooms = [room_overview(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id), lang, clock, smart,
                                day, today, room_id, self.hub.rooms[room_id].get("comfort"), trial, currency)

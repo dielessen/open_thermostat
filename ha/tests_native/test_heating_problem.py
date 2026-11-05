@@ -436,3 +436,30 @@ async def test_a_room_without_a_measurement_is_pointed_to_its_home_assistant_sou
     assert "Controleer Tado Woonkamer, Badkamer sensor in Home Assistant; bij een Bluetooth-sensor" in render(found, "nl")[0]
     assert "Sprawdź Tado Woonkamer, Badkamer sensor w Home Assistant" in render(found, "pl")[0]
     assert set(TEXT["pl"]) == set(TEXT["en"])
+
+
+@pytest.mark.asyncio
+async def test_a_room_renamed_in_home_assistant_keeps_that_name_in_the_problem(hass):
+    """R4-14: the problem says the room by the name the dashboard shows (the room device's name in Home Assistant,
+    insight.room_names), not the E32's own."""
+    from homeassistant.helpers import device_registry as dr
+    from custom_components.open_thermostat.heating_link import room_device_identifier
+    from test_v1_native import entry
+    e = entry(hass)
+    clock = Clock()
+    hub = HeatingHub("fixture", clock=clock)
+    hass.data.setdefault("open_thermostat", {})[e.entry_id] = {"heating_hub": hub}
+    devices = dr.async_get(hass)
+    device = devices.async_get_or_create(config_entry_id=e.entry_id, name="Woonkamer",
+                                         identifiers={room_device_identifier(hub.prefix, "woonkamer")})
+    devices.async_update_device(device.id, name_by_user="Living room")
+    sensor = HeatingProblemSensor(e, hub)
+    sensor.hass = hass
+    hass.config.language = "en"
+    lost = [{"id": "woonkamer", "name": "Woonkamer", "state": "active", "status": "lost"}]
+    hub.update(status(lost))
+    sensor.evaluate()
+    clock.now += ROOM_LOST_SECONDS + MIN
+    hub.update(status(lost))
+    sensor.evaluate()
+    assert sensor.extra_state_attributes["reasons"] == [TEXT["en"]["room_without_measurement"].format(room="Living room")]

@@ -417,3 +417,23 @@ async def test_a_source_gone_for_ten_minutes_asks_for_a_new_one(hass):
     er.async_get(hass).async_get_or_create("sensor", "demo", "badkamer", suggested_object_id="badkamer")
     watch.check()
     assert issues.async_get_issue(DOMAIN, issue_id) is None and watch.missing == {}
+
+
+@pytest.mark.asyncio
+async def test_the_new_source_repair_names_the_room_as_the_dashboard_does(hass, monkeypatch):
+    """R4-14: a room renamed in Home Assistant keeps that name in "Choose a new temperature source" (room_names)."""
+    from types import SimpleNamespace
+    from custom_components.open_thermostat import insight
+    from custom_components.open_thermostat.room_plan import RoomSourceWatch
+    now = [0.0]
+    hub = SimpleNamespace(status={"ha_entities": ["climate.tado", "sensor.badkamer"]}, rooms={"badkamer": {}},
+                          plan=PlanLink(e32_plan([{"type": "ha", "id": "sensor.badkamer"}, BLE])))
+    monkeypatch.setattr(insight, "room_names", lambda hub, hass, entry_id: {"badkamer": "Bathroom upstairs"})
+    hass.states.async_set("climate.tado", "heat", {"current_temperature": 20.5})
+    entry = SimpleNamespace(entry_id="e")
+    watch = RoomSourceWatch(hass, entry, hub, clock=lambda: now[0])
+    watch.check()
+    now[0] += 11 * 60
+    watch.check()
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, migrate.choose_source_issue_id(entry, "badkamer"))
+    assert issue.translation_placeholders == {"room": "Bathroom upstairs", "source": "sensor.badkamer"}

@@ -227,8 +227,8 @@ CEILING, REST, LOWEST, STILL = (mark("mdi:arrow-collapse-up", "#ff6f22"), mark("
 BOILER_LINES = {
     "en": [CEILING + "Highest water temperature: when it is 5 to 10 °C outside, your boiler goes no higher than about "
            "47 °C by itself, so near the target the E32 asks at most 45 °C.",
-           REST + "Rest: your boiler rests 10 minutes each time it reaches its temperature; the E32 waits as long before "
-           "it asks again, unless a room is cold.",
+           REST + "Rest: your boiler rests 10 minutes each time it reaches its temperature; the E32 waits just as long "
+           "before it asks again, unless a room is cold.",
            LOWEST + "Lowest water temperature: your boiler only starts heating from about 34 °C, so the E32 asks at least "
            "that much."],
     "nl": [CEILING + "Hoogste watertemperatuur: bij 5 tot 10 °C buiten gaat je ketel uit zichzelf niet hoger dan "
@@ -238,10 +238,10 @@ BOILER_LINES = {
            LOWEST + "Laagste watertemperatuur: je ketel begint pas te verwarmen vanaf ongeveer 34 °C, dus vraagt de E32 "
            "minstens zoveel."],
     "pl": [CEILING + "Najwyższa temperatura wody: przy temperaturze zewnętrznej od 5 do 10 °C Twój kocioł sam nie "
-           "podnosi wody powyżej około 47 °C, więc blisko temperatury docelowej E32 zadaje najwyżej 45 °C.",
+           "podnosi wody powyżej około 47 °C, więc blisko temperatury docelowej E32 żąda najwyżej 45 °C.",
            REST + "Przerwa: Twój kocioł odpoczywa 10 minut za każdym razem, gdy osiągnie swoją temperaturę; E32 czeka "
            "tyle samo, zanim znów zażąda ciepła, chyba że któreś pomieszczenie jest zimne.",
-           LOWEST + "Najniższa temperatura wody: Twój kocioł zaczyna grzać dopiero od około 34 °C, więc E32 zadaje co "
+           LOWEST + "Najniższa temperatura wody: Twój kocioł zaczyna grzać dopiero od około 34 °C, więc E32 żąda co "
            "najmniej tyle."]}
 
 
@@ -280,8 +280,8 @@ async def test_your_boiler_says_what_it_still_learns_on_one_line(hass):
     hass.states.async_set(controls["curve"], "38", {"outdoor_c": 7.3, "minimum_flow_c": 30})
     hass.states.async_set(hub["learned_overview"], "x", {})
     assert lines(hass, card) == [
-        REST + "Rest: your boiler rests 10 minutes each time it reaches its temperature; the E32 waits as long before it "
-        "asks again, unless a room is cold.",
+        REST + "Rest: your boiler rests 10 minutes each time it reaches its temperature; the E32 waits just as long before "
+        "it asks again, unless a room is cold.",
         LOWEST + "Lowest water temperature: your boiler already heats at the lowest the E32 asks (30 °C).",
         STILL + "Still being learned: the highest water temperature."]
     # Neither learned (the state "learned" from the emitters' output alone), without the plan's lowest.

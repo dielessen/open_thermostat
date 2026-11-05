@@ -1722,7 +1722,7 @@
         "name": "Recommended water temperature"
       },
       "room_heating_start": {
-        "name": "Predicted heating start"
+        "name": "Smart warm-up start"
       },
       "dhw_taps_today": {
         "name": "Hot water taps today"

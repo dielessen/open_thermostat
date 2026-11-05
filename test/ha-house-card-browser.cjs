@@ -513,7 +513,7 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.equal(await yesterday('never').locator('.value').evaluate(v=>v.classList.contains('unknown')),true);
   assert.deepEqual(await figures('almost'),[['room',fill(W.warm,{room:'Zolder'}),fill(W.late_hours,{h:'2',m:'59'}),true]]);
   assert.equal(await yesterday('almost').locator('.value').evaluate(v=>v.classList.contains('unknown')),false);
-  if(lang==='nl')assert.equal(W.not_warm,'niet warm binnen 3 u');
+  if(lang==='nl')assert.equal(W.not_warm,'niet warm binnen 3 uur');
   if(lang==='pl')assert.equal(W.not_warm,'nie ciepło w ciągu 3 godz.');
   const ylook=await yesterday('full').evaluate(el=>{const r=el.shadowRoot,g=(q,k)=>getComputedStyle(r.querySelector(q))[k];
    return {size:g('.value','fontSize'),weight:g('.value','fontWeight'),value:g('.value','color'),label:g('.label','color'),

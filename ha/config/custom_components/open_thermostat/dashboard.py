@@ -397,8 +397,8 @@ TEXT = {
                               "itself; with Smart warm-up on, the E32 would ask at most {asks} °C near the target.",
         "band_low": "when it is below {high} °C outside", "band": "when it is {low} to {high} °C outside",
         "band_high": "when it is {low} °C or warmer outside", "band_none": "at today's outdoor temperature",
-        "boiler_rest": "Rest: your boiler rests {rest} each time it reaches its temperature; the E32 waits as long "
-                       "before it asks again, unless a room is cold.",
+        "boiler_rest": "Rest: your boiler rests {rest} each time it reaches its temperature; the E32 waits just as "
+                       "long before it asks again, unless a room is cold.",
         "boiler_rest_long": "Rest: your boiler rests {rest} each time it reaches its temperature; the E32 waits 15 "
                             "minutes before it asks again, unless a room is cold.",
         "boiler_lowest": "Lowest water temperature: your boiler only starts heating from about {flow} °C, so the E32 "
@@ -614,7 +614,7 @@ TEXT = {
         "design_flow": "Watertemperatuur bij strenge vorst (−10 °C)",
         "apply_learned": "Slim opwarmen",
         "house_mode": "Huismodus", "boiler_now": "Ketel",
-        "holiday_next": "Vakantie vanaf {from} t/m {until}", "holiday_now": "Op vakantie t/m {until}",
+        "holiday_next": "Vakantie vanaf {from} tot {until}", "holiday_now": "Op vakantie tot {until}",
         "holiday_day": "Vakantie op {from}",
         "months": "jan,feb,mrt,apr,mei,jun,jul,aug,sep,okt,nov,dec",
         "learned_latest": "Laatste aanpassing",
@@ -719,7 +719,7 @@ TEXT = {
         "at_date": "{time} op {date}",
         "today_away": "{room} staat op afwezig: niet eerder opwarmen.",
         "today_nobody": "Niemand is thuis voor {room}: niet eerder opwarmen.",
-        "today_holiday": "{room} is met vakantie t/m {date}; bij thuiskomst is het weer warm.",
+        "today_holiday": "{room} is met vakantie tot {date}; bij thuiskomst is het weer warm.",
         "today_return": "{room} warmt op voor je thuiskomst.",
         "today_window": "{room} is gepauzeerd: er staat een raam of deur open.",
         "day_yesterday": "Gisteren",
@@ -933,9 +933,9 @@ TEXT = {
         "dhw_target_short": "Cel ciepłej wody",
         "knowledge": "Co wie E32", "your_boiler": "Twój kocioł",
         "boiler_ceiling": "Najwyższa temperatura wody: {when} Twój kocioł sam nie podnosi wody powyżej około {held} °C, "
-                          "więc blisko temperatury docelowej E32 zadaje najwyżej {asks} °C.",
+                          "więc blisko temperatury docelowej E32 żąda najwyżej {asks} °C.",
         "boiler_ceiling_off": "Najwyższa temperatura wody: {when} Twój kocioł sam nie podnosi wody powyżej około {held} "
-                              "°C; z włączonym Inteligentnym nagrzewaniem E32 zadawałby blisko temperatury docelowej "
+                              "°C; z włączonym Inteligentnym nagrzewaniem E32 żądałby blisko temperatury docelowej "
                               "najwyżej {asks} °C.",
         "band_low": "przy temperaturze zewnętrznej poniżej {high} °C",
         "band": "przy temperaturze zewnętrznej od {low} do {high} °C",
@@ -945,11 +945,11 @@ TEXT = {
         "boiler_rest_long": "Przerwa: Twój kocioł odpoczywa {rest} za każdym razem, gdy osiągnie swoją temperaturę; E32 "
                             "czeka 15 minut, zanim znów zażąda ciepła, chyba że któreś pomieszczenie jest zimne.",
         "boiler_lowest": "Najniższa temperatura wody: Twój kocioł zaczyna grzać dopiero od około {flow} °C, więc E32 "
-                         "zadaje co najmniej tyle.",
-        "boiler_lowest_plan": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jaką "
-                              "zadaje E32 ({flow} °C).",
-        "boiler_lowest_plan_plain": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jaką "
-                                    "zadaje E32.",
+                         "żąda co najmniej tyle.",
+        "boiler_lowest_plan": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jakiej "
+                              "żąda E32 ({flow} °C).",
+        "boiler_lowest_plan_plain": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jakiej "
+                                    "żąda E32.",
         "boiler_learning": "W trakcie nauki: {items}.", "learning_ceiling": "najwyższa temperatura wody",
         "learning_rest": "przerwa", "learning_and": " i ",
         "minute_one": "{n} minutę", "minute_few": "{n} minuty", "minute_other": "{n} minut",
@@ -1414,12 +1414,12 @@ def _settings_section(t, flow, rooms=None, week=None):
 
 
 def _at_macro(t):
-    """A Jinja macro ``at(moment)``: a moment (ISO text or datetime) as the local time of day, 14:32, with the date in
-    front when it is not today ("4 Nov 14:32")."""
+    """A Jinja macro ``at(moment)``: a moment (ISO text or datetime) as the local time of day, 14:32 or 09:05 (two
+    digits, as everywhere in Home Assistant), with the date in front when it is not today ("4 Nov 14:32")."""
     months = json.dumps(t["months"].split(","), ensure_ascii=False)
     return ("{% macro at(v) %}{% set m = as_datetime(v, none) if v is string else v %}{% if m is not none %}"
             "{% set m = as_local(m) %}{% if m.date() != now().date() %}{{ m.day }} {{ " + months
-            + "[m.month - 1] }} {% endif %}{{ m.hour }}:{{ '%02d' % m.minute }}{% endif %}{% endmacro %}")
+            + "[m.month - 1] }} {% endif %}{{ '%02d' % m.hour }}:{{ '%02d' % m.minute }}{% endif %}{% endmacro %}")
 
 
 REFUSALS = ("too_large", "invalid_json", "no_entity", "unknown_kind", "invalid_value", "unknown_room")
@@ -1484,7 +1484,9 @@ def _connection_section(t, request, update=None):
             "{% if state_attr(" + u + ", 'in_progress') not in [none, false] and l %}"
             + line("link_update", say("link_firmware_installing", latest="l"))
             + "{% elif is_state(" + u + ", 'on') and l %}" + line("link_update", say("link_firmware_new", version="v", latest="l"))
-            + "{% elif l and l != v %}" + line("link_ok", say("link_firmware_skipped", version="v", latest="l"))
+            # Skipped only when Home Assistant recorded the skip: a development build is no older release.
+            + "{% elif l and l == state_attr(" + u + ", 'skipped_version') %}"
+            + line("link_ok", say("link_firmware_skipped", version="v", latest="l"))
             + "{% else %}" + line("link_ok", say("link_firmware", version="v")) + "{% endif %}{% endif %}")
     more = (
         "{% if h is mapping %}{% set d = namespace(lines=[]) %}"
@@ -1882,6 +1884,9 @@ def _duration(t, minutes):
 # the E32 does not do. The E32's own telemetry plan still says "planned" then.
 HELD_REASONS = {"away": "today_away", "room_away": "today_nobody", "house_away": "today_nobody",
                 "away_return": "today_return", "window_open": "today_window"}
+# The room's comfort mode behind a Reason that ranks above it (no measurement, hot water, a boiler pause): the E32
+# holds the program all the same. Away is a holiday when it has an end.
+HELD_COMFORT = {"away": "holiday", "presence_away": "house_away", "window_open": "window_open"}
 NOT_WARM_MIN = 180  # ArrivalLearner: a room not warm within 3 hours counts as 3 hours late
 
 
@@ -1922,9 +1927,12 @@ def _warm_up_line(t, name, start, state=None, warm=None, smart=None, reason=None
     room is warm enough already; the E32 has no cooling model yet and plans from the room's temperature now, so the
     start moves earlier as it cools, and the line says so. A start no morning has judged yet (estimate) says
     "(estimate)", as the Learning tab does; a start that cannot reach the target in time says it may come a little
-    later. In the trial run (the heat request's mode ``shadow``) the E32 heats nothing early: "would warm up".
-    While the room's Reason (``reason``) is away, nobody home, an open window or warming up for the end of a holiday,
-    the E32 does no early start (RoomOverrides::holdsProgram), so the line says that instead. A program step on
+    later (with free heat the sensor leaves that flag out: it is for the start without it). In the trial run (the
+    heat request's mode ``shadow``) and before the takeover is confirmed (its ``control`` awaiting_confirmation) the
+    E32 heats nothing early: "would warm up". While the room's Reason (``reason``) is away, nobody home, an open
+    window or warming up for the end of a holiday, or its ``comfort_mode`` is one of them behind a Reason that ranks
+    higher (hot water, a boiler pause), the E32 does no early start (RoomOverrides::holdsProgram), so the line says
+    that instead. A program step on
     another day than the start says its day ("at 00:30 tomorrow"). Nothing while the start is unknown (no step up
     within 24 hours) or the room is off (``state``, its on/off select); _today_section shows the card on the same
     terms.
@@ -1932,15 +1940,23 @@ def _warm_up_line(t, name, start, state=None, warm=None, smart=None, reason=None
     q, room = json.dumps(start), json.dumps(name, ensure_ascii=False)
     on = " and not is_state(" + json.dumps(state) + ", 'inactive')" if state else ""
     off = "is_state(" + json.dumps(smart) + ", 'off')" if smart else "false"
-    trial = "is_state_attr(" + json.dumps(request) + ", 'mode', 'shadow')" if request else "false"
+    # The trial run, or active control before the takeover is confirmed: the E32 heats nothing early (house card).
+    trial = ("(is_state_attr(" + json.dumps(request) + ", 'mode', 'shadow') or is_state_attr(" + json.dumps(request)
+             + ", 'control', 'awaiting_confirmation'))") if request else "false"
     step = {"room": room, "time": _clock("w"), "target": _degrees(t, "g")}
     # The step's time with its day when that is not the start's day: "at **00:30 tomorrow**".
     later = {**step, "time": "wt"}
     held = ""
     if reason:
         r = json.dumps(reason)
-        held = ("{% set why = states(" + r + ") %}{% if why == 'holiday' %}"
-                "{% set u = (state_attr(" + r + ", 'values') or {}).get('until') %}"
+        # The Reason ranks no measurement, hot water and a boiler pause above away and holiday, while the E32 still
+        # holds the program: its comfort_mode says so then (a holiday is away with an end, comfort_until).
+        held = ("{% set why = states(" + r + ") %}{% set cm = state_attr(" + r + ", 'comfort_mode') %}"
+                "{% if why not in " + json.dumps(["holiday", *HELD_REASONS]) + " and cm in "
+                + json.dumps(list(HELD_COMFORT)) + " %}{% set why = " + json.dumps(HELD_COMFORT) + "[cm] %}{% endif %}"
+                "{% if why == 'holiday' %}"
+                "{% set u = (state_attr(" + r + ", 'values') or {}).get('until') or state_attr(" + r
+                + ", 'comfort_until') %}"
                 "{% set u = as_datetime(u, none) if u else none %}"
                 "{% if u is not none %}{% set u = as_local(u) %}{{ "
                 + _jinja_text(t["today_holiday"], room=room, date=_date(t, "u")) + " }}"

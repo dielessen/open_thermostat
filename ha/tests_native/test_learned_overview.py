@@ -232,7 +232,7 @@ BOILER_MINIMUM = {
            "It learned this when the boiler did not start for cooler water."),
     "nl": ("Je ketel begint pas te verwarmen vanaf water van ongeveer 40 °C; de thermostaat vraagt minstens zoveel.",
            "Dat leerde hij toen de ketel voor koeler water niet aansloeg."),
-    "pl": ("Twój kocioł zaczyna grzać dopiero od wody o temperaturze około 40 °C; termostat zadaje co najmniej tyle.",
+    "pl": ("Twój kocioł zaczyna grzać dopiero od wody o temperaturze około 40 °C; termostat żąda co najmniej tyle.",
            "Nauczył się tego, gdy kocioł nie uruchamiał się przy chłodniejszej wodzie."),
 }
 
@@ -414,7 +414,7 @@ def test_the_warm_up_time_can_be_learned_before_the_coolest_water():
 @pytest.mark.parametrize("language,seen,timing,fine", [
     ("en", "Learning: 14 warm-ups seen; it still needs warm-ups on other days or at another water temperature",
      "Warm-up time learned; the coolest water is still being learned", "Learning: 5 of 6 warm-ups seen"),
-    ("nl", "Aan het leren: 14 keer opwarmen gezien; hij moet nog opwarmen zien op andere dagen of bij een andere "
+    ("nl", "Aan het leren: 14 keer opwarmen gezien; nog nodig: opwarmen op andere dagen of bij een andere "
            "watertemperatuur",
      "Opwarmtijd geleerd; het koelste water leert hij nog", "Aan het leren: 5 van 6 keer opwarmen gezien"),
     ("pl", "Uczy się: widziano 14 nagrzewań; potrzebuje jeszcze nagrzewań w inne dni lub przy innej temperaturze wody",
@@ -560,6 +560,11 @@ def test_the_trial_run_says_what_smart_warm_up_would_do(language):
     s.hub.update({**STATUS, "mode": "shadow"})
     texts = [line["text"] for line in s.extra_state_attributes["rooms"][0]["lines"]]
     assert planned in texts
+    # R4-13: before the takeover is confirmed the E32 heats nothing early either (the house card's driving()).
+    s.hub.update({**STATUS, "mode": "active", "active": {"state": "awaiting_confirmation"}})
+    texts = [line["text"] for line in s.extra_state_attributes["rooms"][0]["lines"]]
+    assert planned in texts
+    assert lo.trial_run({"mode": "active", "active": {"state": "active"}}) is False and lo.trial_run(None) is False
 
 
 FREE = {"rate": [None, 0.3, None, None, None, None], "n": [0, 6, 0, 0, 0, 0], "applied_min": 20}
@@ -612,6 +617,34 @@ def test_the_heating_start_sensor_names_the_start_the_e32_uses():
                                    {"id": "woonkamer", "optimum_start": start}))
     assert sensor_.native_value == datetime.fromtimestamp(soon, timezone.utc)
     assert "free_heat_min" not in sensor_.extra_state_attributes and sensor_.extra_state_attributes["start_now"] is True
+
+
+def test_a_free_heat_morning_is_never_late():
+    """R4-2: the E32's reachable is for the start without the free heat, so once that earlier start has passed it is
+    false every free-heat morning (WarmupPlanner::lead), while FreeHeat::shorten keeps the target in time. The sensor
+    drops it and the Rooms line never says "may come a little after"."""
+    from datetime import datetime, timedelta, timezone
+    from custom_components.open_thermostat.heating_link import RoomHeatingStartSensor
+    clock = {1793257800: "07:30", 1793259000: "07:50", 1793262600: "08:50"}.get
+    late = {**START, "start_now": True, "reachable": False}
+    before = lo.smart_warm_up_line(late, True, "en", clock, later_min=20, now=1793258400)[0]
+    after = lo.smart_warm_up_line(late, True, "en", clock, later_min=20, now=1793259000)[0]
+    assert before == "Smart warm-up: starts at 07:50 so it is 21 °C at 08:50."
+    assert after == "Smart warm-up: heating now so it is 21 °C at 08:50."
+    # Without free heat the flag still counts: the start could not reach the target in time.
+    assert "may come a little after" in lo.smart_warm_up_line(late, True, "en", clock, now=1793259000)[0]
+    h = HeatingHub("fixture")
+    h.update(STATUS)
+    passed = int(datetime.now(timezone.utc).timestamp()) - 1800  # the start without free heat, half an hour ago
+    h.update_learned("woonkamer", ({**LEARNED, "id": "woonkamer", "free_heat": FREE},
+                                   {"id": "woonkamer", "optimum_start": {**late, "predicted_start_utc": passed}}))
+    sensor_ = RoomHeatingStartSensor(h, STATUS["rooms"][0])
+    assert sensor_.native_value == datetime.fromtimestamp(passed, timezone.utc) + timedelta(minutes=20)
+    attributes = sensor_.extra_state_attributes
+    assert attributes["reachable"] is None and attributes["start_now"] is True and attributes["free_heat_min"] == 20
+    h.update_learned("woonkamer", ({**LEARNED, "id": "woonkamer", "free_heat": {**FREE, "applied_min": 0}},
+                                   {"id": "woonkamer", "optimum_start": {**late, "predicted_start_utc": passed}}))
+    assert sensor_.extra_state_attributes["reachable"] is False  # no free heat: the E32's own flag
 
 
 @pytest.mark.parametrize("comfort", [{"mode": "away"}, {"mode": "presence_away"}, {"mode": "window_open"},

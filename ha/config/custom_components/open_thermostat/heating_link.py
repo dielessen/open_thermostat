@@ -1149,7 +1149,11 @@ class HeatingInputWatch:
             # Since when, as a local time (with the day when not today), not a count of minutes that stands still
             # between the re-creations.
             since = dt_util.as_local(self.wall() - timedelta(seconds=age))
-            text = since.strftime("%H:%M") if since.date() == dt_util.now().date() else since.strftime("%d-%m %H:%M")
+            from .learned_overview import TEXT as LEARNED, language
+            months = LEARNED[language(self.hass)]["months"].split()
+            # Another day as the dashboard writes it ("4 Nov 22:15"); never "04-11", which also reads as 11 April.
+            text = (since.strftime("%H:%M") if since.date() == dt_util.now().date()
+                    else f"{since.day} {months[since.month - 1]} {since:%H:%M}")
             ir.async_create_issue(
                 self.hass, DOMAIN, self.issue_id, is_fixable=False, is_persistent=False,
                 severity=ir.IssueSeverity.WARNING, translation_key=INPUT_ISSUE,
@@ -2007,6 +2011,9 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
             # E32 rc.5: the free heat moves the start later (the state is that later start); the E32's start_now is for
             # the start without it, so it heats now only once the later start has come.
             result["free_heat_min"] = later
+            # The E32's reachable is for the start without the free heat: once that earlier start passed it is always
+            # false (WarmupPlanner::lead, "too late already"), which FreeHeat::shorten says is no reason for concern.
+            result["reachable"] = None
             if result["start_now"] is True and begin > datetime.now(timezone.utc):
                 result["start_now"] = False
         if type(start.get("next_switch")) is dict:

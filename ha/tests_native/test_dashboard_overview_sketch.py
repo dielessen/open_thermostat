@@ -291,7 +291,7 @@ TODAY_CASES = {
                     "Woonkamer is gepauzeerd: er staat een raam of deur open.",
                     "Woonkamer: wstrzymane, otwarte okno lub drzwi."),
     "holiday": ("Woonkamer is on holiday until 9 Nov; it is warm again when you are back.",
-                "Woonkamer is met vakantie t/m 9 nov; bij thuiskomst is het weer warm.",
+                "Woonkamer is met vakantie tot 9 nov; bij thuiskomst is het weer warm.",
                 "Woonkamer: urlop do 9 lis; po powrocie będzie ciepło."),
     "away_return": ("Woonkamer is warming up for your return.", "Woonkamer warmt op voor je thuiskomst.",
                     "Woonkamer: nagrzewanie na Twój powrót."),
@@ -324,6 +324,65 @@ async def test_today_says_the_reviewed_cases_in_every_language(hass, clock, lang
         hass.states.async_set(living["reason"], case, {})
     said = render(hass, card).split("\n\n")[0].removeprefix(CLOCK)
     assert said == TODAY_CASES[case][("en", "nl", "pl").index(language)]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language", ["en", "nl", "pl"])
+async def test_a_free_heat_morning_is_on_time_on_today(hass, clock, language):
+    """R4-2: with free heat the sensor's reachable is None (the E32's flag is for the earlier start without it), and
+    None is not "not reachable": Today says the later start and then "warming up now", never "may come a little
+    after"."""
+    config, rooms, hub, fields, flow, board = sketch(hass, language)
+    card = today_card(config, language)
+    living, start = rooms["woonkamer"], rooms["woonkamer"]["heating_start"]
+    hass.states.async_set(living["state"], "active", {})
+    hass.states.async_set(rooms["badkamer"]["state"], "inactive", {})
+    hass.states.async_set(flow["apply_learned"], "on", {})
+    hass.states.async_set(hub["heat_request"], "36", {"mode": "active"})
+    hass.states.async_set(living["reason"], "warm_enough", {})
+    first = lambda: render(hass, card).split("\n\n")[0].removeprefix(CLOCK)  # noqa: E731
+    for at, start_now in (((4, 16, 10), False), ((4, 14, 20), True)):
+        heating_start(hass, start, at, (4, 17, 0) if not start_now else (4, 15, 0), 21, start_now=start_now)
+        attributes = {**hass.states.get(start).attributes, "reachable": None, "free_heat_min": 20}
+        hass.states.async_set(start, hass.states.get(start).state, attributes)
+        said = first()
+        assert said == {
+            ("en", False): "Today Woonkamer warms up from **16:10** to be 21 °C at **17:00**.",
+            ("en", True): "Woonkamer is warming up now to be 21 °C at **15:00**.",
+            ("nl", False): "Vandaag begint Woonkamer om **16:10** met opwarmen, zodat het om **17:00** 21 °C is.",
+            ("nl", True): "Woonkamer warmt nu op, zodat het om **15:00** 21 °C is.",
+            ("pl", False): "Woonkamer: dziś nagrzewanie od **16:10**, aby o **17:00** było 21 °C.",
+            ("pl", True): "Woonkamer: nagrzewanie trwa, aby o **15:00** było 21 °C.",
+        }[language, start_now]
+        assert said != TODAY_CASES["late"][("en", "nl", "pl").index(language)]
+
+
+@pytest.mark.asyncio
+async def test_today_says_would_before_the_takeover_and_held_behind_hot_water(hass, clock):
+    """R4-13: before the takeover is confirmed (control awaiting_confirmation) the E32 heats nothing early, as in the
+    trial run: "would". A Reason that ranks above away or a holiday (hot water, a boiler pause, no measurement) still
+    holds the program: its comfort_mode says so, and Today says the away line, not a warm-up."""
+    config, rooms, hub, fields, flow, board = sketch(hass)
+    card = today_card(config)
+    living, start = rooms["woonkamer"], rooms["woonkamer"]["heating_start"]
+    hass.states.async_set(living["state"], "active", {})
+    hass.states.async_set(rooms["badkamer"]["state"], "inactive", {})
+    hass.states.async_set(flow["apply_learned"], "on", {})
+    hass.states.async_set(living["reason"], "warm_enough", {})
+    heating_start(hass, start, (5, 6, 10), (5, 7, 0))
+    first = lambda: render(hass, card).split("\n\n")[0].removeprefix(CLOCK)  # noqa: E731
+    hass.states.async_set(hub["heat_request"], "0", {"mode": "active", "control": "awaiting_confirmation"})
+    assert first() == TODAY_CASES["trial"][0]
+    hass.states.async_set(hub["heat_request"], "36", {"mode": "active", "control": "active"})
+    assert first() == "Tomorrow Woonkamer warms up from **06:10** to be 20.5 °C at **07:00**."
+    for comfort, until, said in (("away", local(9, 0, 0), TODAY_CASES["holiday"][0]), ("away", None, TODAY_CASES["away"][0]),
+                                 ("presence_away", None, TODAY_CASES["house_away"][0]),
+                                 ("window_open", None, TODAY_CASES["window_open"][0])):
+        for why in ("hot_water", "boiler_pause", "no_measurement"):
+            hass.states.async_set(living["reason"], why, {"values": {}, "comfort_mode": comfort, "comfort_until": until})
+            assert first() == said, (comfort, why)
+    hass.states.async_set(living["reason"], "hot_water", {"values": {}, "comfort_mode": "program", "comfort_until": None})
+    assert first() == "Tomorrow Woonkamer warms up from **06:10** to be 20.5 °C at **07:00**."
 
 
 LAST_WARM_UP = {

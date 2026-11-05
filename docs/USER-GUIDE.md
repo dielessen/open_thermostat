@@ -183,7 +183,7 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
      **Highest water temperature**: how warm your boiler lets the water get
      by itself at the outdoor temperature (the E32 asks no more than that
      near the target). **Rest**: how long your boiler rests each time it
-     reaches its temperature (the E32 waits as long before it asks again,
+     reaches its temperature (the E32 waits just as long before it asks again,
      unless a room is cold). **Lowest water temperature**: from which water
      temperature your boiler starts heating (the E32 asks at least that).
      What is not learned yet stands on one line, "Still being learned"; while
@@ -867,11 +867,11 @@ day stand in the main list: the thermostat, Temperature, Heat demand, Reason,
 gas, Boiler activity, Heating problem and the hot water taps. Settings
 (for example a room's **Heating** on/off and **Off until**) stand under
 Configuration, and figures that only inform (Target temperature, Control
-status, Learning status, Recommended water temperature, Predicted heating
-start, Burner starts last hour, **Requested water temperature**, **Known about
+status, Learning status, Recommended water temperature, **Smart warm-up
+start** (was Predicted heating start), Burner starts last hour, **Requested water temperature**, **Known about
 your house**, Boiler response, the three running totals and the yesterday
-figures) stand under Diagnostic. Names stay the same on updating; entity IDs
-too. The running totals say what they are: **Burner starts (total)**,
+figures) stand under Diagnostic; entities that already exist move there too.
+Entity IDs stay the same on updating; some names changed. The running totals say what they are: **Burner starts (total)**,
 **Burner time (total)** and **Missed comfort time (total)** (they were
 "... today"). The yesterday figures say "(yesterday)" in their name, for
 example **Heating energy per degree-day (yesterday)** in kWh/°C·d.
@@ -1083,7 +1083,7 @@ During the trial run nothing is sent to the boiler either way.
 | --- | --- |
 | Learning status | Collecting data, Learning or Learned. Learning uses stable heating periods without hot water and with fresh readings, so it takes several heating periods. |
 | Recommended water temperature (1 °C) | The coolest water (flow temperature) that warms the room by 1 °C in an acceptable time. Unknown until learned. Its attributes show what the room control asks now, for comparison. |
-| Predicted heating start | When the E32 would start heating to reach the next higher week-program temperature on time. Its attributes compare night strategies (holding a night temperature versus letting it drop) in kWh, m³ and €. |
+| Smart warm-up start | When the E32 starts heating to reach the next higher week-program temperature on time. Its attributes compare night strategies (holding a night temperature versus letting it drop) in kWh, m³ and €. |
 
 What the E32 has learned is kept when it restarts, loses power or gets a
 firmware update, so learning carries on where it was (it is saved every 6

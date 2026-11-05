@@ -296,7 +296,7 @@ async def test_the_overview_names_the_next_holiday(hass):
     render = lambda language: Template(_holiday_card(TEXT[language], select)["content"], hass).async_render(  # noqa: E731
         strict=True)
     assert render("en") == "Holiday from 20 Dec to 3 Jan"
-    assert render("nl") == "Vakantie vanaf 20 dec t/m 3 jan"
+    assert render("nl") == "Vakantie vanaf 20 dec tot 3 jan"
     assert render("pl") == "Urlop od 20 gru do 3 sty"
     # A one-day holiday (rc7, A2's leftovers): "Holiday on 20 Dec", not "from 20 Dec to 20 Dec".
     one = (first[0], first[0] + 6 * 3600)
@@ -319,7 +319,7 @@ async def test_the_overview_names_the_next_holiday(hass):
     hass.states.async_set(select, "auto", {"holidays": [{"from": dt_util.utc_from_timestamp(first[0]).isoformat(),
                                                          "until": dt_util.utc_from_timestamp(first[1]).isoformat()}]})
     assert Template(_holiday_card(TEXT["nl"], select)["content"], hass).async_render(strict=True) == (
-        "Vakantie vanaf 20 dec t/m 3 jan")
+        "Vakantie vanaf 20 dec tot 3 jan")
     assert _holiday_card(TEXT["en"], None) is None and _holiday_card(TEXT["en"], select)["show_empty"] is False
 
 
@@ -342,19 +342,36 @@ async def test_the_card_sits_under_house_on_the_overview(hass):
 
 
 @pytest.mark.asyncio
-async def test_holiday_from_the_list_starts_the_next_planned_holiday_now(hass):
-    """R2-14 (1.0.0rc7): picking Holiday in the house mode list on an E32 with planned holidays leaves now until the
-    next planned holiday's end, instead of an error; with nothing planned the error says how to start one."""
+async def test_holiday_from_the_list_starts_a_planned_holiday_that_begins_within_a_day(hass):
+    """R2-14/R4-1 (1.0.0rc7): picking Holiday in the house mode list means "now". A planned holiday that starts within a
+    day starts now and keeps its end; one further ahead does not (the house would sit at holiday temperature for weeks),
+    so the error says how to start one, as it does with nothing planned."""
     from custom_components.open_thermostat.e32_house import next_holiday_end
-    first, second = (future(3)[0], future(10)[0]), (future(20)[0], future(24)[0])
+    soon = int(dt_util.utcnow().timestamp()) + 6 * 3600
+    first, second = (soon, future(4)[0]), (future(20)[0], future(24)[0])
     e32 = E32WithHolidays([first, second])
     parent, hub = installed(hass, e32)
     house = house_state(hass, parent, hub)
-    assert next_holiday_end(house.away) == first[1]
-    assert next_holiday_end(house.away, now=first[1]) == second[1]  # one that is over does not count
+    assert next_holiday_end(house.away) == first[1]  # starts in 6 hours
+    assert next_holiday_end(house.away, now=first[1]) is None  # the next one starts 16 days after that
+    assert next_holiday_end(house.away, now=second[0] - 3600) == second[1]  # an hour before it starts
+    assert next_holiday_end(house.away, now=second[0] + 3600) == second[1]  # running
     assert next_holiday_end({"on": False, "mode": "auto"}) is None  # an E32 before rc.4 plans none
     await HouseModeSelect(house).async_select_option("holiday")
     assert e32.commands[-1] == {"house_mode": "holiday", "until": first[1]}
+
+
+@pytest.mark.asyncio
+async def test_holiday_from_the_list_explains_when_the_planned_holiday_is_days_away(hass):
+    """R4-1: a holiday planned 10 days ahead does not start from the list; the error says to set "Holiday until"."""
+    e32 = E32WithHolidays([(future(10)[0], future(17)[0])])
+    parent, hub = installed(hass, e32)
+    house = house_state(hass, parent, hub)
+    sent = list(e32.commands)
+    with pytest.raises(ServiceValidationError) as error:
+        await HouseModeSelect(house).async_select_option("holiday")
+    assert error.value.translation_key == "house_holiday_date_needed"
+    assert e32.commands == sent  # nothing went to the E32
     e32.holidays = []
     hub.update({**STATUS, "away": e32.away()})
     house.answer = None

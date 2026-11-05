@@ -1722,7 +1722,7 @@
         "name": "Zalecana temperatura wody"
       },
       "room_heating_start": {
-        "name": "Przewidywany start grzania"
+        "name": "Start inteligentnego nagrzewania"
       },
       "dhw_taps_today": {
         "name": "Pobory ciepłej wody dziś"
@@ -3971,13 +3971,13 @@
       "description": "Starsze pomieszczenie Home Assistant zostało usunięte, ale E32 nadal ma stare ustawienia połączenia. Wybierz Napraw, aby połączyć E32 ponownie bez niego. Twoje pomieszczenia pozostają bez zmian."
     },
     "e32_room_choose_source": {
-      "title": "Wybierz źródło temperatury dla {room}",
+      "title": "Wybierz źródło temperatury dla pomieszczenia {room}",
       "description": "{room} na E32 używało termostatu starego pomieszczenia Home Assistant jako źródła temperatury. To stare pomieszczenie zostało usunięte i nie miało czym go zastąpić. {room} pozostaje bez zmian (także gdy jest nieaktywne), ale nie ma działającego źródła temperatury, dopóki go nie wybierzesz.\n\nWybierz Napraw, aby wybrać termostat lub czujnik temperatury, albo otwórz Konfiguruj → Pomieszczenia → {room}.",
       "fix_flow": {
         "step": {
           "choose_source": {
-            "title": "Wybierz źródło temperatury dla {room}",
-            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
+            "title": "Wybierz źródło temperatury dla pomieszczenia {room}",
+            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w pomieszczeniu {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
             "data": {
               "source": "Źródło temperatury"
             },
@@ -4006,16 +4006,16 @@
       "description": "Usunięto grupę pomieszczenia {room} w {installation}, ale {room} nadal jest pomieszczeniem w planie pomieszczeń E32 i E32 nadal je ogrzewa. Grupa, urządzenie i encje zostały przywrócone z tymi samymi nazwami, obszarami i historią. Aby usunąć pomieszczenie, otwórz {installation} → Konfiguruj → Pomieszczenia → Edytuj lub usuń pomieszczenie, wybierz {room} i usuń je tam. Możesz zignorować ten komunikat."
     },
     "valve_battery_low": {
-      "title": "Słaba bateria zaworu w {room}",
-      "description": "Bateria prawie pusta (około 20 % lub mniej) w {room}: {valves}. Wymień ją wkrótce: zawór z pustą baterią przestaje słuchać E32. Komunikat zniknie sam, gdy zawór zgłosi baterię, która nie jest już słaba."
+      "title": "Słaba bateria zaworu w pomieszczeniu {room}",
+      "description": "Bateria prawie pusta (około 20 % lub mniej) w pomieszczeniu {room}: {valves}. Wymień ją wkrótce: zawór z pustą baterią przestaje słuchać E32. Komunikat zniknie sam, gdy zawór zgłosi baterię, która nie jest już słaba."
     },
     "valve_offline": {
-      "title": "Zawór grzejnikowy nie odpowiada w {room}",
-      "description": "Brak zgłoszeń do Zigbee2MQTT od ponad dwóch godzin w {room}: {valves}. Sprawdź baterię i połączenie Zigbee. Pomieszczenie dalej grzeje według innych źródeł temperatury; zawór sam reguluje według ostatniej nastawy."
+      "title": "Zawór grzejnikowy nie odpowiada w pomieszczeniu {room}",
+      "description": "Brak zgłoszeń do Zigbee2MQTT od ponad dwóch godzin w pomieszczeniu {room}: {valves}. Sprawdź baterię i połączenie Zigbee. Pomieszczenie dalej grzeje według innych źródeł temperatury; zawór sam reguluje według ostatniej nastawy."
     },
     "valve_single_source": {
       "title": "{room} ma tylko jedno źródło temperatury",
-      "description": "E32 steruje zaworami w {room}, ale pomieszczenie ma tylko jedno źródło temperatury. Gdy ono przestanie działać, E32 po 30 minutach przestaje żądać ciepła dla tego pomieszczenia zamiast grzać na ślepo. Dodaj drugie źródło, np. osobny czujnik Bluetooth, w ustawieniach pomieszczenia."
+      "description": "E32 steruje zaworami w pomieszczeniu {room}, które ma tylko jedno źródło temperatury. Gdy ono przestanie działać, E32 po 30 minutach przestaje żądać ciepła dla tego pomieszczenia zamiast grzać na ślepo. Dodaj drugie źródło, np. osobny czujnik Bluetooth, w ustawieniach pomieszczenia."
     },
     "heating_problem": {
       "title": "Ogrzewanie wymaga uwagi",
@@ -4057,13 +4057,13 @@
       "description": "{name}: zegar E32 używa {e32}, Home Assistant używa {home}. Programy tygodniowe przełączałyby się o złej porze. Wybierz Napraw, aby ustawić E32 na {home}. E32 uruchomi się raz ponownie."
     },
     "e32_room_source_missing": {
-      "title": "Wybierz nowe źródło temperatury dla {room}",
+      "title": "Wybierz nowe źródło temperatury dla pomieszczenia {room}",
       "description": "{room} odczytuje temperaturę z {source}, a ta encja już nie istnieje w Home Assistant: zmieniono jej nazwę lub ją usunięto. Dopóki nie wybierzesz innej, {room} korzysta z pozostałych źródeł temperatury, jeśli je ma; bez źródła nie żąda ciepła.\n\nWybierz Napraw, aby wybrać termostat lub czujnik temperatury, albo otwórz Konfiguruj → Pomieszczenia → {room}. Komunikat zniknie sam, jeśli {source} wróci.",
       "fix_flow": {
         "step": {
           "choose_source": {
-            "title": "Wybierz źródło temperatury dla {room}",
-            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
+            "title": "Wybierz źródło temperatury dla pomieszczenia {room}",
+            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w pomieszczeniu {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
             "data": {
               "source": "Źródło temperatury"
             },

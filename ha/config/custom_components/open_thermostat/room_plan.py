@@ -780,12 +780,14 @@ class RoomSourceWatch:
         self.missing = {e: self.missing.get(e, now) for e in missing}
         gone = {e for e, since in self.missing.items() if now - since >= SOURCE_MISSING_SECONDS}
         wanted = {}
+        from .insight import room_names  # the dashboard's names: a room renamed in Home Assistant keeps its name
+        names = room_names(self.hub, self.hass, self.entry.entry_id) if gone and getattr(self.hub, "rooms", None) else {}
         for room in plan.get("rooms", []):
             dead = [s["id"] for s in room.get("sources", []) if s.get("type") == "ha" and s.get("id") in gone]
             if dead:
                 from .legacy_room_migration import choose_source_issue_id
-                wanted[choose_source_issue_id(self.entry, room["id"])] = (room.get("name") or room["id"], room["id"],
-                                                                         dead)
+                wanted[choose_source_issue_id(self.entry, room["id"])] = (
+                    names.get(room["id"]) or room.get("name") or room["id"], room["id"], dead)
         self._issues(wanted)
 
     def _issues(self, wanted):

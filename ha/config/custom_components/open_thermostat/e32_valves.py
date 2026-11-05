@@ -379,10 +379,12 @@ def sync_issues(hass, entry, hub, raised):
     if not hub.fresh:
         return  # an offline E32 says nothing about its valves; "E32 offline" is its own problem
     wanted = {}
+    from .insight import room_names  # the dashboard's names: a room renamed in Home Assistant keeps its name
+    names = room_names(hub, hass, entry.entry_id) if hub.valves else {}
     for room_id in hub.valves:
         valves = room_valves(hub, room_id)
         room = hub.rooms.get(room_id) or {"id": room_id}
-        name = label(room) or room_id
+        name = names.get(room_id) or label(room) or room_id
         found = problems(valves)
         low = [n for n, h in found if h == "low_battery"]
         gone = [n for n, h in found if h == "offline"]

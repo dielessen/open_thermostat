@@ -243,12 +243,15 @@ class ProblemTracker:
         elif self.awaiting is None:
             self.awaiting = now
 
-    def problems(self, hub, now, advice_items=(), sources=None):
+    def problems(self, hub, now, advice_items=(), sources=None, names=None):
         """[(id, placeholders)] of the current problems, most important first.
 
         ``sources(room_id)``: the names of a room's Home Assistant sources, or None (Bluetooth only, unknown):
-        the advice for a room without a measurement then points to them, not to a battery alone.
+        the advice for a room without a measurement then points to them, not to a battery alone. ``names``:
+        {room id: name} as the dashboard shows it (insight.room_names: renamed in Home Assistant or not), else
+        the E32's own.
         """
+        shown = names or {}
         result = []
         last = getattr(hub, "last_seen", None)
         if last is not None or self.expect_telemetry:
@@ -266,14 +269,14 @@ class ProblemTracker:
             for room_id, since in self.rooms.items():
                 if now - since > ROOM_LOST_SECONDS:
                     room = hub.rooms.get(room_id) or {"id": room_id}
-                    values = {"room": label(room), "room_id": room_id}
+                    values = {"room": shown.get(room_id) or label(room), "room_id": room_id}
                     if (names := sources(room_id) if sources is not None else None):
                         values["source"] = names
                     result.append(("room_without_measurement", values))
             for room_id, since in self.slow.items():
                 if now - since >= ROOM_SLOW_SECONDS:
                     room = hub.rooms.get(room_id) or {"id": room_id}
-                    result.append(("room_slow", {"room": label(room), "room_id": room_id,
+                    result.append(("room_slow", {"room": shown.get(room_id) or label(room), "room_id": room_id,
                                                  "hours": WARN_ROOM_SLOW_HOURS, "margin": WARN_ROOM_SLOW_MARGIN_C}))
             if self.session_lost is not None and now - self.session_lost >= SESSION_LOST_SECONDS:
                 result.append(("session_lost", {"minutes": WARN_SESSION_LOST_MINUTES}))
@@ -422,7 +425,9 @@ class HeatingProblemSensor(BinarySensorEntity):
     def evaluate(self, _now=None):
         now = self.hub.clock()
         self.tracker.observe(self.hub, now, self._session_ready())
-        self.current = self.tracker.problems(self.hub, now, self._advice_items(), self._room_sources)
+        from .insight import room_names  # the dashboard's names: a room renamed in Home Assistant keeps its name
+        names = room_names(self.hub, getattr(self, "hass", None), getattr(self.entry, "entry_id", None))
+        self.current = self.tracker.problems(self.hub, now, self._advice_items(), self._room_sources, names)
         from .e32_reconfirm import reconfirm_required, update_reconfirm_issue
         if getattr(self, "hass", None) is not None:
             update_reconfirm_issue(self.hass, self.entry, self.hub)

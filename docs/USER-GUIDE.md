@@ -289,7 +289,7 @@ Assistant — you edit rooms here." on the **Rooms** page.
    floor heating). **Inactive until** switches a room off until a date.
 3. Under **Temperature sources**, choose the Bluetooth sensor. Up to four
    sources in order: the first fresh one leads, the others are fallback.
-4. Set the **Temperature without Home Assistant** (for example 19 °C) and the
+4. Set the **Temperature without a week program** (for example 19 °C) and the
    room's **Minimum** and **Maximum**.
 5. Turn on **Use a week program**. Choose a template under **Start from a
    template**, set the **Comfort**, **Eco** and **Night** temperatures, and
@@ -365,7 +365,7 @@ and the paired Bluetooth thermometer as fallback.
      temperature at every switch point; see
      [Week program and setting device](#week-program-and-setting-device).
      Leave it empty to use the room's own thermostat in Home Assistant.
-   - **Temperature without Home Assistant:** for example 19 °C.
+   - **Temperature without a week program:** for example 19 °C.
    - **Week program on the E32:** the form starts with the "Workdays and
      weekend" template. Keep it and adjust it in the visual planner (the
      **Week program** tab of the OpenThermostat dashboard), or type one line
@@ -806,9 +806,9 @@ for heating and hot water (and tapping and keeping warm), the outdoor
 temperature when one is set, and per room how long it asked for heat, how
 long it took to reach a raised target (late after 2 hours) and the missed
 comfort minutes. Only time with E32 data counts; a day with less than 20
-hours of data is marked partial. **Burner time**, **Burner starts** and
-**Missed comfort time** are running totals with long-term statistics, so
-their change per day is the daily figure. The **Learning and settings** tab of
+hours of data is marked partial. **Burner time (total)**, **Burner starts
+(total)** and **Missed comfort time (total)** are running totals with long-term
+statistics, so their change per day is the daily figure. The **Learning and settings** tab of
 the dashboard shows yesterday in figures, with the missed comfort of the last
 days as bars. The gas and the burner hours of the last days are bars under
 **Today and this week** on the **Boiler** tab.
@@ -874,7 +874,7 @@ on the Rooms page has a **Radiator valves** block with its own *Save valves*
 button; Home Assistant valves show there read-only, as *Home Assistant climate
 entity (set in Home Assistant)*. At most 4 valves per room and 16 in all.
 
-**Nothing happens until you switch it on.** Each room has a **Valve control**
+**Nothing happens until you switch it on.** Each room has a **Radiator valve control**
 switch (entity ID ending in `_valve_control`), off by default. The E32 sends
 to a room's valves only while that switch is on **and** the E32 controls the
 boiler itself (active control after the attended switch-over). During the trial run,
@@ -912,8 +912,8 @@ valve off. It does not send the room temperature, and these valves do not feed
 back into the boiler flow (a room with one never counts as all closed).
 Health: a valve that is unavailable for 2 hours is offline; the battery comes
 from a battery sensor on the valve's device in Home Assistant (or its
-low-battery sensor). The valve counts in the room's *Valve position*, *Valve
-battery* and *Valve problem* entities and in Repairs, like a Zigbee2MQTT valve;
+low-battery sensor). The valve counts in the room's *Radiator valve position*, *Radiator valve
+battery* and *Radiator valve problem* entities and in Repairs, like a Zigbee2MQTT valve;
 on the E32 page its state reads *Driven by Home Assistant*. A failing service
 call is logged once and tried again a minute later at the earliest.
 
@@ -1056,11 +1056,13 @@ heat. Under it is a chart of the missed comfort per day. On the E32 it is on
 the **Home** page, under **What the thermostat has learned**.
 
 Each figure is also a sensor, so Home Assistant keeps its history: per room
-**Warm on time** (minutes) and **Overshoot** (°C), and on the OpenThermostat
-device **Burner starts per heating hour**, **Short cycling hours**, **Heating
-gas yesterday** and **Gas per degree-day**. The state is yesterday's figure. A
-sensor appears once the E32 has a figure for it; with firmware before rc.4 there
-are none.
+**Warm on time yesterday (minutes late)** (negative: early) and **Above target
+yesterday** (°C), and on the OpenThermostat device **Burner starts per heating
+hour (yesterday)**, **Short burner runs yesterday**, **Heating energy yesterday
+(estimate)** and **Heating energy per degree-day (yesterday)** (kWh/°C·d). The
+state is yesterday's figure; they are under Diagnostic on the device page. A
+sensor appears once the E32 has a figure for yesterday; with firmware before
+rc.4 there are none.
 
 ### What the E32 knows, and what it still lacks
 
@@ -1101,7 +1103,7 @@ temperature** and the figure tops out below 100 %.
 
 On the E32 you find the figure on the **Home** page under **What the
 thermostat has learned**. In Home Assistant the **Learning and settings** tab
-starts with **What the E32 knows**, and the sensor **Knowledge** on the E32
+starts with **What the E32 knows**, and the sensor **Known about your house** on the E32
 device has the percentage as its state and the missing items, as sentences, in
 its attributes.
 

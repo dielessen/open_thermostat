@@ -555,7 +555,7 @@ Right after connecting, choose **Add the first room**. Later, go to
    any. Tick **Use the Bluetooth sensors first** to make them lead and keep the
    Home Assistant sources as backup.
 6. **Setting device (optional)**: see [11.3](#113-the-setting-device).
-7. **Temperature without Home Assistant**: a safe fixed temperature, for
+7. **Temperature without a week program**: a safe fixed temperature, for
    example 19 °C. The E32 uses it only in the rare case that the room has no
    usable week program, for example when the E32 has no valid clock.
 8. **Week program on the E32**: the form fills in the **Workdays and weekend**
@@ -849,7 +849,7 @@ The trial run is optional. **The E32 does:**
 - learn from how your boiler answers its requests (its ceiling and rest, see
   [Listening to the boiler](USER-GUIDE.md#listening-to-the-boiler)); the
   boiler's response says **E32 not controlling the boiler** until the takeover;
-- drive radiator valves. A room's **Valve control** switch is off by default,
+- drive radiator valves. A room's **Radiator valve control** switch is off by default,
   and even when it is on, valves are only driven while the E32 controls the
   boiler itself.
 
@@ -909,7 +909,7 @@ to the boiler, the house model, the knowledge figure, free heat) starts from
 zero and fills in over the first days of heating, so **The E32 knows your
 house** starts lower than it will end up; see
 [What the E32 knows](USER-GUIDE.md#what-the-e32-knows-and-what-it-still-lacks).
-The two new sensors **Knowledge** and **Boiler response** read unknown until
+The two new sensors **Known about your house** and **Boiler response** read unknown until
 the E32 runs rc.5 and has reported.
 
 **Coming from 1.0.0-rc.3?** The same order and the same versions (integration

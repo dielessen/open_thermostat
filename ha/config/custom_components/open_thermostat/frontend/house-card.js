@@ -40,7 +40,7 @@ const TEXT = {title: 'Your house', heating: 'Heating', status_heating: 'Heating 
  late: '{m} min late', on_time: 'on time', degree_days: 'Degree-days', target: 'target {t} °C', per_day: '{n} days: {value} a day',
  today_since: 'Today since midnight'};
 // The scoreboard sensors' own names (strings.json entity.sensor.<key>.name), English as the last resort.
-const NAMES = {burner_starts_per_heating_hour: 'Burner starts per heating hour', heating_gas_yesterday: 'Gas for heating (estimate)'};
+const NAMES = {burner_starts_per_heating_hour: 'Burner starts per heating hour (yesterday)', heating_gas_yesterday: 'Heating energy yesterday (estimate)'};
 const DASH = '—';  // a figure not known yet: the same in every language
 const NBSP = '\u00a0';
 // What the boiler does (boiler_activity, heating_link.BOILER_ACTIVITIES): the kind in the strip and the status tone.

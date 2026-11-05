@@ -51,7 +51,7 @@ from .e32_comfort import (DELAY_LIMITS, ComfortError, comfort_options, contact_d
                           save_comfort, validate_contacts, validate_room_persons, with_room_contacts, with_room_persons)
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
-from .room_plan import LATEST_UNTIL, has_room_plan, plan_room, until_datetime
+from .room_plan import LATEST_UNTIL, LINK_ERRORS, has_room_plan, plan_room, until_datetime
 from . import room_away
 
 MAX_ROOMS = 8
@@ -108,7 +108,9 @@ FAILURES = {"room_plan_changed": "e32_plan_changed", "room_plan_too_large": "e32
             "room_plan_storage_full": "e32_storage_full",
             "room_plan_rejected": "e32_rejected", "room_plan_unconfirmed": "e32_unconfirmed",
             "room_plan_unreachable": "e32_unreachable", "room_plan_invalid": "e32_plan_invalid",
-            "room_plan_room_missing": "e32_room_missing", "room_plan_password": "e32_password_changed"}
+            "room_plan_room_missing": "e32_room_missing", "room_plan_password": "e32_password_changed",
+            # room_plan.LINK_ERRORS: the form says the plan could not be reached or read, with the code
+            **dict.fromkeys(LINK_ERRORS.values(), "e32_unreachable")}
 ABORTS = {"e32_unconfirmed", "e32_plan_invalid", "e32_room_missing", "e32_password_changed"}
 
 

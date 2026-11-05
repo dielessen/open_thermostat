@@ -33,7 +33,7 @@ language (English, Dutch or Polish), as the learned overview does; the E32 Home 
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import PERCENTAGE
+from homeassistant.const import PERCENTAGE, EntityCategory
 from homeassistant.core import callback
 
 from .const import DOMAIN
@@ -368,6 +368,7 @@ class KnowledgeSensor(_InsightSensor):
     """How much of what it needs the E32 knows about the house (%), and what it still learns, in words."""
 
     _attr_translation_key = "knowledge"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC  # the Learning view's ring shows it
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 0
@@ -396,6 +397,7 @@ class BoilerResponseSensor(_InsightSensor):
     asks of it near the target."""
 
     _attr_translation_key = "boiler_response"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = BOILER_STATES
     # The heat the house takes now changes all the time; shown, not kept in the history.

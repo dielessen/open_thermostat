@@ -745,6 +745,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     _attr_preset_modes = PRESETS
     _attr_supported_features = (ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
                                 | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF)
+    # A translated sentence that changes with every step and message: shown, not kept in the history.
+    _unrecorded_attributes = frozenset({"smart_warm_up"})
 
     def __init__(self, hub, room, entry):
         self._attach_room(hub, room, "thermostat")
@@ -889,8 +891,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
 
     async def _command(self, command, house=None):
         if self.link is None:
-            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
-                                     translation_placeholders={"error": "no_controller_connection"})
+            from .room_plan import link_error
+            raise link_error("no_controller_connection")
         if house is not None:  # the house mode, with the house changes still on their way (e32_house)
             from .e32_house import async_house_change, house_away
             answer = await async_house_change(self.link, house_away(self.hub), **house)

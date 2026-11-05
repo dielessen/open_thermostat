@@ -132,7 +132,12 @@ async def test_a_second_conflict_raises_a_clear_error_and_saves_nothing(hass):
     (HeatingPlanRejected(400, "active_mode_not_released"), "room_plan_rejected", {"error": "active_mode_not_released"}),
     (HeatingPlanRejected(503, "save_unconfirmed"), "room_plan_unconfirmed", None),
     (HeatingPlanRejected(507, "storage_full"), "room_plan_storage_full", None),
-    (module.ControllerLinkError("controller_unreachable"), "room_plan_unreachable", {"error": "controller_unreachable"}),
+    # 1.0.0rc7: a code that says what to do gets its own sentence; any other stays in the brackets.
+    (module.ControllerLinkError("controller_unreachable"), "e32_not_reached", {"error": "controller_unreachable"}),
+    (module.ControllerLinkError("controller_update_required"), "e32_update_required",
+     {"error": "controller_update_required"}),
+    (module.ControllerLinkError("controller_request_invalid"), "room_plan_unreachable",
+     {"error": "controller_request_invalid"}),
 ])
 @pytest.mark.asyncio
 async def test_refusals_become_clear_errors_without_a_retry(hass, failure, key, placeholders):
@@ -370,10 +375,10 @@ async def test_controller_client_speaks_the_heating_plan_contract():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language,names", [
     ("en", {"sensor": "Woonkamer Temperature", "select": "Woonkamer Heating",
-            "number": "Woonkamer Temperature without Home Assistant",
+            "number": "Woonkamer Temperature without a week program",
             "datetime": "Woonkamer Off until", "binary_sensor": "Woonkamer Heat demand"}),
     ("nl", {"sensor": "Woonkamer Temperatuur", "select": "Woonkamer Verwarmen",
-            "number": "Woonkamer Temperatuur zonder Home Assistant",
+            "number": "Woonkamer Temperatuur zonder weekprogramma",
             "datetime": "Woonkamer Uit tot", "binary_sensor": "Woonkamer Warmtevraag"}),
 ])
 async def test_entities_on_real_platforms_have_translated_names_and_valid_states(hass, monkeypatch, language, names):
@@ -449,3 +454,20 @@ async def test_entities_on_real_platforms_have_translated_names_and_valid_states
 def json_manifest(component):
     import json
     return json.loads((component / "manifest.json").read_text())
+
+
+def test_known_e32_link_codes_have_a_sentence_in_every_language():
+    """R2-19 (1.0.0rc7): "(no_controller_connection)" in a message said nothing to a user."""
+    import json
+    import re
+    from pathlib import Path
+    for code, key in module.LINK_ERRORS.items():
+        error = module.link_error(code)
+        assert (error.translation_domain, error.translation_key, error.translation_placeholders) == (
+            "open_thermostat", key, {"error": code})  # the code for the options forms; the sentence leaves it out
+    assert module.link_error("controller_request_invalid") is None
+    component = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+    for language in ("en", "nl", "pl"):
+        texts = json.loads((component / f"translations/{language}.json").read_text(encoding="utf-8"))["exceptions"]
+        for key in set(module.LINK_ERRORS.values()):
+            assert texts[key]["message"] and not re.search(r"[{}]|controller_", texts[key]["message"]), (language, key)

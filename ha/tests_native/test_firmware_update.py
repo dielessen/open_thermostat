@@ -3,6 +3,7 @@ import hashlib
 from types import SimpleNamespace
 
 import pytest
+from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.open_thermostat import firmware_update as module
 from custom_components.open_thermostat.firmware_update import (
@@ -132,8 +133,9 @@ async def test_a_tampered_download_is_never_uploaded(hass, monkeypatch):
     entity = E32FirmwareUpdate(hass, entry)
     entity.async_write_ha_state = lambda: None
     await entity.async_refresh()
-    with pytest.raises(ValueError, match="SHA-256"):
+    with pytest.raises(HomeAssistantError) as failed:
         await entity.async_install(TAG, False)
+    assert failed.value.translation_key == "firmware_verification_failed"
     assert FakeClient.uploads == [] and not entity.in_progress
 
 
@@ -313,8 +315,11 @@ async def test_a_failed_install_records_where_it_stopped(hass, monkeypatch):
     FakeClient.uploads = []; FakeClient.running = "v0.1.0-e32v2-beta.15"
     entity = _entity(hass, monkeypatch, bytes(tampered))
     await entity.async_refresh()
-    with pytest.raises(ValueError, match="SHA-256"):
+    # 1.0.0rc7: a Home Assistant error in the user's language, never "Unknown error" (a plain ValueError).
+    with pytest.raises(HomeAssistantError) as failed:
         await entity.async_install(TAG, False)
+    assert (failed.value.translation_domain, failed.value.translation_key) == (
+        "open_thermostat", "firmware_verification_failed")
     record = entity.last_install
     assert record["result"] == "verification_failed" and record["uploads"] == 0 and record["reported"] is None
 
@@ -324,8 +329,9 @@ async def test_a_failed_install_records_where_it_stopped(hass, monkeypatch):
     FakeClient.running = "v0.1.0-e32v2-beta.15"
     entity = _entity(hass, monkeypatch, IMAGE, client=Stuck)
     await entity.async_refresh()
-    with pytest.raises(ValueError, match="did not report the new version"):
+    with pytest.raises(HomeAssistantError) as failed:
         await entity.async_install(TAG, False)
+    assert failed.value.translation_key == "firmware_not_confirmed"
     record = entity.last_install
     assert record["result"] == "not_confirmed" and record["uploads"] == 1
     assert record["reported"]["version"] == "v0.1.0-e32v2-beta.15"  # the old firmware stayed (or rolled back)
@@ -335,9 +341,33 @@ async def test_a_failed_install_records_where_it_stopped(hass, monkeypatch):
             raise module.ControllerLinkError("controller_busy_or_conflict")
     entity = _entity(hass, monkeypatch, IMAGE, client=Refused)
     await entity.async_refresh()
-    with pytest.raises(ValueError, match="upload failed"):
+    with pytest.raises(HomeAssistantError) as failed:
         await entity.async_install(TAG, False)
+    assert failed.value.translation_key == "firmware_upload_failed"
+    assert failed.value.translation_placeholders == {"error": "controller_busy_or_conflict"}
     assert entity.last_install["result"] == "upload_failed" and entity.last_install["uploads"] == 0
+    # GitHub down during the download, and a release that is no longer offered.
+    entity = _entity(hass, monkeypatch, IMAGE)
+    await entity.async_refresh()
+
+    def unreachable(url, **_):
+        raise module.aiohttp.ClientConnectionError()
+    monkeypatch.setattr(module, "async_get_clientsession", lambda hass: SimpleNamespace(get=unreachable))
+    with pytest.raises(HomeAssistantError) as failed:
+        await entity.async_install(TAG, False)
+    assert failed.value.translation_key == "firmware_download_failed"
+    assert entity.last_install["result"] == "download_failed"
+    with pytest.raises(HomeAssistantError) as failed:
+        await entity.async_install("v0.1.0-e32v2-beta.99", False)
+    assert failed.value.translation_key == "firmware_release_unknown"
+    # Every key has its text in English, Dutch and Polish, with the same placeholders.
+    import json, re
+    from pathlib import Path
+    component = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+    for language in ("en", "nl", "pl"):
+        texts = json.loads((component / f"translations/{language}.json").read_text(encoding="utf-8"))["exceptions"]
+        for key in (*module.INSTALL_ERRORS.values(), "firmware_release_unknown"):
+            assert re.findall(r"{(\w+)}", texts[key]["message"]) == (["error"] if key == "firmware_upload_failed" else [])
 
 
 @pytest.mark.asyncio
@@ -449,3 +479,18 @@ async def test_a_successful_read_updates_the_version(hass, monkeypatch):
                                         client=IdentityClient)
     await entity.async_refresh()
     assert entity.installed_version == "v0.1.0-e32v2-beta.19" and scheduled == []
+
+
+@pytest.mark.asyncio
+async def test_a_development_build_shows_as_installed_without_an_update(hass, monkeypatch):
+    """R2-20 (1.0.0rc7): a version the release tags do not know is installed, with no update offered (it used to
+    leave the entity unavailable for good); the entity is a firmware update (its icon and chip)."""
+    from homeassistant.components.update import UpdateDeviceClass
+    FakeClient.running = "dev-20261105"
+    entity = _entity(hass, monkeypatch, IMAGE)
+    await entity.async_refresh()
+    assert entity.available and entity.installed_version == "dev-20261105" and entity.latest_version == TAG
+    assert entity.state == "off" and entity.device_class == UpdateDeviceClass.FIRMWARE
+    FakeClient.running = "v0.1.0-e32v2-beta.15"
+    await entity.async_refresh()
+    assert entity.state == "on"  # a release build is offered the newer release again

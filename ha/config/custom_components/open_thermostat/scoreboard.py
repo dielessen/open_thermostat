@@ -6,20 +6,21 @@ The E32 keeps score per local day and sends it in ``fw/telemetry/summary`` as ``
 ``rooms``: ``[{"id", "on_time_min", "overshoot_c"}]``. Every number may be null (not measured);
 firmware before rc.4 sends no scoreboard at all.
 
-Per room, on the room's device: "Warm on time" (minutes after the program's switch time that the
-room was warm; negative: early) and "Overshoot" (how far it got above its target, °C). Per house,
-on the product device: burner starts per heating hour, hours of short cycling, gas for heating and
-gas per degree-day. Each shows yesterday's figure; state class measurement, so the Recorder keeps
-the history of every day. Today's figure so far is an attribute (not recorded: it changes all day).
-An entity appears only once the E32 reported a value for it (yesterday or today), so firmware or a
-house without a figure never gets an "unknown" entity for good.
+Per room, on the room's device: "Warm on time yesterday (minutes late)" (minutes after the program's
+switch time that the room was warm; negative: early) and "Above target yesterday" (how far it got
+above its target, °C). Per house, on the product device: burner starts per heating hour, hours of
+short cycling, heating energy and heating energy per degree-day (kWh/°C·d), each named "yesterday".
+Each shows yesterday's figure; state class measurement, so the Recorder keeps the history of every
+day. Today's figure so far is an attribute (not recorded: it changes all day). An entity appears
+only once the E32 reported a value for yesterday (1.0.0rc7; before: yesterday or today, which left
+it "unknown" all through the first day), so firmware or a house without a figure never gets an
+"unknown" entity. All are diagnostic: the Learning view shows them, the device page keeps them aside.
 """
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import UnitOfEnergy, UnitOfTemperature, UnitOfTime
+from homeassistant.const import EntityCategory, UnitOfEnergy, UnitOfTemperature, UnitOfTime
 
 from .heating_link import HubEntity, RoomEntity, number
 
-DAYS = ("yesterday", "today")
 # Room figure: (scoreboard key, lowest and highest plausible value).
 ROOM_FIGURES = {"warm_on_time": ("on_time_min", -1440, 1440), "overshoot": ("overshoot_c", -10, 10)}
 # House figure: (scoreboard key, lowest and highest plausible value); gas per degree-day is worked out.
@@ -29,6 +30,8 @@ HOUSE_FIGURES = {"burner_starts_per_heating_hour": ("heating_starts_per_h", 0, 6
                  "gas_per_degree_day": None}
 # Below one degree-day (a mild day) gas per degree-day says little and jumps: not shown.
 MIN_DEGREE_DAYS = 1.0
+# Heating energy per degree-day (rc.4-rc.6 said kWh; the statistics follow, native_entity_cleanup).
+PER_DEGREE_DAY_UNIT = "kWh/°C·d"
 
 
 def scoreboard(summary):
@@ -72,6 +75,7 @@ class _Scoreboard:
     """Mixin: the hub's scoreboard while the E32 reports."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     # Today's figure changes all day: shown, not kept in the history (yesterday's figure is the state).
     _unrecorded_attributes = frozenset({"today"})
 
@@ -122,12 +126,23 @@ class ScoreboardHouseSensor(_Scoreboard, HubEntity, SensorEntity):
             self._attr_device_class = SensorDeviceClass.DURATION
             self._attr_native_unit_of_measurement = UnitOfTime.HOURS
             self._attr_suggested_display_precision = 1
-        elif key in ("heating_gas_yesterday", "gas_per_degree_day"):
+        elif key == "heating_gas_yesterday":
             # A day's figure, not a meter: no energy device class (the Energy dashboard has the gas meter).
             self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
-            self._attr_suggested_display_precision = 1 if key == "heating_gas_yesterday" else 2
+            self._attr_suggested_display_precision = 1
+        elif key == "gas_per_degree_day":
+            self._attr_native_unit_of_measurement = PER_DEGREE_DAY_UNIT
+            self._attr_suggested_display_precision = 2
         else:
             self._attr_suggested_display_precision = 1
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        if self.key == "gas_per_degree_day":  # its statistics were labelled kWh before rc7: the same numbers
+            from .native_entity_cleanup import async_tidy_statistics
+            self.hass.async_create_background_task(
+                async_tidy_statistics(self.hass, self.entity_id, unit=PER_DEGREE_DAY_UNIT),
+                "open_thermostat statistics unit")
 
     @property
     def available(self):
@@ -153,15 +168,18 @@ class ScoreboardHouseSensor(_Scoreboard, HubEntity, SensorEntity):
 
 
 def wanted_scoreboard(hub):
-    """(key, factory) of every scoreboard figure the E32 reported a value for (yesterday or today)."""
+    """(key, factory) of every scoreboard figure the E32 reported a value for yesterday (the state).
+
+    Today's figure alone never creates one: it would read "unknown" until midnight (today is an attribute).
+    """
     board = scoreboard(hub.summary) if hub.fresh else None
     if board is None:
         return
-    days = [scoreboard_day(board, which) for which in DAYS]
+    yesterday = scoreboard_day(board, "yesterday")
     for key in HOUSE_FIGURES:
-        if any(house_figure(day, key) is not None for day in days):
+        if house_figure(yesterday, key) is not None:
             yield ("scoreboard", key), lambda key=key: ScoreboardHouseSensor(hub, key)
     for room_id, room in hub.rooms.items():
         for key in ROOM_FIGURES:
-            if any(room_figure(day, room_id, key) is not None for day in days):
+            if room_figure(yesterday, room_id, key) is not None:
                 yield ("room", room_id, key), lambda room=room, key=key: ScoreboardRoomSensor(hub, room, key)

@@ -165,8 +165,11 @@ async def test_controls_appear_once_read_and_write_one_field_through_the_stored_
     (HeatingPlanRejected(400, "invalid_key"), ServiceValidationError, "flow_settings_rejected", {"error": "invalid_key"}),
     (HeatingPlanRejected(503, "save_unconfirmed"), HomeAssistantError, "flow_settings_unconfirmed", None),
     (link_module.ControllerLoginRejected(), HomeAssistantError, "room_plan_password", None),
-    (ControllerLinkError("controller_unreachable"), HomeAssistantError, "flow_settings_unreachable",
+    # 1.0.0rc7: a code that says what to do gets its own sentence; any other stays in the brackets.
+    (ControllerLinkError("controller_unreachable"), HomeAssistantError, "e32_not_reached",
      {"error": "controller_unreachable"}),
+    (ControllerLinkError("controller_request_invalid"), HomeAssistantError, "flow_settings_unreachable",
+     {"error": "controller_request_invalid"}),
 ])
 @pytest.mark.asyncio
 async def test_refusals_become_clear_errors_and_keep_the_stored_value(hass, failure, error_type, key, placeholders):

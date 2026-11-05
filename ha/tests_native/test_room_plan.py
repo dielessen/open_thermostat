@@ -370,10 +370,10 @@ async def test_controller_client_speaks_the_heating_plan_contract():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language,names", [
     ("en", {"sensor": "Woonkamer Temperature", "select": "Woonkamer Heating",
-            "number": "Woonkamer Temperature without Home Assistant",
+            "number": "Woonkamer Temperature without a week program",
             "datetime": "Woonkamer Off until", "binary_sensor": "Woonkamer Heat demand"}),
     ("nl", {"sensor": "Woonkamer Temperatuur", "select": "Woonkamer Verwarmen",
-            "number": "Woonkamer Temperatuur zonder Home Assistant",
+            "number": "Woonkamer Temperatuur zonder weekprogramma",
             "datetime": "Woonkamer Uit tot", "binary_sensor": "Woonkamer Warmtevraag"}),
 ])
 async def test_entities_on_real_platforms_have_translated_names_and_valid_states(hass, monkeypatch, language, names):

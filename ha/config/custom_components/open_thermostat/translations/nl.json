@@ -2648,16 +2648,16 @@
         "name": "Batterij"
       },
       "shadow_e32_heating_time_today": {
-        "name": "Stooktijd vandaag (E32)"
+        "name": "E32-verwarmingstijd vandaag (proefperiode)"
       },
       "shadow_tado_heating_time_today": {
-        "name": "Stooktijd vandaag (thermostaat)"
+        "name": "Thermostaat-verwarmingstijd vandaag (proefperiode)"
       },
       "shadow_e32_starts_today": {
-        "name": "Branderstarts vandaag (E32)"
+        "name": "E32-branderstarts vandaag (proefperiode)"
       },
       "shadow_tado_starts_today": {
-        "name": "Branderstarts vandaag (thermostaat)"
+        "name": "Thermostaat-branderstarts vandaag (proefperiode)"
       },
       "shadow_agreement_today": {
         "name": "Overeenstemming met thermostaat vandaag"
@@ -3275,13 +3275,13 @@
         "name": "Bedrijfstijd ketel"
       },
       "heating_advice": {
-        "name": "CV-advies"
+        "name": "Verwarmingsadvies"
       },
       "learned_overview": {
         "name": "Wat de thermostaat geleerd heeft"
       },
       "knowledge": {
-        "name": "Kennis",
+        "name": "Bekend over je huis",
         "state_attributes": {
           "missing": {
             "name": "Nog te leren"
@@ -3445,7 +3445,7 @@
         "name": "RTC-temperatuur"
       },
       "hub_cpu_temperature": {
-        "name": "ESP32-processortemperatuur"
+        "name": "Temperatuur E32"
       },
       "hub_uptime": {
         "name": "Bedrijfstijd apparaat"

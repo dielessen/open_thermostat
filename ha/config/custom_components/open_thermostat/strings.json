@@ -1446,7 +1446,7 @@
         "name": "Connected"
       },
       "room_valve_problem": {
-        "name": "Valve problem"
+        "name": "Radiator valve problem"
       }
     },
     "number": {
@@ -1611,16 +1611,16 @@
         "name": "Battery"
       },
       "shadow_e32_heating_time_today": {
-        "name": "Heating time today (E32)"
+        "name": "E32 heating time today (trial run)"
       },
       "shadow_tado_heating_time_today": {
-        "name": "Heating time today (thermostat)"
+        "name": "Thermostat heating time today (trial run)"
       },
       "shadow_e32_starts_today": {
-        "name": "Burner starts today (E32)"
+        "name": "E32 burner starts today (trial run)"
       },
       "shadow_tado_starts_today": {
-        "name": "Burner starts today (thermostat)"
+        "name": "Thermostat burner starts today (trial run)"
       },
       "shadow_agreement_today": {
         "name": "Agreement with thermostat today"
@@ -2244,7 +2244,7 @@
         "name": "What the thermostat learned"
       },
       "knowledge": {
-        "name": "Knowledge",
+        "name": "Known about your house",
         "state_attributes": {
           "missing": {
             "name": "Still to learn"
@@ -2408,7 +2408,7 @@
         "name": "RTC temperature"
       },
       "hub_cpu_temperature": {
-        "name": "ESP32 CPU temperature"
+        "name": "E32 temperature"
       },
       "hub_uptime": {
         "name": "Device uptime"
@@ -2489,10 +2489,10 @@
         "name": "Boiler display code"
       },
       "room_valve_position": {
-        "name": "Valve position"
+        "name": "Radiator valve position"
       },
       "room_valve_battery": {
-        "name": "Valve battery"
+        "name": "Radiator valve battery"
       },
       "daily_summary": {
         "name": "Daily summary"
@@ -2677,7 +2677,7 @@
         "name": "Smart warm-up"
       },
       "room_valve_control": {
-        "name": "Valve control"
+        "name": "Radiator valve control"
       }
     },
     "update": {

@@ -1611,16 +1611,16 @@
         "name": "Bateria"
       },
       "shadow_e32_heating_time_today": {
-        "name": "Czas grzania dziś (E32)"
+        "name": "Czas grzania E32 dziś (okres próbny)"
       },
       "shadow_tado_heating_time_today": {
-        "name": "Czas grzania dziś (termostat)"
+        "name": "Czas grzania termostatu dziś (okres próbny)"
       },
       "shadow_e32_starts_today": {
-        "name": "Starty palnika dziś (E32)"
+        "name": "Starty palnika E32 dziś (okres próbny)"
       },
       "shadow_tado_starts_today": {
-        "name": "Starty palnika dziś (termostat)"
+        "name": "Starty palnika termostatu dziś (okres próbny)"
       },
       "shadow_agreement_today": {
         "name": "Zgodność z termostatem dziś"
@@ -1948,7 +1948,7 @@
         "name": "Temperatura startu pompy"
       },
       "field_dhw_hysteresis_on": {
-        "name": "Margines włączenia c.w.u. (histereza)"
+        "name": "Margines włączenia ciepłej wody (histereza)"
       },
       "field_dhw_charge_optimisation_enabled": {
         "name": "Optymalizacja ładowania ciepłej wody",
@@ -1958,7 +1958,7 @@
         }
       },
       "field_dhw_flow_temperature_offset": {
-        "name": "Dodatkowa temperatura wody dla c.w.u."
+        "name": "Dodatkowa temperatura wody dla ciepłej wody"
       },
       "field_dhw_circulation_enabled": {
         "name": "Cyrkulacja włączona",
@@ -2244,7 +2244,7 @@
         "name": "Czego nauczył się termostat"
       },
       "knowledge": {
-        "name": "Wiedza",
+        "name": "Znane o domu",
         "state_attributes": {
           "missing": {
             "name": "Jeszcze do nauczenia"
@@ -2408,7 +2408,7 @@
         "name": "Temperatura RTC"
       },
       "hub_cpu_temperature": {
-        "name": "Temperatura procesora ESP32"
+        "name": "Temperatura E32"
       },
       "hub_uptime": {
         "name": "Czas pracy urządzenia"

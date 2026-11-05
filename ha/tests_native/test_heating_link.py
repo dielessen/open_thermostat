@@ -403,11 +403,14 @@ def test_shadow_sensor_names_are_translated():
     for name in ("strings.json", "translations/nl.json"):
         sensor = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]["sensor"]
         names[name] = [sensor["shadow_" + key]["name"] for key in SHADOW_SENSORS]
-    assert names["strings.json"] == ["Heating time today (E32)", "Heating time today (thermostat)",
-                                     "Burner starts today (E32)", "Burner starts today (thermostat)",
+    # 1.0.0rc7: who counted first, the trial run last (glossary: Proefperiode), never mixed up with the totals.
+    assert names["strings.json"] == ["E32 heating time today (trial run)", "Thermostat heating time today (trial run)",
+                                     "E32 burner starts today (trial run)", "Thermostat burner starts today (trial run)",
                                      "Agreement with thermostat today"]
-    assert names["translations/nl.json"] == ["Stooktijd vandaag (E32)", "Stooktijd vandaag (thermostaat)",
-                                             "Branderstarts vandaag (E32)", "Branderstarts vandaag (thermostaat)",
+    assert names["translations/nl.json"] == ["E32-verwarmingstijd vandaag (proefperiode)",
+                                             "Thermostaat-verwarmingstijd vandaag (proefperiode)",
+                                             "E32-branderstarts vandaag (proefperiode)",
+                                             "Thermostaat-branderstarts vandaag (proefperiode)",
                                              "Overeenstemming met thermostaat vandaag"]
 
 

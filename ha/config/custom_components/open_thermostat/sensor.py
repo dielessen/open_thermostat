@@ -39,7 +39,7 @@ HUB_METRICS = {
         "memory_min_free": ("mem_min_free", SensorDeviceClass.DATA_SIZE, UnitOfInformation.KILOBYTES, SensorStateClass.MEASUREMENT, "Minimum free memory"),
         "memory_max_alloc": ("mem_max_alloc", SensorDeviceClass.DATA_SIZE, UnitOfInformation.KILOBYTES, SensorStateClass.MEASUREMENT, "Maximum allocable memory"),
         "rtc_temperature": ("temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "RTC temperature"),
-        "cpu_temperature": ("cpu_temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "ESP32 CPU temperature"),
+        "cpu_temperature": ("cpu_temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "E32 temperature"),
         "uptime": ("uptime", SensorDeviceClass.DURATION, UnitOfTime.HOURS, SensorStateClass.TOTAL_INCREASING, "Device uptime"),
     },
     "ems_metrics": {

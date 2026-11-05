@@ -491,6 +491,10 @@ async def test_today_says_what_weather_compensation_asks_and_which_line(hass, cl
                       "learned line follows after 6 steady periods, 5 of 6 so far).")
     curve(hass, flow["curve"], source="learned", windows=7)
     assert last() == "Outdoor 9.2 °C: weather compensation asks for 30 °C water, line learned for your house."
+    # Six or more without the learned line (a moment's race in one summary): never "6 of 6 so far".
+    curve(hass, flow["curve"], windows=6)
+    assert last() == ("Outdoor 9.2 °C: weather compensation asks for 30 °C water, standard line (the learned line follows "
+                      "after 6 steady periods).")
     # Switched off, it only says what it would ask; no outdoor temperature known: what it asks, from a capital.
     curve(hass, flow["curve"], state="advice")
     assert last() == "Outdoor 9.2 °C: weather compensation is off; it would ask for 30 °C water."

@@ -845,8 +845,8 @@ def curve_status(curve, on, lang):
     # E32 rc.5: until 6 steady periods, the slope the house model works out (HouseModel), else the standard one.
     key = "curve_status_house" if curve.get("slope_source") == "house" else "curve_status_learning"
     windows = curve.get("windows")
-    if type(windows) is int and windows >= 0:
-        return t[key].format(n=min(windows, CURVE_STEPS), m=CURVE_STEPS), t["curve_status_mean"]
+    if type(windows) is int and 0 <= windows < CURVE_STEPS:  # never "6 of 6" while it does not use the learned line
+        return t[key].format(n=windows, m=CURVE_STEPS), t["curve_status_mean"]
     return t[key + "_plain"], t["curve_status_mean"]
 
 

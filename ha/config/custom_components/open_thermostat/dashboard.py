@@ -297,6 +297,7 @@ TEXT = {
         "house_mode": "House mode", "boiler_now": "Boiler",
         # rc.4: the next holiday under House (house.holidays.v1).
         "holiday_next": "Holiday from {from} to {until}", "holiday_now": "On holiday until {until}",
+        "holiday_day": "Holiday on {from}",
         "months": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
         "learned_latest": "Latest change",
         "compare_link": "E32 compared with your thermostat",
@@ -519,6 +520,7 @@ TEXT = {
         "apply_learned": "Slim opwarmen",
         "house_mode": "Huismodus", "boiler_now": "Ketel",
         "holiday_next": "Vakantie vanaf {from} t/m {until}", "holiday_now": "Op vakantie t/m {until}",
+        "holiday_day": "Vakantie op {from}",
         "months": "jan,feb,mrt,apr,mei,jun,jul,aug,sep,okt,nov,dec",
         "learned_latest": "Laatste aanpassing",
         "compare_link": "E32 vergeleken met je thermostaat",
@@ -740,6 +742,7 @@ TEXT = {
         "apply_learned": "Inteligentne nagrzewanie",
         "house_mode": "Tryb domu", "boiler_now": "Kocioł",
         "holiday_next": "Urlop od {from} do {until}", "holiday_now": "Urlop do {until}",
+        "holiday_day": "Urlop {from}",
         "months": "sty,lut,mar,kwi,maj,cze,lip,sie,wrz,paź,lis,gru",
         "learned_latest": "Ostatnia zmiana",
         "compare_link": "E32 w porównaniu z Twoim termostatem",
@@ -1252,7 +1255,8 @@ def _summary_lines(t, summary, gas_unit, scoreboard_gas=None):
         + "{% if d.outdoor.min == d.outdoor.max %}" + fill(t["day_outdoor_one"], low=number("d.outdoor.min"))
         + "{% else %}" + fill(t["day_outdoor"], low=number("d.outdoor.min"), high=number("d.outdoor.max"))
         + "{% endif %}"
-        + "{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}"
+        + "{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none"
+        " and (r.time_to_target_minutes | round | int) > 0 %}"
         # Whole minutes ("25 min", not "25.0 min": the summary keeps the median as a float).
         + fill(t["day_room"], room="r.name", h=number("r.heat_hours"), ttt="r.time_to_target_minutes | round | int",
                missed="r.missed_minutes")
@@ -1507,6 +1511,7 @@ def _holiday_card(t, select):
         + ".split(',') %}"
         "{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}"
         "{% if f <= now() %}" + t["holiday_now"].replace("{until}", day("u"))
+        + "{% elif f.date() == u.date() %}" + t["holiday_day"].replace("{from}", day("f"))
         + "{% else %}" + t["holiday_next"].replace("{from}", day("f")).replace("{until}", day("u"))
         + "{% endif %}{% endif %}")}
 
@@ -1679,7 +1684,7 @@ def _weather_line(t, curve, request=None):
     lines = json.dumps({"design": t["line_standard"], "house": t["line_house"], "learned": t["line_learned"]},
                        ensure_ascii=False)
     follows = ("(" + _jinja_text(t["line_follows_n"], m=steps, n="[n, " + steps + "] | min") + ")"
-               " if n is number and n > 0 else (" + _jinja_text(t["line_follows"], m=steps) + ")")
+               " if n is number and 0 < n < " + steps + " else (" + _jinja_text(t["line_follows"], m=steps) + ")")
     corrected = ("(" + _jinja_text(t["correction_up"], base="lb", extra="f - lb") + ") if f > lb and (lo is not number"
                  " or f > lo) and (hi is not number or f < hi) else (" + _jinja_text(t["line_gives"], base="lb") + ")")
     idle = ("not (states(" + json.dumps(request) + ") | float(0) > 0)") if request else "false"

@@ -718,3 +718,11 @@ def test_a_room_that_hardly_cools_has_no_cooling_line():
     assert not any(text.startswith("Loses") for text in texts(0.0001))
     assert not any(text.startswith("Loses") for text in texts(-0.01))
     assert "Loses about 0.3 °C per hour at 5 °C outside." in texts(0.02)
+
+
+def test_six_steady_periods_never_read_as_six_of_six():
+    """A2's leftovers: the learned line follows from 6 steady periods; a count of 6 or more without it (a moment's
+    race in one summary) says the plain sentence, never "6 of 6"."""
+    curve = {"state": "applied", "slope_source": "design", "windows": 6}
+    assert lo.curve_status(curve, True, "en")[0] == "Weather compensation: standard for now, learning from your house."
+    assert lo.curve_status({**curve, "windows": 5}, True, "en")[0].endswith("(5 of 6 steady periods).")

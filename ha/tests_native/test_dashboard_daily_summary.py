@@ -88,6 +88,11 @@ async def test_yesterday_in_figures_renders_the_summary_as_list_lines(hass):
     hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "complete": False, "rooms": []}})
     assert Template(card["content"], hass).async_render(parse_result=False).endswith(
         "\n\n_Partial day: the E32 was not heard all day, so the figures are incomplete._")
+    # rc7 (A2's leftovers): a room that was warm already has no "warm after 0 min on average".
+    warm = {**day, "rooms": [{**day["rooms"][0], "time_to_target_minutes": 0.2}]}
+    hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": warm})
+    assert Template(card["content"], hass).async_render(parse_result=False).endswith(
+        "- Woonkamer: asked for heat 6.0 h; missed comfort 0 min.")
     # rc7 (R1-23): one start is "1 start"; no short run, no "(0 shorter than 10 minutes)"; no start at all says so.
     hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "burner_starts": 1, "short_runs": 0}})
     assert Template(card["content"], hass).async_render(parse_result=False).startswith(

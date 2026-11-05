@@ -189,9 +189,8 @@ TEXT = {
         "valve_position": "Valves open",
         "mode": "Mode", "off_until": "Off until", "without_ha": "Temperature without Home Assistant",
         "compare": "E32 and thermostat", "e32_request": "Boiler request E32",
-        "thermostat_request": "Thermostat request", "heating_time_e32": "Heating time E32",
-        "heating_time_thermostat": "Heating time thermostat", "starts_e32": "Starts E32",
-        "starts_thermostat": "Starts thermostat", "heating_per_day": "Heating time per day",
+        "thermostat_request": "Thermostat request", "compare_heating_time": "Heating time today",
+        "compare_starts": "Burner starts today", "heating_per_day": "Heating time per day",
         "boiler": "Boiler", "bluetooth": "Bluetooth sensors", "temperature": "Temperature",
         "humidity": "Humidity", "battery": "Battery",
         "shadow": "Trial run: the E32 calculates along but does not control the boiler yet; your current "
@@ -375,9 +374,8 @@ TEXT = {
         "target": "Gewenste temperatuur", "mode": "Stand", "off_until": "Uit tot",
         "without_ha": "Temperatuur zonder Home Assistant",
         "compare": "E32 en thermostaat vergeleken", "e32_request": "Ketelvraag E32",
-        "thermostat_request": "Vraag thermostaat", "heating_time_e32": "Stooktijd E32",
-        "heating_time_thermostat": "Stooktijd thermostaat", "starts_e32": "Starts E32",
-        "starts_thermostat": "Starts thermostaat", "heating_per_day": "Stooktijd per dag",
+        "thermostat_request": "Vraag thermostaat", "compare_heating_time": "Stooktijd vandaag",
+        "compare_starts": "Branderstarts vandaag", "heating_per_day": "Stooktijd per dag",
         "boiler": "Ketel", "bluetooth": "Bluetooth-sensoren", "temperature": "Temperatuur",
         "humidity": "Luchtvochtigheid", "battery": "Batterij",
         "shadow": "Proefperiode: de E32 rekent mee maar stuurt de ketel nog niet; je huidige thermostaat of de "
@@ -562,9 +560,8 @@ TEXT = {
         "valve_position": "Otwarcie zaworów",
         "mode": "Tryb", "off_until": "Wyłączone do", "without_ha": "Temperatura bez Home Assistant",
         "compare": "E32 i termostat", "e32_request": "Żądanie do kotła E32",
-        "thermostat_request": "Żądanie termostatu", "heating_time_e32": "Czas grzania E32",
-        "heating_time_thermostat": "Czas grzania termostatu", "starts_e32": "Starty E32",
-        "starts_thermostat": "Starty termostatu", "heating_per_day": "Czas grzania na dzień",
+        "thermostat_request": "Żądanie termostatu", "compare_heating_time": "Czas grzania dziś",
+        "compare_starts": "Starty palnika dziś", "heating_per_day": "Czas grzania na dzień",
         "boiler": "Kocioł", "bluetooth": "Czujniki Bluetooth", "temperature": "Temperatura",
         "humidity": "Wilgotność", "battery": "Bateria",
         "shadow": "Okres próbny: E32 liczy równolegle, ale jeszcze nie steruje kotłem; decyduje nadal Twój "
@@ -1563,6 +1560,12 @@ def _full(card):
     return card
 
 
+def _compared(t, what, icon, e32, thermostat):
+    """The Comparison subview's pair: a line with what is counted, then the E32's and the thermostat's figure."""
+    tiles = [tile for tile in (_tile(e32, t["e32"], icon), _tile(thermostat, t["thermostat"], icon)) if tile]
+    return [_heading(what, style="subtitle"), *tiles] if tiles else []
+
+
 def _pair(first, second, rows=None):
     """Two half-width cards that appear together on one condition, while the first has a value, side by side in one
     row; one alone takes the whole width (dashboard-spec §1). ``rows``: their height in grid rows, set on both so the
@@ -2236,10 +2239,12 @@ class RoomDashboard:
                 _heading(t["compare"], "mdi:compare-horizontal"),
                 # The whole width, so the E32 and thermostat tiles below stand side by side in pairs.
                 _wide(_tile(agreement, t["agreement"], "mdi:compare-horizontal", color="teal")),
-                _tile(hub.get("shadow_e32_heating_time_today"), t["heating_time_e32"], "mdi:timer-outline"),
-                _tile(hub.get("shadow_tado_heating_time_today"), t["heating_time_thermostat"], "mdi:timer-outline"),
-                _tile(hub.get("shadow_e32_starts_today"), t["starts_e32"], "mdi:counter"),
-                _tile(hub.get("shadow_tado_starts_today"), t["starts_thermostat"], "mdi:counter"),
+                # Each pair under a line that says what it counts, so a half tile at 390 px needs only "E32" or
+                # "Thermostat" ("Heating time thermostat" was cut there in every language).
+                *_compared(t, t["compare_heating_time"], "mdi:timer-outline",
+                           hub.get("shadow_e32_heating_time_today"), hub.get("shadow_tado_heating_time_today")),
+                *_compared(t, t["compare_starts"], "mdi:counter",
+                           hub.get("shadow_e32_starts_today"), hub.get("shadow_tado_starts_today")),
                 {"type": "history-graph", "hours_to_show": 24, "entities": compare_entities}
                 if compare_entities else None,
             )

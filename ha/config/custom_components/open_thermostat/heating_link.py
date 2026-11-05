@@ -1330,11 +1330,58 @@ class RoomEntity(HubEntity):
 
     def _attach_room(self, hub, room, key):
         self.room_id = room["id"]
-        # No suggested area: Home Assistant puts the area name in front of new
-        # entity IDs (sensor.living_room_living_room_temperature); the user picks it.
+        # No suggested area in the device info: room_groups suggests the existing area
+        # named like the room, and async_prepare_to_add_to_hass keeps that area's name
+        # out of the new entity IDs.
         device = _own_device(room_device_identifier(hub.prefix, self.room_id), room)
         self._attach(hub, f"e32_room_{self.room_id}_{key}", device)
         self._attr_translation_key = f"room_{key}"
+
+    async def async_prepare_to_add_to_hass(self):
+        """A new entity's ID says the room once.
+
+        Home Assistant 2026.10 puts the device's area in front of a new entity ID.
+        room_groups gives a new room device the existing area named like the room
+        (a Dutch onboarding creates Woonkamer, Keuken, Slaapkamer), so the ID would
+        say it twice: sensor.woonkamer_woonkamer_reden, climate.slaapkamer_slaapkamer.
+        While the device has no area or one with its own name, the entity suggests
+        the room name and its own name instead (sensor.woonkamer_reden), which is
+        also the ID it gets without an area. Home Assistant's own ID otherwise: an
+        entity already registered keeps its ID (the suggestion is not used then), a
+        room in an area of another name gets the area in front, and so does every
+        room when the user set an entity ID format of their own.
+        """
+        await super().async_prepare_to_add_to_hass()
+        try:
+            object_id = self._room_object_id()
+        except Exception:  # an entity ID suggestion only: never stop the entity from being added
+            _LOGGER.debug("No entity ID suggested for %s", self.unique_id, exc_info=True)
+            return
+        if object_id:
+            self.entity_id = f"{self.platform.domain}.{object_id}"
+
+    def _room_object_id(self):
+        from homeassistant.helpers import area_registry as ar, entity_registry as er
+        from homeassistant.util import slugify
+        platform = self.platform
+        entry = getattr(platform, "config_entry", None)
+        entities = er.async_get(self.hass)
+        if (entry is None or self.entity_id is not None
+                or entities.async_get_entity_id(platform.domain, platform.platform_name, self.unique_id)
+                or getattr(getattr(entities, "settings", None), "entity_id_parts", None) is not None):
+            return None
+        info = self.device_info or {}
+        device = dr.async_get(self.hass).async_get_device_by_identifier(
+            next(iter(info.get("identifiers") or ())), entry.entry_id)
+        device_name = (device.name_by_user or device.name) if device is not None else info.get("name")
+        if not device_name:
+            return None
+        if device is not None and device.area_id is not None:
+            area = ar.async_get(self.hass).async_get_area(device.area_id)
+            if area is not None and slugify(area.name) != slugify(device_name):
+                return None  # the user's own area: Home Assistant's area + room + name
+        object_id = slugify(" ".join(part for part in (device_name, self.suggested_object_id) if part))
+        return object_id or None
 
     def _named_item(self):
         return self.room

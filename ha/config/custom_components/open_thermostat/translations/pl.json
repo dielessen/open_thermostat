@@ -1238,7 +1238,7 @@
       "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
       "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
       "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
-      "controller_room_plan_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
+      "controller_room_plan_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (aktualizacja „Oprogramowanie układowe” urządzenia E32 w Ustawienia → Aktualizacje w Home Assistant albo System → Firmware update na stronie E32), a potem spróbuj ponownie. Nic nie zostało zmienione.",
       "controller_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
       "controller_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
       "controller_readback_unconfirmed": "E32 nie odesłał swoich bieżących ustawień pomieszczeń w ciągu 90 sekund, więc ten zapis nie jest potwierdzony. Sprawdź, czy E32 jest online i połączony z brokerem MQTT, a potem spróbuj ponownie.",
@@ -4264,6 +4264,21 @@
     },
     "house_holiday_too_many": {
       "message": "Można zaplanować najwyżej 8 urlopów. Najpierw usuń jeden."
+    },
+    "firmware_download_failed": {
+      "message": "Nie udało się pobrać oprogramowania z GitHub. Sprawdź połączenie Home Assistant z internetem i spróbuj ponownie."
+    },
+    "firmware_verification_failed": {
+      "message": "Pobrane oprogramowanie nie zgadza się z wydaniem (suma kontrolna). Nic nie zostało zainstalowane."
+    },
+    "firmware_upload_failed": {
+      "message": "E32 nie przyjął oprogramowania ({error}). Sprawdź, czy otwiera się jego strona, i spróbuj ponownie."
+    },
+    "firmware_not_confirmed": {
+      "message": "E32 nie zgłosił nowej wersji w ciągu 3 minut. Sprawdź jego stronę; może się jeszcze uruchamiać."
+    },
+    "firmware_release_unknown": {
+      "message": "To wydanie nie jest już oferowane. Sprawdź aktualizacje ponownie."
     }
   },
   "device": {

@@ -2275,7 +2275,7 @@
       "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
       "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
       "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw.",
-      "controller_room_plan_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
+      "controller_room_plan_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (de Firmware-update van de E32 onder Instellingen → Updates in Home Assistant, of Systeem → Firmware bijwerken op de webpagina van de E32) en probeer het daarna opnieuw. Er is niets gewijzigd.",
       "controller_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
       "controller_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw.",
       "controller_readback_unconfirmed": "De E32 heeft zijn huidige ruimte-instellingen niet binnen 90 seconden teruggestuurd, dus deze opslag is niet bevestigd. Controleer of de E32 online is en met de MQTT-broker verbonden is, en probeer het daarna opnieuw.",
@@ -4264,6 +4264,21 @@
     },
     "house_holiday_too_many": {
       "message": "Er kunnen hoogstens 8 vakanties gepland worden. Verwijder er eerst een."
+    },
+    "firmware_download_failed": {
+      "message": "De firmware kon niet van GitHub worden gedownload. Controleer de internetverbinding van Home Assistant en probeer het opnieuw."
+    },
+    "firmware_verification_failed": {
+      "message": "De gedownloade firmware hoort niet bij deze release (controlesom). Er is niets geïnstalleerd."
+    },
+    "firmware_upload_failed": {
+      "message": "De E32 nam de firmware niet aan ({error}). Controleer of de webpagina opent en probeer het opnieuw."
+    },
+    "firmware_not_confirmed": {
+      "message": "De E32 meldde de nieuwe versie niet binnen 3 minuten. Kijk op de webpagina; hij kan nog aan het herstarten zijn."
+    },
+    "firmware_release_unknown": {
+      "message": "Deze release wordt niet meer aangeboden. Zoek opnieuw naar updates."
     }
   },
   "device": {

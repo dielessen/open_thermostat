@@ -1238,7 +1238,7 @@
       "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
       "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
       "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
-      "controller_room_plan_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
+      "controller_room_plan_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (the E32's Firmware update under Settings → Updates in Home Assistant, or System → Firmware update on the E32's web page), then try again. Nothing has been changed.",
       "controller_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
       "controller_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
       "controller_readback_unconfirmed": "The E32 did not send back its current room settings within 90 seconds, so this save is not confirmed. Check that the E32 is online and connected to the MQTT broker, then try again.",
@@ -4264,6 +4264,21 @@
     },
     "house_holiday_too_many": {
       "message": "At most 8 holidays can be planned. Remove one first."
+    },
+    "firmware_download_failed": {
+      "message": "The firmware could not be downloaded from GitHub. Check the internet connection of Home Assistant and try again."
+    },
+    "firmware_verification_failed": {
+      "message": "The downloaded firmware did not match the release (checksum). Nothing was installed."
+    },
+    "firmware_upload_failed": {
+      "message": "The E32 did not take the firmware ({error}). Check that its web page opens, then try again."
+    },
+    "firmware_not_confirmed": {
+      "message": "The E32 did not report the new version within 3 minutes. Check its web page; it may still be restarting."
+    },
+    "firmware_release_unknown": {
+      "message": "This release is no longer offered. Check for updates again."
     }
   },
   "device": {

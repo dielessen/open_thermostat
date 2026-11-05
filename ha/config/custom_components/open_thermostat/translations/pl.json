@@ -2575,7 +2575,7 @@
         "name": "Krótkie cykle palnika (godz.)"
       },
       "heating_gas_yesterday": {
-        "name": "Gaz na ogrzewanie (szacunek kotła)"
+        "name": "Gaz na ogrzewanie (szacunek)"
       },
       "gas_per_degree_day": {
         "name": "Gaz na stopniodzień"

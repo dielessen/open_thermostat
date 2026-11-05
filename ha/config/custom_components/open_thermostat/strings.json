@@ -2575,7 +2575,7 @@
         "name": "Short burner runs (h)"
       },
       "heating_gas_yesterday": {
-        "name": "Gas for heating (boiler's estimate)"
+        "name": "Gas for heating (estimate)"
       },
       "gas_per_degree_day": {
         "name": "Gas per degree-day"

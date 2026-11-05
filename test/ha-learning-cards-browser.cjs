@@ -42,7 +42,7 @@ const states=lang=>({'sensor.curve':curve(),'sensor.curve_standard':curve(STANDA
  'sensor.curve_design':curve({...STANDARD,standard_slope:null,design_flow_c:null}),
  'sensor.curve_rc4':curve({base_c:undefined}),
  'sensor.curve_waiting':{state:'unknown',attributes:{}},'sensor.knowledge':{state:'70',attributes:{missing:MISSING[lang],more:2}},
- 'sensor.knowledge_full':{state:'100',attributes:{missing:[],more:0}},'sensor.knowledge_unknown':{state:'unknown',attributes:{}}});
+ 'sensor.knowledge_full':{state:'100',attributes:{missing:[],more:0}},'sensor.knowledge_short':{state:'96',attributes:{missing:[],more:0}},'sensor.knowledge_unknown':{state:'unknown',attributes:{}}});
 const WORDS={
  en:{title:'Water temperature by outdoor temperature',legend:['Standard','Learned for your house','Now'],now:['6.5 °C outside → 34 °C','E32 asks 35 °C'],
   house:'Estimated from your house',frost:['At −10 °C with 21 °C inside: 49 °C','8 °C cooler than standard'],
@@ -50,21 +50,21 @@ const WORDS={
   off:'Weather compensation is off; the lines show what it would ask.',waiting:'The E32 has not reported its weather compensation yet.',
   tip:['At 6.5 °C outside','34 °C','Learned for your house','38 °C','Standard'],next:'At 7.5 °C outside',values:'Show the values',
   ring:'The E32 knows your house: 70 %',knows:'The E32 knows your house',more:'And 2 more.',missing:'Still to learn',
-  done:'It has learned everything it needs; it keeps checking as the seasons change.',unknown:'The E32 has not reported what it knows yet.'},
+  hint:'It learns by itself while the heating runs.',done:'It has learned everything it needs; it keeps checking as the seasons change.',unknown:'The E32 has not reported what it knows yet.'},
  nl:{title:'Watertemperatuur bij buitentemperatuur',legend:['Standaard','Geleerd voor je huis','Nu'],now:['6,5 °C buiten → 34 °C','E32 vraagt 35 °C'],
   house:'Geschat uit je huis',frost:['Bij −10 °C en 21 °C binnen: 49 °C','8 °C koeler dan standaard'],
   standardFrost:'Bij −10 °C en 21 °C binnen: 57 °C',caption:/^Hoe kouder het buiten is, hoe warmer het water\./,
   off:'De weerafhankelijke regeling staat uit; de lijnen tonen wat hij zou vragen.',waiting:'De E32 heeft zijn weerafhankelijke regeling nog niet gemeld.',
   tip:['Bij 6,5 °C buiten','34 °C','Geleerd voor je huis','38 °C','Standaard'],next:'Bij 7,5 °C buiten',values:'Toon de waarden',
   ring:'De E32 kent je huis: 70 %',knows:'De E32 kent je huis',more:'En nog 2.',missing:'Nog te leren',
-  done:'Hij heeft alles geleerd wat hij nodig heeft; hij blijft het controleren als de seizoenen wisselen.',unknown:'De E32 heeft nog niet gemeld wat hij weet.'},
+  hint:'Hij leert vanzelf terwijl de verwarming draait.',done:'Hij heeft alles geleerd wat hij nodig heeft; hij blijft het controleren als de seizoenen wisselen.',unknown:'De E32 heeft nog niet gemeld wat hij weet.'},
  pl:{title:'Temperatura wody a temperatura zewnętrzna',legend:['Standardowa','Wyuczona dla Twojego domu','Teraz'],now:['6,5 °C na zewnątrz → 34 °C','E32 zadaje 35 °C'],
   house:'Oszacowana na podstawie Twojego domu',frost:['Przy −10 °C i 21 °C wewnątrz: 49 °C','o 8 °C chłodniej niż standardowo'],
   standardFrost:'Przy −10 °C i 21 °C wewnątrz: 57 °C',caption:/^Im zimniej na zewnątrz, tym cieplejsza woda\./,
   off:'Kompensacja pogodowa jest wyłączona; linie pokazują, czego by żądała.',waiting:'E32 jeszcze nie przekazał danych kompensacji pogodowej.',
   tip:['Przy 6,5 °C na zewnątrz','34 °C','Wyuczona dla Twojego domu','38 °C','Standardowa'],next:'Przy 7,5 °C na zewnątrz',values:'Pokaż wartości',
   ring:'E32 zna Twój dom w 70 %',knows:'E32 zna Twój dom',more:'I jeszcze 2.',missing:'Jeszcze do nauczenia',
-  done:'Nauczył się wszystkiego, czego potrzebuje; sprawdza to dalej wraz ze zmianą pór roku.',unknown:'E32 jeszcze nie przekazał, co wie.'}};
+  hint:'Uczy się sam, gdy ogrzewanie pracuje.',done:'Nauczył się wszystkiego, czego potrzebuje; sprawdza to dalej wraz ze zmianą pór roku.',unknown:'E32 jeszcze nie przekazał, co wie.'}};
 // The rows of the table view: outdoor every 5 °C, the standard and the learned line within the plan's 28..60 °C
 // (the standard line would ask 63 °C at −15 °C: the plan's highest water temperature holds it at 60).
 const TABLE=[[-15,60,53],[-10,57,49],[-5,51,44],[0,46,40],[5,40,35],[10,34,31],[15,28,28],[20,28,28]];
@@ -85,7 +85,7 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
   await page.evaluate(({states,lang,dict,dark})=>{
    const localize=(key,values={})=>(dict[key]||'').replace(/\{(\w+)\}/g,(all,k)=>k in values?values[k]:all);
    window.hass={language:lang,locale:{language:lang},themes:{darkMode:dark},states,localize};
-   for(const [id,type] of [['sensor.knowledge','knowledge'],['sensor.knowledge_full','knowledge'],['sensor.knowledge_unknown','knowledge'],
+   for(const [id,type] of [['sensor.knowledge','knowledge'],['sensor.knowledge_full','knowledge'],['sensor.knowledge_short','knowledge'],['sensor.knowledge_unknown','knowledge'],
     ['sensor.curve','heating-curve'],['sensor.curve_standard','heating-curve'],['sensor.curve_off','heating-curve'],['sensor.curve_waiting','heating-curve'],
     ['sensor.gone','heating-curve'],['sensor.curve_cold','heating-curve'],['sensor.curve_steep','heating-curve'],['sensor.curve_house','heating-curve'],
     ['sensor.curve_f','heating-curve'],['sensor.curve_design','heating-curve'],['sensor.curve_rc4','heating-curve']]){
@@ -190,6 +190,11 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
   const arc=await ring.locator('.fill').evaluate(c=>c.getAttribute('stroke-dasharray').split(' ').map(Number));
   assert(Math.abs(arc[0]/arc[1]-0.7)<0.001,'the ring is filled 70 %');
   assert.equal(await card('knowledge_full').locator('.done').innerText(),words.done);assert.equal(await card('knowledge_full').locator('li').count(),0);
+  // Learning never ends: the line under the ring keeps saying it learns while the heating runs, and "learned everything"
+  // only at 100 % (a figure short of it with nothing listed says neither that nor an empty list).
+  assert.equal(await card('knowledge_full').locator('p.muted').innerText(),words.hint);
+  assert.equal(await card('knowledge_short').locator('p.muted').innerText(),words.hint);
+  assert.equal(await card('knowledge_short').locator('.done').count(),0);assert.equal(await card('knowledge_short').locator('ul').count(),0);
   assert.equal(await card('knowledge_unknown').locator('p').innerText(),words.unknown);assert.equal(await card('knowledge_unknown').locator('svg').count(),0);
   // An unrelated change in the house does not redraw; a new state does.
   await page.evaluate(()=>{window.kept=document.querySelector('[data-id=curve]').shadowRoot.querySelector('svg');

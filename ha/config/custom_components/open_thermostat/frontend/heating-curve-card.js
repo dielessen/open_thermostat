@@ -383,7 +383,9 @@ class OpenThermostatKnowledge extends OpenThermostatCard {
   if (pct === null) return;
   const missing = Array.isArray(a.missing) ? a.missing.filter(s => typeof s === 'string' && s) : [];
   const more = Number.isInteger(a.more) && a.more > 0 ? a.more : 0;
-  if (!missing.length && !more) { card.append(make('p', {class: 'done'}, t('done'))); return; }
+  // Nothing missing: it has learned everything and keeps checking as the seasons change (as the E32 page says);
+  // only at 100 % (the E32 rounds down, so anything short of it still has something to learn).
+  if (!missing.length && !more) { if (share === 100) card.append(make('p', {class: 'done'}, t('done'))); return; }
   const list = make('ul');
   for (const sentence of missing) list.append(make('li', {}, sentence));
   if (more) list.append(make('li', {class: 'more'}, t('more', {n: this.number(more)})));

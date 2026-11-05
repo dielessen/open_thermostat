@@ -239,7 +239,7 @@ def test_todays_figures_have_names_a_phone_shows_in_full():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language,lines,names", [
     ("en", ["Heating time today", "Burner starts today"], ["E32", "Thermostat"]),
-    ("nl", ["Stooktijd vandaag", "Branderstarts vandaag"], ["E32", "Thermostaat"]),
+    ("nl", ["Verwarmingstijd vandaag", "Branderstarts vandaag"], ["E32", "Thermostaat"]),
     ("pl", ["Czas grzania dziś", "Starty palnika dziś"], ["E32", "Termostat"])])
 async def test_the_comparison_tiles_have_names_a_phone_shows_in_full(hass, language, lines, names):
     """The trial run's Comparison subview (P21): its half-width tiles cut "Heating time thermostat", "Stooktijd

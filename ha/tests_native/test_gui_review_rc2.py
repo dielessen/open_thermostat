@@ -6,7 +6,7 @@
   right under it, the boiler's state words say "Boiler:", long states get the whole width.
 - "Ready to take over?" never shows "None °C" for a figure the E32 does not know yet.
 - Device pages: the boiler's settings, counters, the thermostat on the bus and service details are
-  Diagnostic, the room's "Temperature without Home Assistant" is a setting; unique IDs stay.
+  Diagnostic, the room's "Temperature without a week program" is a setting; unique IDs stay.
 - Configure: a new installation gets the dashboard, the room form says which room, sources by name,
   the house default for windows in minutes like each room's own.
 """

@@ -867,11 +867,11 @@ day stand in the main list: the thermostat, Temperature, Heat demand, Reason,
 gas, Boiler activity, Heating problem and the hot water taps. Settings
 (for example a room's **Heating** on/off and **Off until**) stand under
 Configuration, and figures that only inform (Target temperature, Control
-status, Learning status, Recommended water temperature, Predicted heating
-start, Burner starts last hour, **Requested water temperature**, **Known about
+status, Learning status, Recommended water temperature, **Smart warm-up
+start** (was Predicted heating start), Burner starts last hour, **Requested water temperature**, **Known about
 your house**, Boiler response, the three running totals and the yesterday
-figures) stand under Diagnostic. Names stay the same on updating; entity IDs
-too. The running totals say what they are: **Burner starts (total)**,
+figures) stand under Diagnostic; entities that already exist move there too.
+Entity IDs stay the same on updating; some names changed. The running totals say what they are: **Burner starts (total)**,
 **Burner time (total)** and **Missed comfort time (total)** (they were
 "... today"). The yesterday figures say "(yesterday)" in their name, for
 example **Heating energy per degree-day (yesterday)** in kWh/°C·d.

@@ -779,7 +779,7 @@
         },
         {
           "path": "test/dashboard-views-browser.cjs",
-          "sha256": "5574cd702b12983aea292cb279ff8a8156e3308adcab949434537fd4e6dac25a"
+          "sha256": "7b89b027dcf1a27d3c189e06fb3c51e298d98b740bdbe94c9ec83641f1b39de9"
         },
         {
           "path": "test/ha-room-status-card-browser.cjs",

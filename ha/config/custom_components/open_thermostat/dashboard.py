@@ -250,11 +250,13 @@ TEXT = {
         "link_input_unknown": "Room values reach the E32: the E32 does not say (older firmware).",
         "link_refused": "The E32 refused the last value at {at}: {why}.",
         "link_refused_earlier": "The E32 last refused a value at {at}: {why}.",
-        "link_input_fix": "Until they arrive, the E32 runs the rooms on its own sensors and week program. OpenThermostat "
-                          "sends everything again by itself; if this stays, restart Home Assistant (reloading the "
-                          "integration is not always enough).",
+        "link_input_fix": "Until they arrive, the E32 runs the rooms on its own sensors and week programs. Home "
+                          "Assistant keeps sending them; if this stays, restart Home Assistant.",
         "link_broker_ok": "MQTT broker: the E32 and Home Assistant both reach it.",
-        "link_broker_failed": "MQTT broker: Home Assistant could not send through it at {at} ({error}).",
+        "link_broker_failed": "MQTT broker: Home Assistant could not send through it at {at}: {error}.",
+        "send_timeout": "the broker did not take the value in time",
+        "send_unreachable": "Home Assistant could not reach the broker",
+        "send_waiting": "too many messages were waiting for the broker",
         "link_firmware": "Firmware: {version}, up to date.",
         "link_firmware_new": "Firmware: {version}; {latest} is available under Settings → Updates.",
         "link_firmware_skipped": "Firmware: {version}; you skipped {latest}.",
@@ -478,18 +480,20 @@ TEXT = {
         "link_heard_never": "De E32 meldt zich bij Home Assistant: nog niet.",
         "link_heard_fix": "Controleer of de E32 stroom en wifi heeft en of de MQTT-broker draait. Intussen blijft de E32 de "
                           "ruimtes zelf verwarmen.",
-        "link_input_yes": "Kamerwaarden komen aan bij de E32: ja, het laatst om {at}.",
-        "link_input_quiet": "Kamerwaarden komen aan bij de E32: geen in de laatste 15 minuten; de laatste om {at}.",
-        "link_input_no": "Kamerwaarden komen aan bij de E32: nee, niet meer sinds {at}.",
-        "link_input_no_plain": "Kamerwaarden komen aan bij de E32: nee.",
-        "link_input_unknown": "Kamerwaarden komen aan bij de E32: de E32 meldt het niet (oudere firmware).",
+        "link_input_yes": "Ruimtewaarden komen aan bij de E32: ja, het laatst om {at}.",
+        "link_input_quiet": "Ruimtewaarden komen aan bij de E32: geen in de laatste 15 minuten; de laatste om {at}.",
+        "link_input_no": "Ruimtewaarden komen aan bij de E32: nee, niet meer sinds {at}.",
+        "link_input_no_plain": "Ruimtewaarden komen aan bij de E32: nee.",
+        "link_input_unknown": "Ruimtewaarden komen aan bij de E32: de E32 meldt het niet (oudere firmware).",
         "link_refused": "De E32 weigerde de laatste waarde om {at}: {why}.",
         "link_refused_earlier": "De E32 weigerde het laatst een waarde om {at}: {why}.",
-        "link_input_fix": "Tot ze aankomen regelt de E32 de ruimtes met zijn eigen sensoren en weekprogramma. "
-                          "OpenThermostat stuurt alles vanzelf opnieuw; blijft dit zo, herstart dan Home Assistant (de "
-                          "integratie herladen is niet altijd genoeg).",
+        "link_input_fix": "Tot ze aankomen regelt de E32 de ruimtes met zijn eigen sensoren en weekprogramma's. Home "
+                          "Assistant blijft ze sturen; blijft dit zo, herstart dan Home Assistant.",
         "link_broker_ok": "MQTT-broker: de E32 en Home Assistant bereiken hem allebei.",
-        "link_broker_failed": "MQTT-broker: Home Assistant kon er om {at} niets via versturen ({error}).",
+        "link_broker_failed": "MQTT-broker: Home Assistant kon er om {at} niets via versturen: {error}.",
+        "send_timeout": "de broker nam de waarde niet op tijd aan",
+        "send_unreachable": "Home Assistant bereikte de broker niet",
+        "send_waiting": "er wachtten te veel berichten op de broker",
         "link_firmware": "Firmware: {version}, actueel.",
         "link_firmware_new": "Firmware: {version}; {latest} staat klaar onder Instellingen → Updates.",
         "link_firmware_skipped": "Firmware: {version}; je hebt {latest} overgeslagen.",
@@ -711,18 +715,21 @@ TEXT = {
         "link_heard_never": "E32 zgłasza się do Home Assistant: jeszcze nie.",
         "link_heard_fix": "Sprawdź, czy E32 ma zasilanie i Wi-Fi oraz czy działa broker MQTT. W tym czasie E32 sam dalej "
                           "ogrzewa pomieszczenia.",
-        "link_input_yes": "Wartości pokojowe docierają do E32: tak, ostatnio o {at}.",
-        "link_input_quiet": "Wartości pokojowe docierają do E32: brak w ostatnich 15 minutach; ostatnia o {at}.",
-        "link_input_no": "Wartości pokojowe docierają do E32: nie, od {at}.",
-        "link_input_no_plain": "Wartości pokojowe docierają do E32: nie.",
-        "link_input_unknown": "Wartości pokojowe docierają do E32: E32 tego nie podaje (starsze oprogramowanie).",
+        "link_input_yes": "Wartości pomieszczeń docierają do E32: tak, ostatnio o {at}.",
+        "link_input_quiet": "Wartości pomieszczeń docierają do E32: brak w ostatnich 15 minutach; ostatnia o {at}.",
+        "link_input_no": "Wartości pomieszczeń docierają do E32: nie, od {at}.",
+        "link_input_no_plain": "Wartości pomieszczeń docierają do E32: nie.",
+        "link_input_unknown": "Wartości pomieszczeń docierają do E32: E32 tego nie podaje (starsze oprogramowanie).",
         "link_refused": "E32 odrzucił ostatnią wartość o {at}: {why}.",
         "link_refused_earlier": "E32 ostatnio odrzucił wartość o {at}: {why}.",
-        "link_input_fix": "Dopóki nie dotrą, E32 steruje pomieszczeniami według własnych czujników i programu "
-                          "tygodniowego. Home Assistant sam wysyła wszystko ponownie; jeśli to nie mija, uruchom ponownie "
-                          "Home Assistant (ponowne wczytanie integracji nie zawsze wystarcza).",
+        "link_input_fix": "Dopóki nie dotrą, E32 steruje pomieszczeniami według własnych czujników i programów "
+                          "tygodniowych. Home Assistant nadal je wysyła; jeśli tak zostanie, uruchom ponownie Home "
+                          "Assistant.",
         "link_broker_ok": "Broker MQTT: E32 i Home Assistant łączą się z nim.",
-        "link_broker_failed": "Broker MQTT: Home Assistant nie mógł przez niego wysłać o {at} ({error}).",
+        "link_broker_failed": "Broker MQTT: Home Assistant nie mógł przez niego wysłać o {at}: {error}.",
+        "send_timeout": "broker nie przyjął wartości na czas",
+        "send_unreachable": "Home Assistant nie mógł połączyć się z brokerem",
+        "send_waiting": "zbyt wiele wiadomości czekało na broker",
         "link_firmware": "Oprogramowanie układowe: {version}, aktualne.",
         "link_firmware_new": "Oprogramowanie układowe: {version}; {latest} jest dostępne w Ustawienia → Aktualizacje.",
         "link_firmware_skipped": "Oprogramowanie układowe: {version}; pominięto {latest}.",
@@ -1311,7 +1318,7 @@ def _connection_section(t, request, update=None):
       took one, none for 15 minutes, or no since then (the repair heating_input_lost) with the value it refused last
       and why, and the repair's advice.
     - The MQTT broker: the E32 is heard through it; Home Assistant's newest send failed or not (``last_error_at`` after
-      ``last_sent``).
+      ``last_sent``), the kind of failure in words (``last_error_kind``).
     - The firmware: the update entity (firmware_update.py): its version, and an update available, skipped or installing.
 
     More: when Home Assistant last sent a value, its last send error, the values dropped and a refusal while values
@@ -1321,6 +1328,7 @@ def _connection_section(t, request, update=None):
         return None
     q = json.dumps(request)
     why = json.dumps({key: t["why_" + key] for key in REFUSALS}, ensure_ascii=False)
+    sends = json.dumps({key: t["send_" + key] for key in ("timeout", "unreachable", "waiting")}, ensure_ascii=False)
 
     def line(concept, text):
         return _icon(concept) + " " + text + "\n\n"
@@ -1346,7 +1354,9 @@ def _connection_section(t, request, update=None):
         + "{% else %}" + line("link_unknown", t["link_input_unknown"]) + "{% endif %}"
         # Home Assistant's newest send failed: one that worked in the same minute or later counts as working.
         + "{% if h.last_error_at and (not h.last_sent or h.last_error_at > h.last_sent) %}"
-        + line("link_problem", say("link_broker_failed", at="at(h.last_error_at)", error="h.last_error"))
+        # The kind of failure in words (the raw error text, in English, is behind "More").
+        + line("link_problem", say("link_broker_failed", at="at(h.last_error_at)",
+                                   error="sends.get(h.last_error_kind) or h.last_error"))
         + "{% else %}" + line("link_ok", t["link_broker_ok"]) + "{% endif %}{% endif %}")
     firmware = ""
     if update:
@@ -1370,7 +1380,8 @@ def _connection_section(t, request, update=None):
         + _jinja_text(t["link_refused_earlier"], at="at(r.at)", why=refused) + "] %}{% endif %}"
         "{% if d.lines %}<details><summary>" + t["more"] + "</summary>\n\n{% for x in d.lines %}- {{ x }}\n"
         "{% endfor %}\n</details>{% endif %}{% endif %}")
-    content = (_at_macro(t) + "{% set why = " + why + " %}" + heard + values + firmware + more)
+    content = (_at_macro(t) + "{% set why = " + why + " %}{% set sends = " + sends + " %}" + heard + values + firmware
+               + more)
     return _section(_heading(t["connection"], ICONS["connection"]), {"type": "markdown", "content": content})
 
 

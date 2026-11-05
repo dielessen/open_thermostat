@@ -42,7 +42,7 @@ const states=lang=>({'sensor.curve':curve(),'sensor.curve_standard':curve(STANDA
  'sensor.curve_design':curve({...STANDARD,standard_slope:null,design_flow_c:null}),
  'sensor.curve_rc4':curve({base_c:undefined}),
  'sensor.curve_waiting':{state:'unknown',attributes:{}},'sensor.knowledge':{state:'70',attributes:{missing:MISSING[lang],more:2}},
- 'sensor.knowledge_full':{state:'100',attributes:{missing:[],more:0}},'sensor.knowledge_short':{state:'96',attributes:{missing:[],more:0}},'sensor.knowledge_unknown':{state:'unknown',attributes:{}}});
+ 'sensor.knowledge_full':{state:'100',attributes:{missing:[],more:0}},'sensor.knowledge_short':{state:'96',attributes:{missing:[],more:0}},'sensor.knowledge_open':{state:'99.6',attributes:{missing:MISSING[lang].slice(0,1),more:0}},'sensor.knowledge_open100':{state:'100',attributes:{missing:[],more:1}},'sensor.knowledge_unknown':{state:'unknown',attributes:{}}});
 const WORDS={
  en:{title:'Water temperature by outdoor temperature',legend:['Standard','Learned for your house','Now'],now:['6.5 °C outside → 34 °C','E32 asks 35 °C'],
   house:'Estimated from your house',frost:['At −10 °C with 21 °C inside: 49 °C','8 °C cooler than standard'],
@@ -85,7 +85,7 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
   await page.evaluate(({states,lang,dict,dark})=>{
    const localize=(key,values={})=>(dict[key]||'').replace(/\{(\w+)\}/g,(all,k)=>k in values?values[k]:all);
    window.hass={language:lang,locale:{language:lang},themes:{darkMode:dark},states,localize};
-   for(const [id,type] of [['sensor.knowledge','knowledge'],['sensor.knowledge_full','knowledge'],['sensor.knowledge_short','knowledge'],['sensor.knowledge_unknown','knowledge'],
+   for(const [id,type] of [['sensor.knowledge','knowledge'],['sensor.knowledge_full','knowledge'],['sensor.knowledge_short','knowledge'],['sensor.knowledge_open','knowledge'],['sensor.knowledge_open100','knowledge'],['sensor.knowledge_unknown','knowledge'],
     ['sensor.curve','heating-curve'],['sensor.curve_standard','heating-curve'],['sensor.curve_off','heating-curve'],['sensor.curve_waiting','heating-curve'],
     ['sensor.gone','heating-curve'],['sensor.curve_cold','heating-curve'],['sensor.curve_steep','heating-curve'],['sensor.curve_house','heating-curve'],
     ['sensor.curve_f','heating-curve'],['sensor.curve_design','heating-curve'],['sensor.curve_rc4','heating-curve']]){
@@ -190,11 +190,21 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
   const arc=await ring.locator('.fill').evaluate(c=>c.getAttribute('stroke-dasharray').split(' ').map(Number));
   assert(Math.abs(arc[0]/arc[1]-0.7)<0.001,'the ring is filled 70 %');
   assert.equal(await card('knowledge_full').locator('.done').innerText(),words.done);assert.equal(await card('knowledge_full').locator('li').count(),0);
-  // Learning never ends: the line under the ring keeps saying it learns while the heating runs, and "learned everything"
-  // only at 100 % (a figure short of it with nothing listed says neither that nor an empty list).
-  assert.equal(await card('knowledge_full').locator('p.muted').innerText(),words.hint);
+  // One story per card (rc.7): "learned everything" (it keeps checking as the seasons change) only at 100 % with
+  // nothing left, and then without the hint, which that line says already; short of 100 % with nothing listed: the hint
+  // alone; while something is still to learn the figure stays below 100 % (99.6 % and a 100 % with one more item: 99 %).
+  assert.equal(await card('knowledge_full').locator('p.muted').count(),0);
   assert.equal(await card('knowledge_short').locator('p.muted').innerText(),words.hint);
   assert.equal(await card('knowledge_short').locator('.done').count(),0);assert.equal(await card('knowledge_short').locator('ul').count(),0);
+  assert.equal(await card('knowledge_short').locator('svg.ring text').textContent(),'96 %');
+  for(const id of ['knowledge_open','knowledge_open100']){
+   assert.equal(await card(id).locator('svg.ring text').textContent(),'99 %',id);
+   assert.equal(await card(id).locator('h2').innerText(),words.ring.replace('70','99'),id);
+   assert.equal(await card(id).locator('p.muted').innerText(),words.hint,id);
+   assert.equal(await card(id).locator('.done').count(),0,id);assert.equal(await card(id).locator('h3').innerText(),words.missing,id);
+  }
+  assert.deepEqual(await card('knowledge_open').locator('li').allInnerTexts(),MISSING[lang].slice(0,1));
+  assert.deepEqual(await card('knowledge_open100').locator('li').allInnerTexts(),[words.more.replace('2','1')]);
   assert.equal(await card('knowledge_unknown').locator('p').innerText(),words.unknown);assert.equal(await card('knowledge_unknown').locator('svg').count(),0);
   // An unrelated change in the house does not redraw; a new state does.
   await page.evaluate(()=>{window.kept=document.querySelector('[data-id=curve]').shadowRoot.querySelector('svg');

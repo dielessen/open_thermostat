@@ -61,9 +61,9 @@ def minute(minutes_ago):
     return moment, moment.isoformat()
 
 
-def ha_input(state, last_input=None, rejected=None, sent=None, error=None, error_at=None, dropped=0):
+def ha_input(state, last_input=None, rejected=None, sent=None, error=None, error_at=None, dropped=0, kind=None):
     return {"state": state, "e32_last_input": last_input, "e32_last_rejected": rejected, "last_sent": sent,
-            "last_error": error, "last_error_at": error_at, "dropped": dropped}
+            "last_error": error, "last_error_at": error_at, "last_error_kind": kind, "dropped": dropped}
 
 
 @pytest.mark.asyncio
@@ -87,13 +87,13 @@ async def test_the_connection_comes_first_on_diagnostics_and_says_all_is_well_in
                OK + "Firmware: 1.0.0-rc.5, up to date.",
                f"<details><summary>More</summary>\n\n- Home Assistant last sent a value at {at(sent)}.\n\n</details>"],
         "nl": [OK + f"De E32 meldt zich bij Home Assistant: ja, het laatst om {now}.",
-               OK + f"Kamerwaarden komen aan bij de E32: ja, het laatst om {at(taken, 'nl')}.",
+               OK + f"Ruimtewaarden komen aan bij de E32: ja, het laatst om {at(taken, 'nl')}.",
                OK + "MQTT-broker: de E32 en Home Assistant bereiken hem allebei.",
                OK + "Firmware: 1.0.0-rc.5, actueel.",
                f"<details><summary>Meer</summary>\n\n- Home Assistant stuurde de laatste waarde om {at(sent, 'nl')}."
                "\n\n</details>"],
         "pl": [OK + f"E32 zgłasza się do Home Assistant: tak, ostatnio o {now}.",
-               OK + f"Wartości pokojowe docierają do E32: tak, ostatnio o {at(taken, 'pl')}.",
+               OK + f"Wartości pomieszczeń docierają do E32: tak, ostatnio o {at(taken, 'pl')}.",
                OK + "Broker MQTT: E32 i Home Assistant łączą się z nim.",
                OK + "Oprogramowanie układowe: 1.0.0-rc.5, aktualne.",
                f"<details><summary>Więcej</summary>\n\n- Home Assistant wysłał ostatnią wartość o {at(sent, 'pl')}."
@@ -113,15 +113,16 @@ async def test_room_values_that_do_not_arrive_say_since_when_why_and_what_to_do(
     failed, failed_at = minute(3)
     hass.states.async_set(request, "0", {"ha_input": ha_input(
         "not_received", taken_at, {"reason": "unknown_room", "at": refused_at}, sent_at,
-        "50 messages still wait for the MQTT broker", failed_at, dropped=212)})
+        "50 messages still wait for the MQTT broker", failed_at, dropped=212, kind="waiting")})
     heard, values, broker, more = lines(hass, card)
     assert heard.startswith(OK + "The E32 reports to Home Assistant: yes")
     assert values == (PROBLEM + f"Room values reach the E32: no, not since {at(taken)}. The E32 refused the last value at "
                       f"{at(refused)}: it does not know that room. Until they arrive, the E32 runs the rooms on its own "
-                      "sensors and week program. OpenThermostat sends everything again by itself; if this stays, restart "
-                      "Home Assistant (reloading the integration is not always enough).")
-    assert broker == (PROBLEM + f"MQTT broker: Home Assistant could not send through it at {at(failed)} (50 messages "
-                      "still wait for the MQTT broker).")
+                      "sensors and week programs. Home Assistant keeps sending them; if this stays, restart Home "
+                      "Assistant.")
+    # The kind of failure in words; the raw error (English, from the MQTT client) only behind "More".
+    assert broker == (PROBLEM + f"MQTT broker: Home Assistant could not send through it at {at(failed)}: too many "
+                      "messages were waiting for the broker.")
     assert more == ("<details><summary>More</summary>\n\n"
                     f"- Home Assistant last sent a value at {at(sent)}.\n"
                     f"- Last send error at {at(failed)}: 50 messages still wait for the MQTT broker.\n"
@@ -143,9 +144,9 @@ async def test_waiting_unknown_and_an_earlier_refusal(hass, language):
                                                                {"reason": "invalid_value", "at": refused_at})})
     heard, values, broker, more = lines(hass, card)
     assert values == WAIT + {"en": f"Room values reach the E32: none in the last 15 minutes; the last at {at(taken)}.",
-                             "nl": "Kamerwaarden komen aan bij de E32: geen in de laatste 15 minuten; de laatste om "
+                             "nl": "Ruimtewaarden komen aan bij de E32: geen in de laatste 15 minuten; de laatste om "
                                    f"{at(taken, 'nl')}.",
-                             "pl": "Wartości pokojowe docierają do E32: brak w ostatnich 15 minutach; ostatnia o "
+                             "pl": "Wartości pomieszczeń docierają do E32: brak w ostatnich 15 minutach; ostatnia o "
                                    f"{at(taken, 'pl')}."}[language]
     assert broker.startswith(OK)
     # A value refused while the others arrive: behind "More", with its date.
@@ -161,8 +162,8 @@ async def test_waiting_unknown_and_an_earlier_refusal(hass, language):
     hass.states.async_set(request, "41", {"ha_input": ha_input("unknown")})
     assert lines(hass, card)[1:] == [
         UNKNOWN + {"en": "Room values reach the E32: the E32 does not say (older firmware).",
-                   "nl": "Kamerwaarden komen aan bij de E32: de E32 meldt het niet (oudere firmware).",
-                   "pl": "Wartości pokojowe docierają do E32: E32 tego nie podaje (starsze oprogramowanie)."}[language],
+                   "nl": "Ruimtewaarden komen aan bij de E32: de E32 meldt het niet (oudere firmware).",
+                   "pl": "Wartości pomieszczeń docierają do E32: E32 tego nie podaje (starsze oprogramowanie)."}[language],
         OK + {"en": "MQTT broker: the E32 and Home Assistant both reach it.",
               "nl": "MQTT-broker: de E32 en Home Assistant bereiken hem allebei.",
               "pl": "Broker MQTT: E32 i Home Assistant łączą się z nim."}[language]]
@@ -222,3 +223,21 @@ async def test_no_connection_section_without_an_e32(hass):
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     diagnostics = next(view for view in config["views"] if view["path"] == "diagnostics")
     assert diagnostics["sections"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language, kind, words", [
+    ("nl", "timeout", "MQTT-broker: Home Assistant kon er om {at} niets via versturen: de broker nam de waarde niet op "
+                      "tijd aan."),
+    ("pl", "unreachable", "Broker MQTT: Home Assistant nie mógł przez niego wysłać o {at}: Home Assistant nie mógł "
+                          "połączyć się z brokerem."),
+    ("en", None, "MQTT broker: Home Assistant could not send through it at {at}: Connection refused.")])
+async def test_a_failing_send_is_said_in_the_viewers_words(hass, language, kind, words):
+    """The kind of failure in the language (the error text of the MQTT client is English); an attribute without a
+    kind (rc.6) falls back to that text."""
+    section, request, _ = link_installation(hass, language, update=False)
+    taken, taken_at = minute(1)
+    failed, failed_at = minute(0)
+    hass.states.async_set(request, "41", {"ha_input": ha_input("ok", taken_at, sent=minute(5)[1],
+                                                               error="Connection refused", error_at=failed_at, kind=kind)})
+    assert lines(hass, section["cards"][1])[2] == PROBLEM + words.format(at=at(failed, language))

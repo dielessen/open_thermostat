@@ -240,8 +240,14 @@ def _watch(hass, monkeypatch, now, **link_options):
     return hub, link, watch, resent, published
 
 
-def _e32(hub, age, **status):
-    hub.update({**STATUS, **status, "ha": {"input_age_s": age, "broker_connected": True}})
+def _e32(hub, age, rejected=None, **status):
+    ha = {"input_age_s": age, "broker_connected": True, **({"last_rejected": rejected} if rejected else {})}
+    hub.update({**STATUS, **status, "ha": ha})
+
+
+def _since(moment):
+    local = dt_util.as_local(moment)
+    return local.strftime("%H:%M") if local.date() == dt_util.now().date() else local.strftime("%d-%m %H:%M")
 
 
 @pytest.mark.asyncio
@@ -280,8 +286,10 @@ async def test_the_e32_not_accepting_raises_a_repair_and_sends_everything_again(
     assert resent == [1000.0 + 900, 1000.0 + 1800]  # at once, then every 15 minutes while it lasts
     warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnings) == 1 and "accepted no room values from Home Assistant for 15 min" in warnings[0]
-    assert issue.translation_key == "heating_input_lost" and issue.translation_placeholders["minutes"] == "30"
-    assert issue.translation_placeholders["error"] == "-" and issue.translation_placeholders["last_sent"] != "-"
+    # rc.7 (R2-11): since when as a local time (the E32 last took one at 17:00:27 UTC, yesterday here: with the day),
+    # and no cause while nothing was refused and every send worked: no "-" and no English error text.
+    assert issue.translation_key == "heating_input_lost"
+    assert issue.translation_placeholders == {"since": _since(WALL - timedelta(seconds=3)), "cause": ""}
     attributes = watch.attributes()
     assert attributes["state"] == "not_received" and attributes["e32_last_input"] == "2026-11-04T17:00:00+00:00"
     assert attributes["last_sent"] is not None and attributes["last_error"] is None
@@ -403,3 +411,81 @@ async def test_the_heat_request_sensor_and_the_diagnostics_show_the_route(hass, 
     assert block["e32_ha"]["last_rejected"]["reason"] == "invalid_json"
     # The timers: the five-minute refreshes and the minute check of the route.
     assert {every for _action, every in link.timers} >= {timedelta(minutes=5), heating_link.INPUT_CHECK}
+
+
+async def _lost(hass, monkeypatch, language="en"):
+    """An E32 that took nothing for 15 minutes while Home Assistant sends: the repair is up."""
+    from homeassistant.helpers import issue_registry as ir
+    await ir.async_load(hass)
+    hass.config.language = language
+    now = [1000.0]
+    hub, link, watch, resent, published = _watch(hass, monkeypatch, now)
+    link.send("{}")
+    await hass.async_block_till_done()
+    return hub, link, watch, now, ir
+
+
+async def _sending(hass, link, now, seconds):
+    """``seconds`` after the start, Home Assistant sends a value (it sends every five minutes)."""
+    now[0] = 1000.0 + seconds
+    link.send("{}")
+    await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language, cause", [
+    ("en", "The E32 refused them: it does not know that room."),
+    ("nl", "De E32 weigerde ze: hij kent die ruimte niet."),
+    ("pl", "E32 je odrzucił: nie zna tego pomieszczenia.")])
+async def test_the_repair_names_a_refusal_as_the_cause_in_the_home_assistant_language(hass, monkeypatch, language,
+                                                                                     cause):
+    hub, link, watch, now, ir = await _lost(hass, monkeypatch, language)
+    await _sending(hass, link, now, 960)
+    # The E32 refused a value 2 minutes ago, after it last took one (16 minutes ago).
+    _e32(hub, 960, {"reason": "unknown_room", "age_s": 120})
+    watch.check()
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, "heating_input_lost_e")
+    assert issue.translation_placeholders["cause"] == cause
+    # A reason this version does not know: as the E32 sent it. A refusal from before it last took one: no cause.
+    watch.lost_since = None
+    _e32(hub, 960, {"reason": "busy", "age_s": 120})
+    watch.check()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "heating_input_lost_e").translation_placeholders["cause"].endswith(
+        "busy.")
+    watch.lost_since = None
+    _e32(hub, 960, {"reason": "unknown_room", "age_s": 2000})
+    watch.check()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "heating_input_lost_e").translation_placeholders["cause"] == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind, cause", [("timeout", "De MQTT-broker neemt ze niet op tijd aan."),
+                                         ("unreachable", "Home Assistant bereikt de MQTT-broker niet."),
+                                         ("waiting", "Er wachten te veel berichten op de MQTT-broker.")])
+async def test_the_repair_names_a_failing_send_by_its_kind(hass, monkeypatch, kind, cause):
+    hub, link, watch, now, ir = await _lost(hass, monkeypatch, "nl")
+    await _sending(hass, link, now, 960)
+    link._failed("raw English from the MQTT client", dropped=kind == "waiting", kind=kind)
+    assert watch.attributes()["last_error_kind"] == kind
+    _e32(hub, 960)
+    watch.check()
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, "heating_input_lost_e")
+    assert issue.translation_placeholders["cause"] == cause
+    assert "raw English" not in str(issue.translation_placeholders)
+
+
+@pytest.mark.asyncio
+async def test_the_repair_goes_when_the_e32_goes_silent(hass, monkeypatch):
+    """The offline problem ("E32 not reporting") takes over; once heard again, the check judges afresh."""
+    hub, link, watch, now, ir = await _lost(hass, monkeypatch)
+    await _sending(hass, link, now, 960)
+    _e32(hub, 960)
+    watch.check()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "heating_input_lost_e") is not None
+    hub.update(None)  # three missed heartbeats: the hub is not fresh
+    watch.check()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "heating_input_lost_e") is None and watch.lost_since is None
+    _e32(hub, 30)
+    watch.check()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "heating_input_lost_e") is None
+    assert watch.attributes()["state"] == "ok"

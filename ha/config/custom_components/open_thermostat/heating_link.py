@@ -834,6 +834,32 @@ INPUT_LINK = "heating_input_link"  # hass.data[DOMAIN][entry id][INPUT_LINK]: th
 INPUT_LOST_S = 900
 INPUT_CHECK = timedelta(seconds=60)
 INPUT_ISSUE = "heating_input_lost"
+# rc.7 (R2-11): the repair names one likely cause in the Home Assistant language (the placeholders of a repair are
+# not translated): the E32 refused the values (HeatingInput.h's reasons), or Home Assistant's own sending failed (the
+# kind of failure, HeatingInputLink.error_kind), or nothing ("" leaves the sentence out).
+INPUT_CAUSES = {
+    "en": {"refused": "The E32 refused them: {reason}.", "timeout": "The MQTT broker does not take them in time.",
+           "unreachable": "Home Assistant cannot reach the MQTT broker.",
+           "waiting": "Too many messages are waiting for the MQTT broker.",
+           "too_large": "the message was too long", "invalid_json": "it could not read the message",
+           "no_entity": "the message named no Home Assistant entity",
+           "unknown_kind": "it does not know that kind of value; update the E32",
+           "invalid_value": "the value was outside what it accepts", "unknown_room": "it does not know that room"},
+    "nl": {"refused": "De E32 weigerde ze: {reason}.", "timeout": "De MQTT-broker neemt ze niet op tijd aan.",
+           "unreachable": "Home Assistant bereikt de MQTT-broker niet.",
+           "waiting": "Er wachten te veel berichten op de MQTT-broker.",
+           "too_large": "het bericht was te lang", "invalid_json": "hij kon het bericht niet lezen",
+           "no_entity": "het bericht noemde geen Home Assistant-entiteit",
+           "unknown_kind": "hij kent dat soort waarde niet; werk de E32 bij",
+           "invalid_value": "de waarde lag buiten wat hij aanneemt", "unknown_room": "hij kent die ruimte niet"},
+    "pl": {"refused": "E32 je odrzucił: {reason}.", "timeout": "Broker MQTT nie przyjmuje ich na czas.",
+           "unreachable": "Home Assistant nie może połączyć się z brokerem MQTT.",
+           "waiting": "Zbyt wiele wiadomości czeka na broker MQTT.",
+           "too_large": "wiadomość była za długa", "invalid_json": "nie mógł odczytać wiadomości",
+           "no_entity": "wiadomość nie wskazywała encji Home Assistant",
+           "unknown_kind": "nie zna tego rodzaju wartości; zaktualizuj E32",
+           "invalid_value": "wartość była poza dopuszczalnym zakresem", "unknown_room": "nie zna tego pomieszczenia"}}
+REFUSAL_REASONS = ("too_large", "invalid_json", "no_entity", "unknown_kind", "invalid_value", "unknown_room")
 
 
 def _iso_time(moment):
@@ -868,6 +894,7 @@ class HeatingInputLink:
         self.sent_at = None    # the same as a UTC datetime
         self.error = None      # the last failure in words, kept after a send that works (see error_at)
         self.error_at = None
+        self.error_kind = None  # timeout, unreachable or waiting (the repair's cause, INPUT_CAUSES)
         self.failing = False   # the newest send failed: one warning per failure episode
         self.failures = 0
         self.dropped = 0       # values dropped while MAX_PENDING_PUBLISHES still waited
@@ -910,7 +937,7 @@ class HeatingInputLink:
             self.attempted = self.clock()
         if len(self._tasks) >= MAX_PENDING_PUBLISHES:
             self.dropped += 1
-            self._failed(f"{len(self._tasks)} messages still wait for the MQTT broker", dropped=True)
+            self._failed(f"{len(self._tasks)} messages still wait for the MQTT broker", dropped=True, kind="waiting")
             return
         task = hass.async_create_task(self._publish(self.topic, payload), "OpenThermostat heating_input")
         if not task.done():
@@ -922,18 +949,18 @@ class HeatingInputLink:
             async with asyncio.timeout(PUBLISH_TIMEOUT_S):
                 await mqtt.async_publish(self.hass, topic, payload, 0, False)
         except TimeoutError:
-            self._failed(f"the MQTT broker did not take it within {PUBLISH_TIMEOUT_S} s")
+            self._failed(f"the MQTT broker did not take it within {PUBLISH_TIMEOUT_S} s", kind="timeout")
         except Exception as err:  # noqa: BLE001 - a broker failure never reaches the forwarders
-            self._failed(str(err) or type(err).__name__)
+            self._failed(str(err) or type(err).__name__, kind="unreachable")
         else:
             self.sent, self.sent_at = self.clock(), dt_util.utcnow()
             if self.failing or self._saturated:
                 _LOGGER.info("OpenThermostat sends room values to the E32 again")
             self.failing = self._saturated = False
 
-    def _failed(self, error, dropped=False):
+    def _failed(self, error, dropped=False, kind="unreachable"):
         """One warning per episode (a broker that is down, or one that keeps every place busy), then debug."""
-        self.error, self.error_at = error, dt_util.utcnow()
+        self.error, self.error_at, self.error_kind = error, dt_util.utcnow(), kind
         if dropped:
             if not self._saturated:
                 self._saturated = True
@@ -1052,7 +1079,12 @@ class HeatingInputWatch:
         now = self.clock()
         age = e32_input_age(self.hub, now)
         if age is None:
-            return  # the E32 is silent, or its firmware does not say: its own entities show that
+            # The E32 is silent, or its firmware does not say: its own entities show that. A repair raised before
+            # goes (rc.7, R2-11): "E32 not reporting" takes over, and the check judges afresh once it is heard.
+            if self.lost_since is not None and not self.hub.fresh:
+                self.lost_since = self._resent = None
+                self._issue(None)
+            return
         if age < INPUT_LOST_S:
             if self.lost_since is not None:
                 self.lost_since = self._resent = None
@@ -1077,19 +1109,37 @@ class HeatingInputWatch:
         self.resend()
         self._issue(age)
 
+    def cause(self, age):
+        """The likeliest cause in words (INPUT_CAUSES, the Home Assistant language), or "": a value the E32 refused
+        after it last took one, else Home Assistant's own newest send failing."""
+        from .learned_overview import language
+        words = INPUT_CAUSES.get(language(self.hass), INPUT_CAUSES["en"])
+        now = self.clock()
+        ha = self.hub.status.get("ha") if self.hub.fresh else None
+        rejected = ha.get("last_rejected") if type(ha) is dict else None
+        refused = _e32_age(self.hub, rejected.get("age_s"), now) if type(rejected) is dict else None
+        reason = rejected.get("reason") if type(rejected) is dict else None
+        if refused is not None and type(reason) is str and (age is None or refused <= age):
+            return words["refused"].format(reason=words.get(reason) if reason in REFUSAL_REASONS else reason)
+        link = self.link
+        if link.error_at is not None and (link.sent_at is None or link.error_at > link.sent_at):
+            return words.get(link.error_kind) or words["unreachable"]
+        return ""
+
     def _issue(self, age):
         from homeassistant.helpers import issue_registry as ir
         try:
             if age is None:
                 ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
                 return
-            sent = self.link.sent_at
+            # Since when, as a local time (with the day when not today), not a count of minutes that stands still
+            # between the re-creations.
+            since = dt_util.as_local(self.wall() - timedelta(seconds=age))
+            text = since.strftime("%H:%M") if since.date() == dt_util.now().date() else since.strftime("%d-%m %H:%M")
             ir.async_create_issue(
                 self.hass, DOMAIN, self.issue_id, is_fixable=False, is_persistent=False,
                 severity=ir.IssueSeverity.WARNING, translation_key=INPUT_ISSUE,
-                translation_placeholders={
-                    "minutes": str(int(age // 60)), "error": self.link.error or "-",
-                    "last_sent": dt_util.as_local(sent).strftime("%Y-%m-%d %H:%M") if sent is not None else "-"})
+                translation_placeholders={"since": text, "cause": self.cause(age)})
         except Exception:  # noqa: BLE001 - a repair that cannot be shown never stops the check or the sending
             _LOGGER.debug("OpenThermostat: the heating input repair could not be updated", exc_info=True)
 
@@ -1111,7 +1161,8 @@ class HeatingInputWatch:
                 "e32_last_rejected": {"reason": rejected.get("reason"), "at": _iso_minute(wall - timedelta(seconds=refused))}
                 if refused is not None and type(rejected.get("reason")) is str else None,
                 "last_sent": _iso_minute(self.link.sent_at), "last_error": self.link.error,
-                "last_error_at": _iso_minute(self.link.error_at), "dropped": self.link.dropped}
+                "last_error_at": _iso_minute(self.link.error_at), "last_error_kind": self.link.error_kind,
+                "dropped": self.link.dropped}
 
     def diagnostics(self):
         now = self.clock()

@@ -364,11 +364,20 @@ class OpenThermostatKnowledge extends OpenThermostatCard {
   const t = (key, values) => this.text('knowledge.state_attributes.card.state.', KNOWLEDGE_TEXT, key, values);
   const card = this.frame(KNOWLEDGE_STYLE), st = hass.states?.[config.entity];
   if (this.missing(card, config, st)) return;
-  const pct = numeric(st.state), a = st.attributes || {}, share = pct === null ? null : Math.min(100, Math.max(0, pct));
+  const pct = numeric(st.state), a = st.attributes || {};
+  const missing = Array.isArray(a.missing) ? a.missing.filter(s => typeof s === 'string' && s) : [];
+  const more = Number.isInteger(a.more) && a.more > 0 ? a.more : 0, open = missing.length > 0 || more > 0;
+  // One story on the card (rc.7): while something is still to learn the figure stays below 100 % (a rounded 99.6 % read
+  // as "100 %" over a list of what it still learns), and "learned everything" only at 100 % with nothing left. Then
+  // that line says it all, so the hint that it learns while the heating runs is left out; learning never ends: it keeps
+  // checking as the seasons change.
+  let share = pct === null ? null : Math.min(100, Math.max(0, pct));
+  if (share !== null && (open || share < 100)) share = Math.min(99, share);
+  const complete = share === 100 && !open;
   const head = make('div', {class: 'head'}), words = make('div');
   // The headline beside the ring says the figure ("The E32 knows your house: 62 %", the owner's sketch, rc.5).
-  words.append(make('h2', {}, config.name || (share === null ? t('title') : t('ring', {pct: this.number(share)}))),
-   make('p', {class: 'muted'}, pct === null ? t('waiting') : t('hint')));
+  words.append(make('h2', {}, config.name || (share === null ? t('title') : t('ring', {pct: this.number(share)}))));
+  if (!complete) words.append(make('p', {class: 'muted'}, pct === null ? t('waiting') : t('hint')));
   if (pct !== null) {
    const r = 30, length = 2 * Math.PI * r;
    const ring = make('svg:svg', {class: 'ring', viewBox: '0 0 72 72', role: 'img', 'aria-label': t('ring', {pct: this.number(share)})});
@@ -381,11 +390,9 @@ class OpenThermostatKnowledge extends OpenThermostatCard {
   head.append(words);
   card.append(head);
   if (pct === null) return;
-  const missing = Array.isArray(a.missing) ? a.missing.filter(s => typeof s === 'string' && s) : [];
-  const more = Number.isInteger(a.more) && a.more > 0 ? a.more : 0;
-  // Nothing missing: it has learned everything and keeps checking as the seasons change (as the E32 page says);
-  // only at 100 % (the E32 rounds down, so anything short of it still has something to learn).
-  if (!missing.length && !more) { if (share === 100) card.append(make('p', {class: 'done'}, t('done'))); return; }
+  if (complete) { card.append(make('p', {class: 'done'}, t('done'))); return; }
+  // Short of 100 % with nothing listed (the E32 rounds down): the hint under the ring says it is still learning.
+  if (!open) return;
   const list = make('ul');
   for (const sentence of missing) list.append(make('li', {}, sentence));
   if (more) list.append(make('li', {class: 'more'}, t('more', {n: this.number(more)})));

@@ -22,7 +22,7 @@ other.
 > always go straight to the boiler test. The one thing that acts on your home
 > before the takeover is an optional *setting device* (a valve or thermostat
 > that Home Assistant sets to your week program); see
-> [The route to the takeover](#12-what-the-trial-run-does-and-does-not-do).
+> [The route to the takeover](#12-the-route-to-the-takeover-boiler-test-or-a-trial-run-first).
 
 Want someone to check the guide as they go? Give them the
 [installation checklist](INSTALL-CHECK.md): each step, its expected result
@@ -48,7 +48,7 @@ Assistant.
 9. [Install the Home Assistant integration](#9-install-the-home-assistant-integration)
 10. [Add the integration and connect the E32](#10-add-the-integration-and-connect-the-e32)
 11. [Add your rooms](#11-add-your-rooms)
-12. [The route to the takeover: boiler test, or a trial run first](#12-what-the-trial-run-does-and-does-not-do)
+12. [The route to the takeover: boiler test, or a trial run first](#12-the-route-to-the-takeover-boiler-test-or-a-trial-run-first)
 13. [Updates](#13-updates)
 14. [Backup and restore](#14-backup-and-restore)
 15. [Secure your setup](#15-secure-your-setup)

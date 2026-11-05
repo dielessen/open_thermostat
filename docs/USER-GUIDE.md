@@ -1558,7 +1558,7 @@ is retired since rc.3), and no existing thermostat is required: the page
 speaks of an old thermostat only when the E32 has heard one. The E32 checks every step
 from the boiler's reports and shows each as passed, waiting or failed in plain
 words; the details and pass criteria are in
-[INSTALL.md section 12](INSTALL.md#12-what-the-trial-run-does-and-does-not-do).
+[INSTALL.md section 12](INSTALL.md#12-the-route-to-the-takeover-boiler-test-or-a-trial-run-first).
 Its temporary room target has an end time and never changes the week
 program. When a safety rule stops it, the page says "Stop and give control
 back to your thermostat" (without a thermostat the E32 ever heard: "Stop E32

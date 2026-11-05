@@ -138,6 +138,9 @@ const YESTERDAY={
  // No warm-up yesterday (the sensor unknown: the room off, away or on holiday), and a warm-up 72 minutes late.
  none:{config:{room:{entity:'sensor.zolder_warm_on_time',name:'Zolder'}},states:[ent('sensor.zolder_warm_on_time','unknown')]},
  long:{config:{room:{entity:'sensor.hal_warm_on_time',name:'Hal'}},states:[ent('sensor.hal_warm_on_time','72.4',{unit_of_measurement:'min'})]},
+ // Not warm within 3 hours: the firmware records 180 min (ArrivalLearner's cap); just under it is still minutes late.
+ never:{config:{room:{entity:'sensor.kelder_warm_on_time',name:'Kelder'}},states:[ent('sensor.kelder_warm_on_time','180',{unit_of_measurement:'min'})]},
+ almost:{config:{room:{entity:'sensor.zolder2_warm_on_time',name:'Zolder'}},states:[ent('sensor.zolder2_warm_on_time','179',{unit_of_measurement:'min'})]},
 };
 // Home Assistant's own colours (the same in its light and dark theme), its light and dark text and surfaces.
 const COLOURS='--state-climate-heat-color:#ff8100;--info-color:#039be5;--error-color:#db4437;--warning-color:#ffa600;--success-color:#43a047;'+
@@ -492,6 +495,13 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.deepEqual(await figures('none'),[['room',fill(W.warm,{room:'Zolder'}),W.no_warmup,true]]);
   assert.equal(await yesterday('none').locator('.value').evaluate(v=>v.classList.contains('unknown')),true);
   assert.deepEqual(await figures('long'),[['room',fill(W.warm,{room:'Hal'}),fill(W.late_hours,{h:'1',m:'12'}),true]]);
+  // 180 min is the firmware's "not warm within 3 hours": said in words, muted; 179 min is still a lateness.
+  assert.deepEqual(await figures('never'),[['room',fill(W.warm,{room:'Kelder'}),W.not_warm,true]]);
+  assert.equal(await yesterday('never').locator('.value').evaluate(v=>v.classList.contains('unknown')),true);
+  assert.deepEqual(await figures('almost'),[['room',fill(W.warm,{room:'Zolder'}),fill(W.late_hours,{h:'2',m:'59'}),true]]);
+  assert.equal(await yesterday('almost').locator('.value').evaluate(v=>v.classList.contains('unknown')),false);
+  if(lang==='nl')assert.equal(W.not_warm,'niet warm binnen 3 u');
+  if(lang==='pl')assert.equal(W.not_warm,'nie ciepło w ciągu 3 godz.');
   const ylook=await yesterday('full').evaluate(el=>{const r=el.shadowRoot,g=(q,k)=>getComputedStyle(r.querySelector(q))[k];
    return {size:g('.value','fontSize'),weight:g('.value','fontWeight'),value:g('.value','color'),label:g('.label','color'),
     boxes:[...r.querySelectorAll('.figure')].map(f=>{const b=f.getBoundingClientRect();return [b.x,b.y];}),

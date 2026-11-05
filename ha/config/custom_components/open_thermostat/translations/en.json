@@ -1698,7 +1698,8 @@
               "gas_estimate": "Gas today (estimate)",
               "no_warmup": "no warm-up yesterday",
               "late_hours": "{h} h {m} min late",
-              "early_hours": "{h} h {m} min early"
+              "early_hours": "{h} h {m} min early",
+              "not_warm": "not warm within 3 h"
             }
           }
         }

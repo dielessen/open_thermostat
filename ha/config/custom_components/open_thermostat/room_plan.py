@@ -516,7 +516,11 @@ class PlanRoomEntity(RoomEntity):
 
 
 class RoomStateSelect(PlanRoomEntity, SelectEntity):
+    """The room on or off. A setting (1.0.0rc7): the thermostat's Off/Auto does the same on the Overview."""
+
     _attr_options = ROOM_STATES
+    _attr_entity_category = EntityCategory.CONFIG
+    _unrecorded_attributes = frozenset({"revision"})  # changes with every plan save
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "state")
@@ -550,7 +554,9 @@ def until_datetime(room):
 
 
 class RoomInactiveUntil(PlanRoomEntity, DateTimeEntity):
-    """When an inactive room becomes active again (unknown: inactive without end, or active)."""
+    """When an inactive room becomes active again (unknown: inactive without end, or active). A setting."""
+
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "inactive_until")
@@ -584,6 +590,7 @@ class RoomFallbackSetpoint(PlanRoomEntity, NumberEntity):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_native_step = SETPOINT_STEP
     _attr_mode = NumberMode.BOX
+    _unrecorded_attributes = frozenset({"revision"})  # changes with every plan save
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "fallback_setpoint")

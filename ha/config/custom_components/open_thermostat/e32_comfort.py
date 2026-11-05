@@ -745,6 +745,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     _attr_preset_modes = PRESETS
     _attr_supported_features = (ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
                                 | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF)
+    # A translated sentence that changes with every step and message: shown, not kept in the history.
+    _unrecorded_attributes = frozenset({"smart_warm_up"})
 
     def __init__(self, hub, room, entry):
         self._attach_room(hub, room, "thermostat")

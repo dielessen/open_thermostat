@@ -1391,13 +1391,18 @@ class HeatRequestSensor(HubEntity, SensorEntity):
 
 
 class RoomTemperatureSensor(RoomEntity, SensorEntity):
+    """The room's temperature, or its target (``setpoint``: diagnostic, the thermostat shows it already)."""
+
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 1  # the E32 sends hundredths; the recorder keeps them
 
     def __init__(self, hub, room, key="temperature", low=-40, high=85):
         self._key, self._low, self._high = key, low, high
         self._attach_room(hub, room, key)
+        if key == "setpoint":
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self):
@@ -1415,6 +1420,8 @@ class RoomStatusSensor(RoomEntity, SensorEntity):
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = ROOM_STATUSES
+    _attr_entity_category = EntityCategory.DIAGNOSTIC  # Reason on the Overview says it in words
+    _unrecorded_attributes = frozenset({"revision"})  # changes with every plan save
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "status")
@@ -1669,6 +1676,7 @@ class BurnerStartsSensor(BurnerEntity, SensorEntity):
 
     _attr_translation_key = "burner_starts_last_hour"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, hub):
         self._attach(hub, "hub_burner_starts_last_hour")
@@ -1762,6 +1770,7 @@ class RoomLearningSensor(LearnedRoomEntity, SensorEntity):
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = LEARNING_STATES
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "learning")
@@ -1795,6 +1804,7 @@ class RoomFlowAdviceSensor(LearnedRoomEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 0
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     # These follow the room minute by minute: shown, not kept in the history.
     _unrecorded_attributes = frozenset({"now", "other_shortfalls"})
 
@@ -1830,6 +1840,7 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
     """When the E32 would start heating to reach the next higher setpoint on time, and tonight's options."""
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _unrecorded_attributes = frozenset({"night_strategies"})
 
     def __init__(self, hub, room):

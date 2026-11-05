@@ -62,7 +62,7 @@ Like the owner's (E32 in control, "active"): the living room (floor heating, a t
 Bluetooth thermometer) at 20.4 °C aiming at 21 °C after a window was open, two radiator rooms switched off; a
 Nefit EcomLine-type boiler on the EMS bus with the owner's field set (no pressure, no outdoor sensor, no
 counters, no DHW flow), heating at 41 °C to the floor and 33 °C back on a cold November evening; 14 burner
-starts and 2.0 m³ gas today; yesterday's scoreboard, what the E32 knows (78 %), a learned weather compensation
+starts and 2.0 m³ gas today; yesterday's scoreboard, what the E32 knows (88 %), a learned weather compensation
 line and the rc.5 telemetry (insight, free heat, boiler response). The documents follow the firmware's own
 shapes: `ha/tests_native/e32_telemetry.py` splits the status into topics (the test helper is loaded by path,
 `e32_split.py`) and the boiler fields use the integration's catalog (`boiler_fields.py`). Change the house there.

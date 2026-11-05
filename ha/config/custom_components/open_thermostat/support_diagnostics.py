@@ -129,9 +129,40 @@ def inputs(hass, entry, hub):
     header = hub.learned_header if hub is not None and hub.fresh else None
     # How the sending goes and whether the E32 accepts it (heating_link.HeatingInputWatch, P22).
     watch = getattr(hub, "input_watch", None) if hub is not None else None
+    forwarded = list((hub.status or {}).get("ha_entities") or []) if hub is not None else []
     return {"options": options, "entities": entities, "on_e32": learned_inputs(header),
-            "forwarded_room_entities": list((hub.status or {}).get("ha_entities") or []) if hub is not None else [],
+            "forwarded_room_entities": forwarded, "forwarded": forwarded_entities(hass, forwarded),
+            "comfort": comfort_configuration(entry),
             "heating_input": watch.diagnostics() if watch is not None else None}
+
+
+def forwarded_entities(hass, entity_ids):
+    """Per entity the E32's plan reads (rc.7, R2-23): does it exist (a state, a registry entry), its domain, its state,
+    how long ago Home Assistant last wrote it (``last_reported``, seconds) and whether the five-minute refresh sends
+    it (heating_link.input_payload: a deleted, renamed or unavailable source sends nothing)."""
+    from homeassistant.util import dt as dt_util
+    from .heating_link import input_payload
+    registry, now, unit = er.async_get(hass), dt_util.utcnow(), hass.config.units.temperature_unit
+    result = []
+    for entity_id in entity_ids:
+        state = hass.states.get(entity_id) if type(entity_id) is str else None
+        reported = getattr(state, "last_reported", None) if state is not None else None
+        result.append({"entity_id": entity_id, "domain": entity_id.split(".", 1)[0] if type(entity_id) is str else None,
+                       "in_states": state is not None,
+                       "in_registry": type(entity_id) is str and registry.async_get(entity_id) is not None,
+                       "state": state.state if state is not None else None,
+                       "last_reported_age_s": round((now - reported).total_seconds(), 1) if reported else None,
+                       "sent_on_refresh": input_payload(state, unit) is not None})
+    return result
+
+
+def comfort_configuration(entry):
+    """The comfort settings that decide what reaches the E32 besides the rooms (e32_comfort): the people of the house
+    and per room, the window and door sensors per room and the delays. Entity IDs and figures only, nothing secret."""
+    from .e32_comfort import comfort_options
+    settings = comfort_options(entry)
+    return {key: settings.get(key) for key in ("presence_entities", "away_delay_min", "room_persons", "contacts",
+                                               "contact_delay_s", "contact_delays", "override_minutes")}
 
 
 def entity_counts(hass, entry):

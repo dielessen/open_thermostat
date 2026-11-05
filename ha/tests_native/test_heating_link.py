@@ -269,7 +269,7 @@ NAMES = {
                "room_status": ("Control status", "Regelstatus"),
                "ble_temperature": ("Temperature", "Temperatuur"), "ble_humidity": ("Humidity", "Luchtvochtigheid"),
                "ble_battery": ("Battery", "Batterij"),
-               "heat_request": ("Boiler request (E32)", "Ketelvraag (E32)"),
+               "heat_request": ("Requested water temperature", "Gevraagde watertemperatuur"),
                "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur"),
                "room_learning": ("Learning status", "Leerstatus"),
                "room_flow_advice": ("Recommended water temperature", "Geadviseerde watertemperatuur"),
@@ -282,7 +282,7 @@ NAMES = {
                       "heating_problem": ("Heating problem", "Verwarmingsprobleem")},
     "select": {"room_state": ("Heating", "Verwarmen")},
     "datetime": {"room_inactive_until": ("Off until", "Uit tot")},
-    "number": {"room_fallback_setpoint": ("Temperature without Home Assistant", "Temperatuur zonder Home Assistant")},
+    "number": {"room_fallback_setpoint": ("Temperature without a week program", "Temperatuur zonder weekprogramma")},
 }
 
 
@@ -300,10 +300,40 @@ def test_entity_names_are_plain_glossary_names_in_both_languages():
     assert nl["sensor"]["room_status"]["state"] == {"ok": "In orde", "fallback": "Reservesensor in gebruik",
                                                     "stale": "Meting verouderd", "lost": "Sensor kwijt",
                                                     "inactive": "Uit",
-                                                    "window_open": "Raam open, verwarming gepauzeerd",
-                                                    "window_pending": "Raam open, pauzeert zo"}
+                                                    "window_open": "Raam of deur open, verwarming gepauzeerd",
+                                                    "window_pending": "Raam of deur open, pauzeert zo"}
     assert nl["select"]["room_state"]["state"] == {"active": "Aan", "inactive": "Uit"}
 
+
+
+def test_the_main_list_keeps_what_matters_and_the_rest_is_diagnostic():
+    """1.0.0rc7: a room's device page and Home Assistant's own Overview show the thermostat, Temperature, Heat
+    demand and Reason; on/off and "off until" are settings; the target (the thermostat shows it), the control
+    status, the learning figures and the E32's counters are diagnostic. Unique IDs stay."""
+    from homeassistant.const import EntityCategory
+    from custom_components.open_thermostat import heating_link as hl, insight, room_plan
+    from custom_components.open_thermostat.daily_summary import SummaryTotalSensor
+    hub, room = hl.HeatingHub("fixture"), {"id": "woonkamer", "name": "Woonkamer"}
+    summary = SimpleNamespace(hub=hub)
+    temperature, target = hl.RoomTemperatureSensor(hub, room), hl.RoomTemperatureSensor(hub, room, "setpoint", 5, 30)
+    assert (temperature.unique_id, target.unique_id) == ("fixture_e32_room_woonkamer_temperature",
+                                                         "fixture_e32_room_woonkamer_setpoint")
+    assert temperature.suggested_display_precision == 1 == target.suggested_display_precision  # not 20.37 °C
+    assert temperature.entity_category is None and hl.RoomDemandBinarySensor(hub, room).entity_category is None
+    for entity in (room_plan.RoomStateSelect(hub, room), room_plan.RoomInactiveUntil(hub, room),
+                   room_plan.RoomFallbackSetpoint(hub, room)):
+        assert entity.entity_category == EntityCategory.CONFIG, type(entity).__name__
+    for entity in (target, hl.RoomStatusSensor(hub, room), hl.RoomLearningSensor(hub, room),
+                   hl.RoomFlowAdviceSensor(hub, room), hl.RoomHeatingStartSensor(hub, room), hl.BurnerStartsSensor(hub),
+                   hl.HeatRequestSensor(hub), insight.KnowledgeSensor(hub), insight.BoilerResponseSensor(hub),
+                   *(SummaryTotalSensor(summary, key) for key in ("burner_s", "starts", "missed_s"))):
+        assert entity.entity_category == EntityCategory.DIAGNOSTIC, type(entity).__name__
+    assert hl.BoilerActivitySensor(hub).entity_category is None
+    # Recorded attributes that change with every plan save or message are left out of the history.
+    for cls in (hl.RoomStatusSensor, room_plan.RoomStateSelect, room_plan.RoomFallbackSetpoint):
+        assert "revision" in cls._unrecorded_attributes, cls.__name__
+    from custom_components.open_thermostat.e32_comfort import E32RoomClimate
+    assert "smart_warm_up" in E32RoomClimate._unrecorded_attributes
 
 def test_icons_cover_the_entities_and_services():
     import re
@@ -403,11 +433,14 @@ def test_shadow_sensor_names_are_translated():
     for name in ("strings.json", "translations/nl.json"):
         sensor = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]["sensor"]
         names[name] = [sensor["shadow_" + key]["name"] for key in SHADOW_SENSORS]
-    assert names["strings.json"] == ["Heating time today (E32)", "Heating time today (thermostat)",
-                                     "Burner starts today (E32)", "Burner starts today (thermostat)",
+    # 1.0.0rc7: who counted first, the trial run last (NL 'proef': names stay within 45 characters).
+    assert names["strings.json"] == ["E32 heating time today (trial run)", "Thermostat heating time today (trial run)",
+                                     "E32 burner starts today (trial run)", "Thermostat burner starts today (trial run)",
                                      "Agreement with thermostat today"]
-    assert names["translations/nl.json"] == ["Stooktijd vandaag (E32)", "Stooktijd vandaag (thermostaat)",
-                                             "Branderstarts vandaag (E32)", "Branderstarts vandaag (thermostaat)",
+    assert names["translations/nl.json"] == ["E32-verwarmingstijd vandaag (proef)",
+                                             "Thermostaat-verwarmingstijd vandaag (proef)",
+                                             "E32-branderstarts vandaag (proef)",
+                                             "Thermostaat-branderstarts vandaag (proef)",
                                              "Overeenstemming met thermostaat vandaag"]
 
 

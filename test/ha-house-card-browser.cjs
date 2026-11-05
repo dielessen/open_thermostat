@@ -8,8 +8,15 @@
 // tooltips, spoken sentence, hours and "now"; a card with one entity and a card without data. Then the reads: Home
 // Assistant only, the history again only after a change and 5 minutes, the statistics every 10, nothing after the card
 // left the page. The same module's Yesterday figures (the Learning view): four sensors two by two, 22 px bold, a tap
-// shows a figure's history. English, Dutch and Polish; light and dark; desktop, phone and a narrow phone (no sideways
-// scroll). Screenshots go to the evidence directory for the visual check.
+// shows a figure's history. HA 1.0.0rc7, the rest of the desktop sketch: the band's burner power and display code
+// ("burner 37 % · code -H", on its right before the chip on a wide card, under the words on a phone, white at 4.5:1),
+// the hot water's temperature and the starts in the last hour under their figures; nothing for an entity that is missing
+// or has no value. English, Dutch and Polish; light and dark; desktop, phone and a narrow phone (no sideways scroll).
+// R3 review: the room line names a target once; the trial run says what the E32 would ask (grey band); a holiday or a
+// temporary end beyond today says "tomorrow" or its date; the gas estimate is named and the sensors' own figures stand
+// in for failing statistics; the hot water words of the glossary, "running now" only for a tap; an imperial flow in °F;
+// Yesterday says "no warm-up yesterday" and an hour or more in hours.
+// Screenshots go to the evidence directory for the visual check.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),component=path.join(root,'ha/config/custom_components/open_thermostat');
@@ -23,11 +30,13 @@ function resources(lang){
  return flat;
 }
 const NB=String.fromCharCode(160);  // between a figure and its unit
-// The card keeps a figure and its unit together (a no-break space before °C, m³ and kWh).
-const fill=(text,values={})=>text.replace(/\{(\w+)\}/g,(all,k)=>k in values?values[k]:all).replace(/ (°C|m³|kWh)/g,NB+'$1');
+// The card keeps a figure and its unit together (a no-break space before °C, m³, kWh and %).
+const fill=(text,values={})=>text.replace(/\{(\w+)\}/g,(all,k)=>k in values?values[k]:all).replace(/ (°C|m³|kWh|%)/g,NB+'$1');
 // Wednesday 4 November 2026, 14:30 in Amsterdam (UTC+1, no clock change in the last 8 days).
 const NOW=Date.parse('2026-11-04T13:30:00Z'),MIDNIGHT=Date.parse('2026-11-03T23:00:00Z'),DAY=86400000,MIN=60000;
 const at=(h,m=0)=>MIDNIGHT+(h*60+m)*MIN;
+// Saturday 14 November 14:30 (ten days on) and tomorrow 7:00, in Amsterdam.
+const HOLIDAY_END=at(14,30)+10*DAY,TOMORROW_7=at(7)+DAY;
 // The boiler until 12:40: heating twice in the morning with a tap in between, keeping warm, a tap, heating at noon.
 const DAYLOG=[['idle',0,0],['heating',5,40],['tapping',6,55],['heating',6,58],['idle',7,30],['keep_warm',8,10],['idle',8,25],
  ['tapping',11,0],['idle',11,2],['heating',12,0],['idle',12,40]];
@@ -37,6 +46,10 @@ const history=(...more)=>[...DAYLOG.map(([s,h,m])=>({s,lu:at(h,m)/1000})),...mor
 const WEEK={'sensor.gas_heating':[2.3,2.1,2.6,1.9,2.4,3.0,2.2,1.2],'sensor.gas_hot_water':[0.4,0.5,0.4,0.6,0.5,0.4,0.5,0.3],
  'sensor.burner_starts':[17,18,22,15,20,25,19,11]};
 const TODAY={'sensor.gas_heating':1.6,'sensor.gas_hot_water':0.4,'sensor.burner_starts':14};
+// Total-increasing sensors for which Home Assistant answers "today" with the running total (no sum before midnight, as
+// the demo once did just after a restart: 28.6 m³ and 173 starts); the 7-day read has the true daily rows.
+WEEK['sensor.gas_total']=[2.3,2.1,2.6,1.9,2.4,3.0,2.2,2.0];WEEK['sensor.starts_total']=[17,18,22,15,20,25,19,14];
+TODAY['sensor.gas_total']=28.6;TODAY['sensor.starts_total']=173;
 const SPARK=[2.6,3.0,2.5,2.9,3.4,2.7,2.0],AVERAGE=(2.7+2.6+3.0+2.5+2.9+3.4+2.7)/7;
 const ROOMS=[{id:'woonkamer',name:'Woonkamer',temperature:20.4,setpoint:21},{id:'badkamer',name:'Badkamer',temperature:18.9,setpoint:15}];
 const rooms=(...wanting)=>ROOMS.map(r=>({...r,demand:wanting.includes(r.id)}));
@@ -49,11 +62,14 @@ const GAS=['sensor.gas_heating','sensor.gas_hot_water'],M3={unit_of_measurement:
 const CARDS={
  heating:{config:{request:'sensor.req_heating',activity:'sensor.activity_heating',heating:'sensor.ch_heating',flow:'sensor.flow',
    hot_water:'sensor.dhw_heating',taps:'sensor.taps_heating',gas:GAS,starts:'sensor.burner_starts',mode:'select.house_mode',
-   problem:'binary_sensor.problem_heating',rooms:[{entity:'sensor.woonkamer_reason',name:'Woonkamer'}]},
+   problem:'binary_sensor.problem_heating',rooms:[{entity:'sensor.woonkamer_reason',name:'Woonkamer'}],
+   modulation:'sensor.modulation',code:'sensor.display_code',dhw:'sensor.dhw_temperature',starts_hour:'sensor.starts_last_hour'},
   states:[ent('sensor.req_heating',45,{rooms:rooms('woonkamer'),mode:'shadow'}),ent('sensor.activity_heating','heating',{},at(14,5)),
    ent('sensor.ch_heating','on'),ent('sensor.flow','41.3',{unit_of_measurement:'°C'}),ent('sensor.dhw_heating','off'),ent('sensor.taps_heating','3'),
-   ent('sensor.gas_heating','1234.56',M3),ent('sensor.gas_hot_water','321.04',M3),ent('sensor.burner_starts','2088'),ent('select.house_mode','auto'),
-   ent('binary_sensor.problem_heating','off'),ent('sensor.woonkamer_reason','warm_up',{room_id:'woonkamer',line:'warm_up',
+   ent('sensor.gas_heating','1234.56',M3),ent('sensor.gas_hot_water','321.04',{...M3,estimate:true}),ent('sensor.burner_starts','2088'),ent('select.house_mode','auto'),
+   ent('binary_sensor.problem_heating','off'),ent('sensor.modulation','37.4',{unit_of_measurement:'%'}),
+   ent('sensor.display_code','-H',{meaning:'Heating',severity:'normal',cause:200}),ent('sensor.dhw_temperature','64.6',{unit_of_measurement:'°C'}),
+   ent('sensor.starts_last_hour','1'),ent('sensor.woonkamer_reason','warm_up',{room_id:'woonkamer',line:'warm_up',
     values:{time:new Date(at(17)).toISOString(),target:21},temperature:20.4,setpoint:21,presence:'room_home',window:null})],
   history:history(['heating',at(14,5)])},
  water:{config:{request:'sensor.req_water',activity:'sensor.activity_water',heating:'sensor.ch_water',flow:'sensor.flow',hot_water:'sensor.dhw_water',
@@ -62,23 +78,51 @@ const CARDS={
    ent('sensor.dhw_water','on'),ent('sensor.taps_water','4'),ent('select.house_mode_home','home'),ent('binary_sensor.problem_water','off')],
   history:history(['tapping',at(14,25)])},
  idle:{config:{request:'sensor.req_idle',activity:'sensor.activity_idle',taps:'sensor.taps_idle',gas:GAS,starts:'sensor.burner_starts',
-   mode:'select.house_mode'},
-  states:[ent('sensor.req_idle',38,{rooms:rooms('woonkamer','badkamer')}),ent('sensor.activity_idle','idle',{},at(12,40)),ent('sensor.taps_idle','0')],
+   mode:'select.house_mode',code:'sensor.code_idle',starts_hour:'sensor.starts_hour_idle'},
+  states:[ent('sensor.req_idle',38,{rooms:rooms('woonkamer','badkamer'),mode:'shadow'}),ent('sensor.activity_idle','idle',{},at(12,40)),ent('sensor.taps_idle','0'),
+   ent('sensor.code_idle','--',{meaning:'No code'}),ent('sensor.starts_hour_idle','0')],
   history:history()},
  problem:{config:{request:'sensor.req_problem',activity:'sensor.activity_problem',flow:'sensor.flow',taps:'sensor.taps_heating',gas:GAS,
-   starts:'sensor.burner_starts',mode:'select.house_mode_away',problem:'binary_sensor.problem'},
+   starts:'sensor.burner_starts',mode:'select.house_mode_away',problem:'binary_sensor.problem',modulation:'sensor.modulation_problem',
+   code:'sensor.code_problem'},
   states:[ent('sensor.req_problem',45,{rooms:rooms('woonkamer')}),ent('sensor.activity_problem','heating',{},at(14,5)),
+   ent('sensor.modulation_problem','0'),ent('sensor.code_problem','3L',{meaning:'Ignition failed',severity:'lockout',cause:214}),
    ent('select.house_mode_away','away'),ent('binary_sensor.problem','on',{reason:'Waiting for your confirmation (+1)',reasons:REASONS,problems:['a','b']})],
   history:history(['heating',at(14,5)])},
  partial:{config:{request:'sensor.req_partial'},states:[ent('sensor.req_partial',45,{rooms:rooms('badkamer')})],history:[]},
  unknown:{config:{request:'sensor.req_unknown',activity:'sensor.activity_unknown',heating:'sensor.ch_unknown',taps:'sensor.taps_unknown',
-   gas:['sensor.gas_unknown'],starts:'sensor.starts_unknown',mode:'select.house_mode'},
+   gas:['sensor.gas_unknown'],starts:'sensor.starts_unknown',mode:'select.house_mode',modulation:'sensor.mod_unknown',code:'sensor.code_unknown',
+   dhw:'sensor.dhw_unknown',starts_hour:'sensor.hour_unknown'},
   states:[ent('sensor.req_unknown','unavailable'),ent('sensor.activity_unknown','unknown'),ent('sensor.ch_unknown','unavailable'),
-   ent('sensor.taps_unknown','unknown'),ent('sensor.gas_unknown','unknown',M3),ent('sensor.starts_unknown','unknown')],history:[]},
+   ent('sensor.taps_unknown','unknown'),ent('sensor.gas_unknown','unknown',M3),ent('sensor.starts_unknown','unknown'),
+   ent('sensor.mod_unknown','unavailable'),ent('sensor.code_unknown','unknown'),ent('sensor.dhw_unknown','unavailable'),
+   ent('sensor.hour_unknown','unknown')],history:[]},
  first:{config:{request:'sensor.req_first',activity:'sensor.activity_first',heating:'sensor.ch_first',taps:'sensor.taps_first',
    gas:['sensor.gas_new'],starts:'sensor.starts_new'},
   states:[ent('sensor.req_first',0,{rooms:rooms()}),ent('sensor.activity_first','idle',{},at(9,12)),ent('sensor.ch_first','off'),
    ent('sensor.taps_first','1'),ent('sensor.gas_new','0.0',M3),ent('sensor.starts_new','0')],history:[{s:'idle',lu:at(9,12)/1000}]},
+ // The trial run with the request alone (no boiler activity or bits): grey, what the E32 would ask.
+ shadow_only:{config:{request:'sensor.req_shadow'},states:[ent('sensor.req_shadow',40,{rooms:rooms(),mode:'shadow'})],history:[]},
+ // The hot water tank heated: hot water's colour, the activity's own words, no "running now" (no tap is open).
+ charging:{config:{request:'sensor.req_first',activity:'sensor.activity_charging',taps:'sensor.taps_first'},
+  states:[ent('sensor.activity_charging','charging',{},at(14,0))],history:history(['charging',at(14,0)])},
+ // An imperial Home Assistant: the water in °F, as the flow sensor says.
+ imperial:{config:{request:'sensor.req_first',activity:'sensor.activity_imperial',flow:'sensor.flow_f'},
+  states:[ent('sensor.activity_imperial','heating',{},at(14,5)),ent('sensor.flow_f','106',{unit_of_measurement:'°F'})],
+  history:history(['heating',at(14,5)])},
+ // Statistics that fail (a recorder without these sensors): the gas sensor's own today and last 7 days, an estimate.
+ nostats:{config:{request:'sensor.req_first',gas:['sensor.gas_attr']},
+  states:[ent('sensor.gas_attr','512.3',{...M3,estimate:true,today:1.4,last_7_days:13.4})],history:[]},
+ // Today answered with the running total: the day's change from the 7-day read instead (2.0 m³, 14 starts).
+ cumulative:{config:{request:'sensor.req_first',gas:['sensor.gas_total'],starts:'sensor.starts_total'},
+  states:[ent('sensor.gas_total','1234.5',M3),ent('sensor.starts_total','2088')],history:[]},
+ // A room on holiday for 10 more days, and one held until tomorrow morning: the date, and "tomorrow".
+ holiday:{config:{request:'sensor.req_first',rooms:[{entity:'sensor.hal_reason',name:'Hal'}]},
+  states:[ent('sensor.hal_reason','holiday',{room_id:'hal',line:'holiday',values:{until:new Date(HOLIDAY_END).toISOString(),target:15},
+   temperature:15.3,setpoint:15,presence:null,window:null})],history:[]},
+ temporary:{config:{request:'sensor.req_first',rooms:[{entity:'sensor.zolder_reason',name:'Zolder'}]},
+  states:[ent('sensor.zolder_reason','temporary',{room_id:'zolder',line:'temporary_until',values:{until:new Date(TOMORROW_7).toISOString(),
+   target:22},temperature:20.1,setpoint:22,presence:null,window:null})],history:[]},
 };
 // The Learning view's Yesterday figures: the four sensors; a room late with one figure not known; a room on time alone.
 const YESTERDAY={
@@ -91,6 +135,9 @@ const YESTERDAY={
   states:[ent('sensor.badkamer_warm_on_time','12.4',{unit_of_measurement:'min'}),ent('sensor.starts_per_hour_unknown','unknown')]},
  on_time:{config:{room:{entity:'sensor.slaapkamer_warm_on_time',name:'Slaapkamer'}},
   states:[ent('sensor.slaapkamer_warm_on_time','0.3',{unit_of_measurement:'min'})]},
+ // No warm-up yesterday (the sensor unknown: the room off, away or on holiday), and a warm-up 72 minutes late.
+ none:{config:{room:{entity:'sensor.zolder_warm_on_time',name:'Zolder'}},states:[ent('sensor.zolder_warm_on_time','unknown')]},
+ long:{config:{room:{entity:'sensor.hal_warm_on_time',name:'Hal'}},states:[ent('sensor.hal_warm_on_time','72.4',{unit_of_measurement:'min'})]},
 };
 // Home Assistant's own colours (the same in its light and dark theme), its light and dark text and surfaces.
 const COLOURS='--state-climate-heat-color:#ff8100;--info-color:#039be5;--error-color:#db4437;--warning-color:#ffa600;--success-color:#43a047;'+
@@ -149,6 +196,7 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
    // Home Assistant's websocket: history and statistics as the recorder answers them (each call recorded).
    const callWS=async msg=>{calls.push(JSON.parse(JSON.stringify(msg)));
     if(msg.type==='history/history_during_period')return {[msg.entity_ids[0]]:histories[msg.entity_ids[0]]||[]};
+    if(JSON.stringify(msg).includes('sensor.gas_attr'))throw new Error('no statistics for this sensor');
     if(msg.type==='recorder/statistics_during_period')return Object.fromEntries(msg.statistic_ids.filter(id=>week[id])
      .map(id=>[id,week[id].map((change,i)=>({start:midnight-(7-i)*86400000,end:midnight-(6-i)*86400000,change}))]));
     if(msg.type==='recorder/statistic_during_period')return msg.statistic_id in today?{change:today[msg.statistic_id]}:{};
@@ -175,7 +223,7 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.equal(await heating.locator('.status').getAttribute('data-status'),'heat');
   assert.equal(await heating.locator('.status .line').textContent(),fill(W.status_heating,{flow:'41'}));
   // The living room is in the card: the request without "1 room wants heat" (the room says it itself).
-  assert.equal(await heating.locator('.status .sub').textContent(),fill(W.request,{flow:'45'}));
+  assert.equal(await heating.locator('.status .sub').textContent(),fill(W.would_ask,{flow:'45'}));  // the trial run
   assert.equal(await heating.locator('.chip span').textContent(),modeWord('auto'));
   assert.equal(await heating.locator('.chip').getAttribute('aria-label'),fill(W.mode,{mode:modeWord('auto')}));
   // The band says the boiler heats: no Heating figure under it (as the sketch).
@@ -185,7 +233,8 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   // As the sketch: the temperature large with its unit small, its target and why under it.
   assert.equal(await room.locator('.value').textContent(),n(20.4,1)+NB+'°C');
   assert.deepEqual(await room.locator('.value > span').evaluateAll(s=>s.map(x=>[x.className,x.textContent])),[['num',n(20.4,1)],['unit',NB+'°C']]);
-  assert.equal(await room.locator('.why').textContent(),fill(W.target,{t:'21'})+' · '+
+  // The warm-up's sentence carries its own target: no "target 21 °C" in front of it (a figure said once).
+  assert.equal(await room.locator('.why').textContent(),
    fill(words['component.open_thermostat.entity.sensor.room_reason.state_attributes.line.state.warm_up'],{time:'17:00',target:'21'}));
   assert.equal(await room.locator('[data-presence]').getAttribute('aria-label'),
    words['component.open_thermostat.entity.sensor.room_reason.state_attributes.presence.state.room_home']);
@@ -196,8 +245,33 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.equal(await value('gas'),n(2,1)+NB+'m³');
   assert.equal(await heating.locator('[data-average]').textContent(),fill(W.per_day,{n:'7',value:n(AVERAGE,1)+' m³'}));
   assert.equal(await value('starts'),'14');
+  // HA 1.0.0rc7, the desktop sketch: "burner 37 % · code -H" on the band (the code's meaning in its tooltip), "water 65 °C"
+  // under the taps and "1 in the last hour" under today's starts.
+  const boiler=heating.locator('[data-boiler]');
+  assert.equal(await boiler.textContent(),fill(W.burner,{n:'37'})+' · '+fill(W.code,{code:'-H'}));
+  assert.deepEqual([await boiler.locator('[data-power]').textContent(),await boiler.locator('[data-code]').textContent()],
+   [fill(W.burner,{n:'37'}),fill(W.code,{code:'-H'})]);
+  assert.equal(await boiler.getAttribute('title'),'Heating');
+  assert.equal(await heating.locator('[data-figure="hot_water"] [data-dhw]').textContent(),fill(W.water,{t:'65'}));
+  assert.equal(await heating.locator('[data-figure="starts"] [data-last-hour]').textContent(),fill(W.last_hour,{n:'1'}));
+  // Where the words stand: on a wide card on the band's right, before the house mode chip, in one row with the words; on a
+  // phone under the words (indented as they are), the chip still beside them.
+  const place=await heating.evaluate(el=>{const r=el.shadowRoot,b=q=>r.querySelector(q).getBoundingClientRect();
+   return {main:b('.status .main'),words:b('.status .words'),boiler:b('.status .boiler'),chip:b('.status .chip'),band:b('.status'),
+    size:getComputedStyle(r.querySelector('.status .boiler')).fontSize};});
+  if(width>=1000){
+   assert(place.boiler.left>=place.main.right&&place.boiler.right<=place.chip.left,'burner and code between the words and the chip');
+   assert(place.boiler.top<place.main.bottom&&place.boiler.bottom>place.main.top&&place.chip.top<place.main.bottom,'one row');
+   assert.equal(place.size,'13px');
+  }else{
+   assert(place.boiler.top>=place.main.bottom-1,'under the words on a phone');
+   assert(Math.abs(place.boiler.left-place.words.left)<1,'indented as the words');
+   if(width>=380)assert(place.chip.left>=place.main.right&&place.chip.top<place.main.bottom,'the chip beside the words, as in rc.5');
+   assert.equal(place.size,'12px');
+  }
+  assert(place.boiler.right<=place.band.right+0.5&&place.boiler.bottom<=place.band.bottom+0.5,'inside the band');
   assert.deepEqual(await heating.locator('.figure .label').evaluateAll(l=>l.map(x=>(x.querySelector('span')||x).textContent)),
-   ['Woonkamer',W.hot_water,W.gas_today,W.starts_today]);
+   ['Woonkamer',W.hot_water,W.gas_estimate,W.starts_today]);  // without a gas meter: an estimate, named
   // The sparkline beside the gas: 7 days, a 2 px line in the heating hue scaled to its own range; today (a day still
   // running) joins it lighter and is the end dot (r 3); no grid.
   const spark=heating.locator('svg.spark');
@@ -274,10 +348,10 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.notEqual(look.keep,look.water,'keeping warm is the lighter hot-water colour');
   // Every band, in every tone: the theme's colour, its words white and readable; the ratios go into the evidence.
   const bands=await page.locator('openthermostat-house').evaluateAll(cards=>cards.map(c=>{const s=c.shadowRoot.querySelector('.status'),chip=s.querySelector('.chip');
-   return {name:c.dataset.card,tone:s.dataset.status,bg:getComputedStyle(s).backgroundColor,words:[...s.querySelectorAll('.line,.sub')].map(t=>getComputedStyle(t).color),
+   return {name:c.dataset.card,tone:s.dataset.status,bg:getComputedStyle(s).backgroundColor,words:[...s.querySelectorAll('.line,.sub,.boiler')].map(t=>getComputedStyle(t).color),
     chip:chip?[getComputedStyle(chip).color,getComputedStyle(chip).backgroundColor]:null};}));
   assert.equal(new Set(bands.map(b=>b.name)).size,Object.keys(CARDS).length);
-  assert.deepEqual(bands.map(b=>b.tone),['heat','water','rest','error','heat','wait','rest']);
+  assert.deepEqual(bands.map(b=>b.tone),['heat','water','rest','error','heat','wait','rest','rest','keep','heat','rest','rest','rest','rest']);
   for(const b of bands){
    for(const fg of b.words)assert(fg===WHITE&&contrast(fg,b.bg)>=4.5,`${b.name}: contrast ${fg} on ${b.bg}: ${contrast(fg,b.bg).toFixed(2)}`);
    if(b.chip)assert(contrast(b.chip[0],over(b.chip[1],b.bg))>=4.5,`${b.name}: the chip`);
@@ -298,11 +372,12 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   // 2. Hot water now: a blue band with the activity's own word, "running now"; no heating figure; the strip ends in hot water.
   const water=card('water');
   assert.equal(await water.locator('.status').getAttribute('data-status'),'water');
-  assert.equal(await water.locator('.status .line').textContent(),activityWord('tapping'));
+  assert.equal(await water.locator('.status .line').textContent(),W.tap_open);  // the glossary's words
   assert.equal(await water.locator('.status .sub').count(),0);
   assert.equal(await water.locator('.chip span').textContent(),modeWord('home'));
   assert.equal(await water.locator('[data-figure="hot_water"] .value').textContent(),fill(W.taps,{n:'4'}));
   assert.equal(await water.locator('[data-running]').textContent(),W.running);
+  assert.equal(await water.locator('[data-boiler],[data-dhw],[data-last-hour]').count(),0,'not in the config: not shown');
   assert.deepEqual(await water.locator('.figure').evaluateAll(f=>f.map(x=>[x.dataset.figure,x.classList.contains('p2')])),
    [['hot_water',false],['gas',false],['starts',true]]);
   assert.deepEqual(await water.locator('.seg').evaluateAll(s=>s.slice(-2).map(x=>[x.dataset.kind,x.title])),
@@ -311,9 +386,11 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   const idle=card('idle');
   assert.equal(await idle.locator('.status').getAttribute('data-status'),'rest');
   assert.equal(await idle.locator('.status .line').textContent(),W.idle);
-  assert.equal(await idle.locator('.status .sub').textContent(),fill(W.wants,{n:'2'})+' · '+fill(W.request,{flow:'38'}));
+  assert.equal(await idle.locator('.status .sub').textContent(),fill(W.wants,{n:'2'})+' · '+fill(W.would_ask,{flow:'38'}));
   assert.equal(await idle.locator('[data-figure="hot_water"] .value').textContent(),W.taps_none);
   assert.deepEqual(await idle.locator('.figure').evaluateAll(f=>f.map(x=>x.dataset.figure)),['hot_water','gas','starts']);
+  assert.equal(await idle.locator('[data-boiler]').count(),0,'no display code ("--") and no burner power: no words');
+  assert.equal(await idle.locator('[data-last-hour]').textContent(),fill(W.last_hour,{n:'0'}));
   // 4. A problem wins: a red band, its reason, all reasons inside; a tap (or Enter) opens Repairs; the chip its own dialog.
   // The band cannot say what the boiler does now, so the Heating figure does.
   const problem=card('problem'),strip=problem.locator('.status'),link=strip.locator('.main');
@@ -325,6 +402,9 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.equal(await heating.locator('.status [role=link]').count(),0,'a link only while there is a problem');
   assert.deepEqual(await problem.locator('.figure').evaluateAll(f=>f.map(x=>x.dataset.figure)),['heating','hot_water','gas','starts']);
   assert.equal(await problem.locator('[data-figure="heating"] .value').textContent(),fill(W.heating_on,{flow:'41'}));
+  assert.equal(await problem.locator('[data-boiler]').textContent(),fill(W.burner,{n:'0'})+' · '+fill(W.code,{code:'3L 214'}));
+  assert.equal(await problem.locator('[data-boiler]').getAttribute('title'),'Ignition failed');
+  assert.equal(await problem.locator('.main [data-boiler]').count(),0,'not part of the link to Repairs');
   assert.equal(await problem.locator('.reasons summary').textContent(),W.all_reasons);
   assert.equal(await problem.locator('.reasons').evaluate(d=>d.open),false);
   assert.deepEqual(await problem.locator('.reasons li').allTextContents(),REASONS);
@@ -353,6 +433,7 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   const unknown=card('unknown');
   assert.deepEqual([await unknown.locator('.status').getAttribute('data-status'),await unknown.locator('.status .line').textContent()],['wait',W.waiting]);
   assert.deepEqual(await unknown.locator('.figure .value').allTextContents(),['—','—','—']);
+  assert.equal(await unknown.locator('[data-boiler],[data-dhw],[data-last-hour]').count(),0,'without a value: nothing');
   assert.equal(await unknown.locator('.spark').count(),0);assert.equal(await unknown.locator('.today').count(),0);
   assert.equal(await unknown.locator('[data-average]').count(),0);
   // 7. The first day: no statistics yet, so "—", no sparkline and no average day; the strip starts where the history does.
@@ -361,6 +442,40 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.equal(await first.locator('.spark').count(),0);assert.equal(await first.locator('[data-average]').count(),0);
   assert.deepEqual(await first.locator('.seg').evaluateAll(s=>s.map(x=>[x.dataset.kind,x.title])),[['rest',W.idle+' 09:12–14:30']]);
   assert.equal(await first.locator('[data-figure="hot_water"] .value').textContent(),W.taps_one);
+
+  // R3 review. The trial run with the request alone: grey, what the E32 would ask, never "Boiler request".
+  const shadow=card('shadow_only');
+  assert.deepEqual([await shadow.locator('.status').getAttribute('data-status'),await shadow.locator('.status .line').textContent(),
+   await shadow.locator('.status .sub').count()],['rest',fill(W.would_ask,{flow:'40'}),0]);
+  // The tank heated: the activity's own words, no "running now".
+  const charging=card('charging');
+  assert.equal(await charging.locator('.status .line').textContent(),activityWord('charging'));
+  assert.equal(await charging.locator('[data-running]').count(),0);
+  // Imperial: the water in the flow sensor's °F.
+  assert.equal(await card('imperial').locator('.status .line').textContent(),fill(W.status_heating,{flow:'106'}).replace('°C','°F'));
+  // Failing statistics: the gas sensor's own today and the 6 whole days before it, named an estimate.
+  const nostats=card('nostats');
+  await nostats.locator('[data-average]').waitFor();
+  assert.deepEqual([await nostats.locator('[data-figure="gas"] .label').textContent(),await nostats.locator('[data-figure="gas"] .value').textContent(),
+   await nostats.locator('[data-average]').textContent(),await nostats.locator('.spark').count()],
+   [W.gas_estimate,n(1.4,1)+NB+'m³',fill(W.per_day,{n:'6',value:n(2,1)+' m³'}),0]);
+  // Today answered with the running total of a total-increasing sensor: never shown as today's figure; the day's own
+  // row, and the line of daily values (no cumulative rise at its end).
+  const cumulative=card('cumulative');
+  await cumulative.locator('.spark').waitFor();
+  assert.deepEqual(await cumulative.locator('[data-figure="gas"] .value, [data-figure="starts"] .value').allTextContents(),
+   [n(2,1)+NB+'m³','14']);
+  assert.equal(await cumulative.locator('svg.spark').getAttribute('aria-label'),
+   fill(W.week,{values:[2.1,2.6,1.9,2.4,3.0,2.2,2.0].map(v=>n(v,1)).join('; ')+NB+'m³'}));
+  // A holiday ten days on ends on a date; a temporary target tomorrow morning says "tomorrow"; neither repeats its target.
+  const line=key=>words['component.open_thermostat.entity.sensor.room_reason.state_attributes.line.state.'+key];
+  const [far,tomorrow]=await page.evaluate(([end,next,lang])=>[
+   new Date(end).toLocaleString(lang,{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Amsterdam'}),
+   new Intl.RelativeTimeFormat(lang,{numeric:'auto'}).format(1,'day')+' '+
+    new Date(next).toLocaleTimeString(lang,{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Amsterdam'})],[HOLIDAY_END,TOMORROW_7,lang]);
+  assert.match(far,/14/,'the date');
+  assert.equal(await card('holiday').locator('.why').textContent(),fill(line('holiday'),{until:far,target:'15'}));
+  assert.equal(await card('temporary').locator('.why').textContent(),fill(line('temporary_until'),{until:tomorrow,target:'22'}));
 
   // 8. Yesterday in figures (the Learning view), as the sketch: two by two, the label small and muted, the value 22 px bold.
   const yesterday=name=>page.locator(`openthermostat-yesterday[data-card="${name}"]`);
@@ -373,6 +488,10 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.deepEqual(await figures('late'),[['room',fill(W.warm,{room:'Badkamer'}),fill(W.late,{m:'12'}),false],
    ['starts',sensorName('burner_starts_per_heating_hour'),'—',false],['gas',sensorName('heating_gas_yesterday'),n(18.2,1)+NB+'kWh',true]]);
   assert.deepEqual(await figures('on_time'),[['room',fill(W.warm,{room:'Slaapkamer'}),W.on_time,true]]);
+  // No warm-up yesterday in words, muted (not "—" under "was warm"); 72 minutes as an hour and 12 minutes.
+  assert.deepEqual(await figures('none'),[['room',fill(W.warm,{room:'Zolder'}),W.no_warmup,true]]);
+  assert.equal(await yesterday('none').locator('.value').evaluate(v=>v.classList.contains('unknown')),true);
+  assert.deepEqual(await figures('long'),[['room',fill(W.warm,{room:'Hal'}),fill(W.late_hours,{h:'1',m:'12'}),true]]);
   const ylook=await yesterday('full').evaluate(el=>{const r=el.shadowRoot,g=(q,k)=>getComputedStyle(r.querySelector(q))[k];
    return {size:g('.value','fontSize'),weight:g('.value','fontWeight'),value:g('.value','color'),label:g('.label','color'),
     boxes:[...r.querySelectorAll('.figure')].map(f=>{const b=f.getBoundingClientRect();return [b.x,b.y];}),
@@ -394,7 +513,7 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   // Phone width first: nothing scrolls sideways, no figure or line is cut off.
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
   const cut=await page.locator('openthermostat-house,openthermostat-yesterday').evaluateAll(cards=>cards.flatMap(c=>[...c.shadowRoot.querySelectorAll(
-   '.figure,.status,.strip,.today,.words,.value,.trend')].filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>c.dataset.card+' '+x.className)));
+   '.figure,.status,.strip,.today,.words,.value,.trend,.boiler')].filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>c.dataset.card+' '+x.className)));
   assert.deepEqual(cut,[]);
   await page.mouse.click(2,2);  // the screenshots without a keyboard focus ring
   await page.screenshot({path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});

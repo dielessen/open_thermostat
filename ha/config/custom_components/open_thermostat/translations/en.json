@@ -588,7 +588,7 @@
           "ble_sources": "Bluetooth sensors on the E32",
           "bluetooth_first": "Use the Bluetooth sensors first",
           "setpoint_entity": "Setting device (optional)",
-          "fallback_temperature": "Temperature without Home Assistant",
+          "fallback_temperature": "Temperature without a week program",
           "program": "Week program on the E32",
           "inactive_until": "Off until (optional)"
         },
@@ -619,7 +619,7 @@
           },
           "limits": {
             "name": "Temperature limits",
-            "description": "The target temperature, the temperature without Home Assistant and the program stay within these limits.",
+            "description": "The target temperature, the temperature without a week program and the program stay within these limits.",
             "data": {
               "minimum_temperature": "Minimum temperature",
               "maximum_temperature": "Maximum temperature"
@@ -1204,7 +1204,7 @@
       "e32_source_not_found": "{source} does not exist in Home Assistant.",
       "e32_source_not_celsius": "{source} does not report a temperature (°C or °F). Choose a temperature sensor.",
       "e32_source_no_temperature": "{source} reports no current temperature. Choose a thermostat that measures the room temperature, or a temperature sensor.",
-      "e32_limits_invalid": "Use limits between {range} with the minimum not above the maximum, and a temperature without Home Assistant within them.",
+      "e32_limits_invalid": "Use limits between {range} with the minimum not above the maximum, and a temperature without a week program within them.",
       "e32_program_invalid": "Line {line} of the week program could not be read: {text}. Use one line per group of days, for example mon-fri: 06:30 20.5; 22:30 18, and name each day in one line only.",
       "e32_program_too_many": "Line {line}: a day can have up to 6 switch points.",
       "e32_program_outside_limits": "Line {line}: a temperature is outside the room's temperature limits.",
@@ -1238,7 +1238,7 @@
       "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
       "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
       "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
-      "controller_room_plan_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
+      "controller_room_plan_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (the E32's Firmware update under Settings → Updates in Home Assistant, or System → Firmware update on the E32's web page), then try again. Nothing has been changed.",
       "controller_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
       "controller_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
       "controller_readback_unconfirmed": "The E32 did not send back its current room settings within 90 seconds, so this save is not confirmed. Check that the E32 is online and connected to the MQTT broker, then try again.",
@@ -1446,7 +1446,7 @@
         "name": "Connected"
       },
       "room_valve_problem": {
-        "name": "Valve problem"
+        "name": "Radiator valve problem"
       }
     },
     "number": {
@@ -1454,7 +1454,7 @@
         "name": "Radiator rated power"
       },
       "room_fallback_setpoint": {
-        "name": "Temperature without Home Assistant"
+        "name": "Temperature without a week program"
       },
       "away_temperature": {
         "name": "Temperature when nobody is home"
@@ -1490,8 +1490,8 @@
           "stale": "Measurement stale",
           "lost": "Sensor lost",
           "inactive": "Off",
-          "window_open": "Window open, heating paused",
-          "window_pending": "Window open, pausing soon"
+          "window_open": "Window or door open, heating paused",
+          "window_pending": "Window or door open, pausing soon"
         }
       },
       "room_reason": {
@@ -1598,6 +1598,16 @@
               "away": "Away",
               "holiday": "Holiday"
             }
+          },
+          "program": {
+            "name": "Week program",
+            "state": {
+              "comfort": "Comfort",
+              "eco": "Eco",
+              "night": "Night",
+              "holiday": "Holiday",
+              "step": "{level} until {time}, then {next}"
+            }
           }
         }
       },
@@ -1611,16 +1621,16 @@
         "name": "Battery"
       },
       "shadow_e32_heating_time_today": {
-        "name": "Heating time today (E32)"
+        "name": "E32 heating time today (trial run)"
       },
       "shadow_tado_heating_time_today": {
-        "name": "Heating time today (thermostat)"
+        "name": "Thermostat heating time today (trial run)"
       },
       "shadow_e32_starts_today": {
-        "name": "Burner starts today (E32)"
+        "name": "E32 burner starts today (trial run)"
       },
       "shadow_tado_starts_today": {
-        "name": "Burner starts today (thermostat)"
+        "name": "Thermostat burner starts today (trial run)"
       },
       "shadow_agreement_today": {
         "name": "Agreement with thermostat today"
@@ -1635,7 +1645,7 @@
         }
       },
       "heat_request": {
-        "name": "Boiler request (E32)",
+        "name": "Requested water temperature",
         "state_attributes": {
           "card": {
             "name": "Card",
@@ -1667,7 +1677,7 @@
               "legend_heating": "Heating",
               "legend_hot_water": "Hot water",
               "legend_keep_warm": "Keeping warm",
-              "waiting": "The E32 has not reported yet.",
+              "waiting": "The E32 is not reporting.",
               "now": "now",
               "warm": "{room} was warm",
               "early": "{m} min early",
@@ -1675,8 +1685,20 @@
               "on_time": "on time",
               "degree_days": "Degree-days",
               "target": "target {t} °C",
-              "per_day": "{n} days: {value} a day",
-              "today_since": "Today since midnight"
+              "per_day": "On average {value} a day (last {n} days)",
+              "today_since": "Today since midnight",
+              "burner": "burner {n} %",
+              "code": "code {code}",
+              "water": "water {t} °C",
+              "last_hour": "{n} in the last hour",
+              "would_ask": "E32 would ask {flow} °C",
+              "no_wish": "The E32 would not ask for heat",
+              "tap_open": "Hot water: tap open",
+              "keeping_warm": "Keeping hot water warm",
+              "gas_estimate": "Gas today (estimate)",
+              "no_warmup": "no warm-up yesterday",
+              "late_hours": "{h} h {m} min late",
+              "early_hours": "{h} h {m} min early"
             }
           }
         }
@@ -2244,7 +2266,7 @@
         "name": "What the thermostat learned"
       },
       "knowledge": {
-        "name": "Knowledge",
+        "name": "Known about your house",
         "state_attributes": {
           "missing": {
             "name": "Still to learn"
@@ -2408,7 +2430,7 @@
         "name": "RTC temperature"
       },
       "hub_cpu_temperature": {
-        "name": "ESP32 CPU temperature"
+        "name": "E32 temperature"
       },
       "hub_uptime": {
         "name": "Device uptime"
@@ -2489,22 +2511,22 @@
         "name": "Boiler display code"
       },
       "room_valve_position": {
-        "name": "Valve position"
+        "name": "Radiator valve position"
       },
       "room_valve_battery": {
-        "name": "Valve battery"
+        "name": "Radiator valve battery"
       },
       "daily_summary": {
         "name": "Daily summary"
       },
       "daily_burner_time": {
-        "name": "Burner time"
+        "name": "Burner time (total)"
       },
       "daily_burner_starts": {
-        "name": "Burner starts today"
+        "name": "Burner starts (total)"
       },
       "daily_missed_comfort": {
-        "name": "Missed comfort time"
+        "name": "Missed comfort time (total)"
       },
       "boiler_activity": {
         "name": "Boiler activity",
@@ -2546,7 +2568,9 @@
               "starts": "Starts in the last hour",
               "calm": "calm",
               "often": "switching on and off too often",
-              "today": "today {n}"
+              "today": "today {n}",
+              "no_e32": "No data from the E32",
+              "resting": "Resting"
             }
           }
         }
@@ -2563,22 +2587,22 @@
         }
       },
       "room_warm_on_time": {
-        "name": "Warm on time"
+        "name": "Warm on time yesterday (minutes late)"
       },
       "room_overshoot": {
-        "name": "Overshoot"
+        "name": "Above target yesterday"
       },
       "burner_starts_per_heating_hour": {
-        "name": "Burner starts per heating hour"
+        "name": "Burner starts per heating hour (yesterday)"
       },
       "short_cycling_hours": {
-        "name": "Short burner runs (h)"
+        "name": "Short burner runs yesterday"
       },
       "heating_gas_yesterday": {
-        "name": "Gas for heating (estimate)"
+        "name": "Heating energy yesterday (estimate)"
       },
       "gas_per_degree_day": {
-        "name": "Gas per degree-day"
+        "name": "Heating energy per degree-day (yesterday)"
       }
     },
     "select": {
@@ -2677,7 +2701,7 @@
         "name": "Smart warm-up"
       },
       "room_valve_control": {
-        "name": "Valve control"
+        "name": "Radiator valve control"
       }
     },
     "update": {
@@ -3979,11 +4003,11 @@
     },
     "valve_battery_low": {
       "title": "Radiator valve battery low in {room}",
-      "description": "The battery of {valves} in {room} is nearly empty (about 20 % or less). Replace it soon: a valve with an empty battery stops following the E32. This message disappears by itself once the valve reports a full battery."
+      "description": "Battery nearly empty (about 20 % or less) in {room}: {valves}. Replace it soon: a valve with an empty battery stops following the E32. This message disappears by itself once the valve reports a battery that is no longer low."
     },
     "valve_offline": {
       "title": "Radiator valve not reporting in {room}",
-      "description": "{valves} in {room} has not reported to Zigbee2MQTT for more than two hours. Check its battery and Zigbee connection. The room keeps heating on its other temperature sources; the valve's own regulation keeps working on its last setpoint."
+      "description": "Not reporting to Zigbee2MQTT for more than two hours in {room}: {valves}. Check the battery and the Zigbee connection. The room keeps heating on its other temperature sources; a valve keeps regulating on its last setpoint by itself."
     },
     "valve_single_source": {
       "title": "{room} relies on a single temperature source",
@@ -3999,7 +4023,7 @@
     },
     "heating_input_lost": {
       "title": "The E32 does not receive the room values from Home Assistant",
-      "description": "The E32 has accepted no room values from Home Assistant for {minutes} minutes, so it runs the rooms on its own sensors and week program. Home Assistant last sent a value at {last_sent} (last send error: {error}). OpenThermostat has started sending afresh. If this message stays, restart Home Assistant: reloading the integration is not always enough. This message clears itself once the E32 accepts the values again."
+      "description": "The E32 has not taken the room values from Home Assistant since {since}, so it runs the rooms on its own sensors and week programs. Home Assistant keeps sending them. {cause} If this stays, restart Home Assistant. This message goes away once the E32 takes the values again."
     },
     "e32_time_zone": {
       "title": "The E32 uses another time zone",
@@ -4027,6 +4051,37 @@
         }
       },
       "description": "{name}: the E32 clock uses {e32}, Home Assistant uses {home}. Week programs would switch at the wrong time. Choose Fix to set the E32 to {home}. The E32 restarts once."
+    },
+    "e32_room_source_missing": {
+      "title": "Choose a new temperature source for {room}",
+      "description": "{room} reads its temperature from {source}, which no longer exists in Home Assistant: it was renamed or removed. Until you choose another one, {room} relies on its other temperature sources, if it has any; without one it does not ask for heat.\n\nSelect Fix to choose a thermostat or temperature sensor, or open Configure → Rooms → {room}. This message goes away by itself if {source} comes back.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Choose a temperature source for {room}",
+            "description": "Choose the thermostat or temperature sensor that measures the temperature in {room}. Only the temperature source changes; the room's other settings and week program stay.",
+            "data": {
+              "source": "Temperature source"
+            },
+            "data_description": {
+              "source": "A thermostat that measures the room temperature, or a temperature sensor."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "The E32 cannot use {source}: entity IDs may have up to 80 characters.",
+          "e32_source_wrong_domain": "{source} cannot be used here. Choose a thermostat or a temperature sensor.",
+          "e32_source_not_found": "{source} does not exist in Home Assistant.",
+          "e32_source_no_temperature": "{source} reports no current temperature. Choose a thermostat that measures the room temperature, or a temperature sensor.",
+          "e32_source_not_celsius": "{source} does not report a temperature (°C or °F). Choose a temperature sensor.",
+          "save_failed": "The E32 did not save the room plan. Check that the E32 is on and connected, then try again."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Connect the E32 first (Configure → E32 connection) so Home Assistant can edit its room plan.",
+          "e32_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again.",
+          "room_missing": "This room is no longer in the E32 room plan."
+        }
+      }
     }
   },
   "services": {
@@ -4184,7 +4239,7 @@
       "message": "Choose Automatic, At home, Away or Holiday."
     },
     "house_holiday_date_needed": {
-      "message": "Set \"Holiday until\" first: the holiday starts with its end date."
+      "message": "To go on holiday, set \"Holiday until\" to the day you are back; the house mode then becomes Holiday by itself."
     },
     "house_mode_update_required": {
       "message": "This needs E32 firmware beta.23 or newer. Update the E32 with its Firmware entity."
@@ -4233,6 +4288,36 @@
     },
     "house_holiday_too_many": {
       "message": "At most 8 holidays can be planned. Remove one first."
+    },
+    "firmware_download_failed": {
+      "message": "The firmware could not be downloaded from GitHub. Check the internet connection of Home Assistant and try again."
+    },
+    "firmware_verification_failed": {
+      "message": "The downloaded firmware did not match the release (checksum). Nothing was installed."
+    },
+    "firmware_upload_failed": {
+      "message": "The E32 did not take the firmware ({error}). Check that its web page opens, then try again."
+    },
+    "firmware_not_confirmed": {
+      "message": "The E32 did not report the new version within 3 minutes. Check its web page; it may still be restarting."
+    },
+    "firmware_release_unknown": {
+      "message": "This release is no longer offered. Check for updates again."
+    },
+    "e32_not_connected": {
+      "message": "Home Assistant has no E32 connection yet. Connect it under Configure → E32 connection, then try again."
+    },
+    "e32_not_reached": {
+      "message": "The E32 did not answer, so nothing was changed. Check that it is on and its web page opens, then try again."
+    },
+    "e32_answer_unreadable": {
+      "message": "The E32 gave an answer this version cannot read, so nothing was changed. Update the E32 firmware and the integration together."
+    },
+    "e32_update_required": {
+      "message": "The firmware on this E32 is too old for this. Update the E32 first (its Firmware update under Settings → Updates), then try again."
+    },
+    "e32_busy": {
+      "message": "The E32 is updating or restarting. Try again once its web page opens normally."
     }
   },
   "device": {

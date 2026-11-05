@@ -596,7 +596,7 @@ def shown_value(kind, raw):
         return "on" if raw else "off"
     if kind == MAINTENANCE:
         return "none" if raw == 0 else f"H{raw:02d}"  # EMS-ESP's maintenance message format
-    return kind.get(raw, f"Code {raw}")
+    return kind.get(raw, str(raw))  # an unknown code: its number in every language (raw_value has it too)
 
 
 # Service details that stay with the status group on the Boiler view, but are no everyday value.

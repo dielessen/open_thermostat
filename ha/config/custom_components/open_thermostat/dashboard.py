@@ -30,8 +30,8 @@ planner and, per room, the room status card (frontend/room-status-card.js):
   What the boiler reports (its values in groups) and the boiler settings. The
   thermostat on the bus and the raw boiler data are on Diagnostics;
 * Learning and settings, in the order of the owner's sketch (rc.5): what the
-  E32 knows (the knowledge ring and what it still learns), your boiler (its
-  response in one sentence), water temperature by outdoor temperature (the
+  E32 knows (the knowledge ring and what it still learns), your boiler (what it
+  learned of it, a line per figure), water temperature by outdoor temperature (the
   curve), yesterday in figures (the four headline figures large on their own
   card, custom:openthermostat-yesterday, then the rest of the scoreboard and the
   daily summary, once), what stood out yesterday compared with usual, the free
@@ -40,8 +40,9 @@ planner and, per room, the room status card (frontend/room-status-card.js):
   who controls the boiler (short cycling as information, the takeover check).
   On a wide screen the sketch's two columns: the curve with what stood out and
   the free heat under it beside your boiler, yesterday and the settings;
-* Diagnostics (last): the E32 itself, the thermostat on the boiler bus, the
-  energy and hot water counters, the raw boiler data and the hot water capability;
+* Diagnostics (last): the connection with the E32 in plain words (is it heard, do
+  the room values reach it, the MQTT broker, the firmware), the E32 itself, the
+  thermostat on the boiler bus, the energy and hot water counters, the raw boiler data and the hot water capability;
 * Comparison (subview, trial run with a thermostat on the bus only).
 
 Layout: every view is sections; a section hides as a whole while nothing in it
@@ -170,12 +171,23 @@ ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevro
          "insight": "mdi:information-outline", "free_heat": "mdi:weather-sunny",
          # rc.5 (P18, the owner's sketch of the Overview): Today with its two lines, and the House card's rows.
          "today": "mdi:calendar-today", "warm_up": "mdi:clock-outline", "weather": "mdi:sun-thermometer",
-         "house_mode": "mdi:home-account", "holiday": "mdi:calendar-month-outline"}
+         "house_mode": "mdi:home-account", "holiday": "mdi:calendar-month-outline",
+         # rc.7: Diagnostics' connection lines (fine, waiting, a problem, not known, an update) and Your boiler's lines
+         # (the boiler's own highest water temperature, its rest, the lowest water temperature it heats at).
+         "connection": "mdi:lan-connect", "link_ok": "mdi:check-circle-outline", "link_wait": "mdi:clock-alert-outline",
+         "link_problem": "mdi:alert-circle-outline", "link_unknown": "mdi:help-circle-outline",
+         "link_update": "mdi:arrow-up-circle-outline", "ceiling": "mdi:arrow-collapse-up", "rest": "mdi:timer-sand",
+         "lowest": "mdi:arrow-collapse-down"}
 # The sketch's coloured icons in a markdown line (_icon), in the colours of Home Assistant's default theme: heating
 # (--state-climate-heat-color, deep orange), information (--info-color) and the sun (--amber-color).
 ICON_COLOURS = {"heating": "#ff6f22", "insight": "#039be5", "free_heat": "#ffc107",
                 # rc.5 (P18): the Overview's Today, blue as in the sketch (information: --info-color).
-                "warm_up": "#039be5", "weather": "#039be5"}
+                "warm_up": "#039be5", "weather": "#039be5",
+                # rc.7: --success-color, --warning-color, --error-color, --disabled-color and --info-color; the boiler's
+                # lines in the heating colour, what it still learns in the information colour.
+                "link_ok": "#4caf50", "link_wait": "#ffa600", "link_problem": "#db4437", "link_unknown": "#9e9e9e",
+                "link_update": "#039be5", "ceiling": "#ff6f22", "rest": "#ff6f22", "lowest": "#ff6f22",
+                "learning": "#039be5"}
 TEXT = {
     "en": {
         "heating": "Heating", "boiler_view": "Boiler", "diagnostics": "Diagnostics",
@@ -222,6 +234,39 @@ TEXT = {
         "raw": "Raw boiler data",
         "raw_note": "For troubleshooting: values exactly as the boiler sends them, not checked by the E32.",
         "e32_device": "E32",
+        # rc.7: Diagnostics, "Connection with the E32": is the E32 heard, do the room values reach it (the heat request
+        # sensor's ha_input, heating_link.HeatingInputWatch), the MQTT broker and the firmware; plain words first.
+        "connection": "Connection with the E32",
+        "link_heard_yes": "The E32 reports to Home Assistant: yes, last at {at}.",
+        "link_heard_no": "The E32 reports to Home Assistant: no, nothing heard since {at}.",
+        "link_heard_never": "The E32 reports to Home Assistant: not yet.",
+        "link_heard_fix": "Check that the E32 has power and Wi-Fi and that the MQTT broker runs. Meanwhile the E32 keeps "
+                          "heating the rooms by itself.",
+        "link_input_yes": "Room values reach the E32: yes, last at {at}.",
+        "link_input_quiet": "Room values reach the E32: none in the last 15 minutes; the last at {at}.",
+        "link_input_no": "Room values reach the E32: no, not since {at}.",
+        "link_input_no_plain": "Room values reach the E32: no.",
+        "link_input_unknown": "Room values reach the E32: the E32 does not say (older firmware).",
+        "link_refused": "The E32 refused the last value at {at}: {why}.",
+        "link_refused_earlier": "The E32 last refused a value at {at}: {why}.",
+        "link_input_fix": "Until they arrive, the E32 runs the rooms on its own sensors and week programs. Home "
+                          "Assistant keeps sending them; if this stays, restart Home Assistant.",
+        "link_broker_ok": "MQTT broker: the E32 and Home Assistant both reach it.",
+        "link_broker_failed": "MQTT broker: Home Assistant could not send through it at {at}: {error}.",
+        "send_timeout": "the broker did not take the value in time",
+        "send_unreachable": "Home Assistant could not reach the broker",
+        "send_waiting": "too many messages were waiting for the broker",
+        "link_firmware": "Firmware: {version}, up to date.",
+        "link_firmware_new": "Firmware: {version}; {latest} is available under Settings → Updates.",
+        "link_firmware_skipped": "Firmware: {version}; you skipped {latest}.",
+        "link_firmware_installing": "Firmware: installing {latest} now.",
+        "link_sent": "Home Assistant last sent a value at {at}.",
+        "link_error": "Last send error at {at}: {error}.",
+        "link_dropped": "Values dropped while the broker did not answer: {n}.",
+        "why_too_large": "the message was too long", "why_invalid_json": "it could not read the message",
+        "why_no_entity": "the message named no Home Assistant entity",
+        "why_unknown_kind": "it does not know that kind of value; update the E32",
+        "why_invalid_value": "the value was outside what it accepts", "why_unknown_room": "it does not know that room",
         "estimates": "Energy and hot water counters",
         "estimates_empty": "This boiler reports no energy or hot water counters yet; boilers that do (EMS+) fill "
                            "them in here. The Boiler tab and the E32's Home page estimate the gas per day from "
@@ -344,6 +389,25 @@ TEXT = {
         # E32 rc.5, the Learning view as the owner's sketch: what the E32 knows, your boiler (its response in one
         # sentence), water temperature by outdoor temperature, what stood out yesterday (insight.py), the free heat.
         "knowledge": "What the E32 knows", "your_boiler": "Your boiler",
+        # rc.7: Your boiler, what is learned in lines (_boiler_section): the boiler's own ceiling for this outdoor band
+        # (BoilerResponse), its rest (RestFloor) and the lowest water temperature it fires at (BoilerMinimumFlow).
+        "boiler_ceiling": "Highest water temperature: {when}, your boiler goes no higher than about {held} °C by itself, "
+                          "so near the target the E32 asks at most {asks} °C.",
+        "boiler_ceiling_off": "Highest water temperature: {when}, your boiler goes no higher than about {held} °C by "
+                              "itself; with Smart warm-up on, the E32 would ask at most {asks} °C near the target.",
+        "band_low": "when it is below {high} °C outside", "band": "when it is {low} to {high} °C outside",
+        "band_high": "when it is {low} °C or warmer outside", "band_none": "at today's outdoor temperature",
+        "boiler_rest": "Rest: your boiler rests {rest} each time it reaches its temperature; the E32 waits as long "
+                       "before it asks again, unless a room is cold.",
+        "boiler_rest_long": "Rest: your boiler rests {rest} each time it reaches its temperature; the E32 waits 15 "
+                            "minutes before it asks again, unless a room is cold.",
+        "boiler_lowest": "Lowest water temperature: your boiler only starts heating from about {flow} °C, so the E32 "
+                         "asks at least that much.",
+        "boiler_lowest_plan": "Lowest water temperature: your boiler already heats at the lowest the E32 asks ({flow} °C).",
+        "boiler_lowest_plan_plain": "Lowest water temperature: your boiler already heats at the lowest the E32 asks.",
+        "boiler_learning": "Still being learned: {items}.", "learning_ceiling": "the highest water temperature",
+        "learning_rest": "the rest", "learning_and": " and ",
+        "minute_one": "{n} minute", "minute_few": "{n} minutes", "minute_other": "{n} minutes",
         "curve_title": "Water temperature by outdoor temperature", "noticed": "Noticed",
         "noticed_note": "Yesterday is compared with your house's own usual days; that is information and changes nothing.",
         "free_heat": "Free heat",
@@ -445,6 +509,37 @@ TEXT = {
         "raw_note": "Voor het zoeken naar fouten: waarden precies zoals de ketel ze stuurt, niet gecontroleerd "
                     "door de E32.",
         "e32_device": "E32",
+        "connection": "Verbinding met de E32",
+        "link_heard_yes": "De E32 meldt zich bij Home Assistant: ja, het laatst om {at}.",
+        "link_heard_no": "De E32 meldt zich bij Home Assistant: nee, niets gehoord sinds {at}.",
+        "link_heard_never": "De E32 meldt zich bij Home Assistant: nog niet.",
+        "link_heard_fix": "Controleer of de E32 stroom en wifi heeft en of de MQTT-broker draait. Intussen blijft de E32 de "
+                          "ruimtes zelf verwarmen.",
+        "link_input_yes": "Ruimtewaarden komen aan bij de E32: ja, het laatst om {at}.",
+        "link_input_quiet": "Ruimtewaarden komen aan bij de E32: geen in de laatste 15 minuten; de laatste om {at}.",
+        "link_input_no": "Ruimtewaarden komen aan bij de E32: nee, niet meer sinds {at}.",
+        "link_input_no_plain": "Ruimtewaarden komen aan bij de E32: nee.",
+        "link_input_unknown": "Ruimtewaarden komen aan bij de E32: de E32 meldt het niet (oudere firmware).",
+        "link_refused": "De E32 weigerde de laatste waarde om {at}: {why}.",
+        "link_refused_earlier": "De E32 weigerde het laatst een waarde om {at}: {why}.",
+        "link_input_fix": "Tot ze aankomen regelt de E32 de ruimtes met zijn eigen sensoren en weekprogramma's. Home "
+                          "Assistant blijft ze sturen; blijft dit zo, herstart dan Home Assistant.",
+        "link_broker_ok": "MQTT-broker: de E32 en Home Assistant bereiken hem allebei.",
+        "link_broker_failed": "MQTT-broker: Home Assistant kon er om {at} niets via versturen: {error}.",
+        "send_timeout": "de broker nam de waarde niet op tijd aan",
+        "send_unreachable": "Home Assistant bereikte de broker niet",
+        "send_waiting": "er wachtten te veel berichten op de broker",
+        "link_firmware": "Firmware: {version}, actueel.",
+        "link_firmware_new": "Firmware: {version}; {latest} staat klaar onder Instellingen → Updates.",
+        "link_firmware_skipped": "Firmware: {version}; je hebt {latest} overgeslagen.",
+        "link_firmware_installing": "Firmware: {latest} wordt nu geïnstalleerd.",
+        "link_sent": "Home Assistant stuurde de laatste waarde om {at}.",
+        "link_error": "Laatste verzendfout om {at}: {error}.",
+        "link_dropped": "Waarden die wegvielen omdat de broker niet antwoordde: {n}.",
+        "why_too_large": "het bericht was te lang", "why_invalid_json": "hij kon het bericht niet lezen",
+        "why_no_entity": "het bericht noemde geen Home Assistant-entiteit",
+        "why_unknown_kind": "hij kent dat soort waarde niet; werk de E32 bij",
+        "why_invalid_value": "de waarde lag buiten wat hij aanneemt", "why_unknown_room": "hij kent die ruimte niet",
         "estimates": "Tellers voor energie en warm water",
         "estimates_empty": "Deze ketel meldt nog geen tellers voor energie of warm water; ketels die dat wel doen "
                            "(EMS+) vullen ze hier in. Het tabblad Ketel en de pagina Huis van de E32 schatten het "
@@ -564,6 +659,24 @@ TEXT = {
         "who_controls": "Wie regelt de ketel", "yesterday_figures": "Gisteren in cijfers",
         "dhw_target_short": "Doel warm water",
         "knowledge": "Wat de E32 weet", "your_boiler": "Je ketel",
+        "boiler_ceiling": "Hoogste watertemperatuur: {when} gaat je ketel uit zichzelf niet hoger dan ongeveer {held} °C, "
+                          "dus vraagt de E32 dicht bij de doeltemperatuur hoogstens {asks} °C.",
+        "boiler_ceiling_off": "Hoogste watertemperatuur: {when} gaat je ketel uit zichzelf niet hoger dan ongeveer {held} "
+                              "°C; met Slim opwarmen aan zou de E32 dicht bij de doeltemperatuur hoogstens {asks} °C "
+                              "vragen.",
+        "band_low": "bij minder dan {high} °C buiten", "band": "bij {low} tot {high} °C buiten",
+        "band_high": "bij {low} °C of warmer buiten", "band_none": "bij de buitentemperatuur van nu",
+        "boiler_rest": "Rust: je ketel rust {rest} telkens als hij zijn temperatuur bereikt; de E32 wacht even lang "
+                       "voordat hij weer warmte vraagt, behalve als een ruimte koud is.",
+        "boiler_rest_long": "Rust: je ketel rust {rest} telkens als hij zijn temperatuur bereikt; de E32 wacht 15 minuten "
+                            "voordat hij weer warmte vraagt, behalve als een ruimte koud is.",
+        "boiler_lowest": "Laagste watertemperatuur: je ketel begint pas te verwarmen vanaf ongeveer {flow} °C, dus vraagt "
+                         "de E32 minstens zoveel.",
+        "boiler_lowest_plan": "Laagste watertemperatuur: je ketel verwarmt al bij het laagste dat de E32 vraagt ({flow} °C).",
+        "boiler_lowest_plan_plain": "Laagste watertemperatuur: je ketel verwarmt al bij het laagste dat de E32 vraagt.",
+        "boiler_learning": "Wordt nog geleerd: {items}.", "learning_ceiling": "de hoogste watertemperatuur",
+        "learning_rest": "de rust", "learning_and": " en ",
+        "minute_one": "{n} minuut", "minute_few": "{n} minuten", "minute_other": "{n} minuten",
         "curve_title": "Watertemperatuur bij buitentemperatuur", "noticed": "Opgevallen",
         "noticed_note": "Gisteren wordt vergeleken met de gewone dagen van je eigen huis; dat is informatie en verandert "
                         "niets.",
@@ -666,6 +779,38 @@ TEXT = {
         "raw": "Surowe dane kotła",
         "raw_note": "Do szukania usterek: wartości dokładnie tak, jak wysyła je kocioł, niesprawdzane przez E32.",
         "e32_device": "E32",
+        "connection": "Połączenie z E32",
+        "link_heard_yes": "E32 zgłasza się do Home Assistant: tak, ostatnio o {at}.",
+        "link_heard_no": "E32 zgłasza się do Home Assistant: nie, cisza od {at}.",
+        "link_heard_never": "E32 zgłasza się do Home Assistant: jeszcze nie.",
+        "link_heard_fix": "Sprawdź, czy E32 ma zasilanie i Wi-Fi oraz czy działa broker MQTT. W tym czasie E32 sam dalej "
+                          "ogrzewa pomieszczenia.",
+        "link_input_yes": "Wartości pomieszczeń docierają do E32: tak, ostatnio o {at}.",
+        "link_input_quiet": "Wartości pomieszczeń docierają do E32: brak w ostatnich 15 minutach; ostatnia o {at}.",
+        "link_input_no": "Wartości pomieszczeń docierają do E32: nie, od {at}.",
+        "link_input_no_plain": "Wartości pomieszczeń docierają do E32: nie.",
+        "link_input_unknown": "Wartości pomieszczeń docierają do E32: E32 tego nie podaje (starsze oprogramowanie).",
+        "link_refused": "E32 odrzucił ostatnią wartość o {at}: {why}.",
+        "link_refused_earlier": "E32 ostatnio odrzucił wartość o {at}: {why}.",
+        "link_input_fix": "Dopóki nie dotrą, E32 steruje pomieszczeniami według własnych czujników i programów "
+                          "tygodniowych. Home Assistant nadal je wysyła; jeśli tak zostanie, uruchom ponownie Home "
+                          "Assistant.",
+        "link_broker_ok": "Broker MQTT: E32 i Home Assistant łączą się z nim.",
+        "link_broker_failed": "Broker MQTT: Home Assistant nie mógł przez niego wysłać o {at}: {error}.",
+        "send_timeout": "broker nie przyjął wartości na czas",
+        "send_unreachable": "Home Assistant nie mógł połączyć się z brokerem",
+        "send_waiting": "zbyt wiele wiadomości czekało na broker",
+        "link_firmware": "Oprogramowanie układowe: {version}, aktualne.",
+        "link_firmware_new": "Oprogramowanie układowe: {version}; {latest} jest dostępne w Ustawienia → Aktualizacje.",
+        "link_firmware_skipped": "Oprogramowanie układowe: {version}; pominięto {latest}.",
+        "link_firmware_installing": "Oprogramowanie układowe: trwa instalacja {latest}.",
+        "link_sent": "Home Assistant wysłał ostatnią wartość o {at}.",
+        "link_error": "Ostatni błąd wysyłania o {at}: {error}.",
+        "link_dropped": "Wartości pominięte, gdy broker nie odpowiadał: {n}.",
+        "why_too_large": "wiadomość była za długa", "why_invalid_json": "nie mógł odczytać wiadomości",
+        "why_no_entity": "wiadomość nie wskazywała encji Home Assistant",
+        "why_unknown_kind": "nie zna tego rodzaju wartości; zaktualizuj E32",
+        "why_invalid_value": "wartość była poza dopuszczalnym zakresem", "why_unknown_room": "nie zna tego pomieszczenia",
         "estimates": "Liczniki energii i ciepłej wody",
         "estimates_empty": "Ten kocioł nie zgłasza jeszcze liczników energii ani ciepłej wody; kotły, które to "
                            "robią (EMS+), pokazują je tutaj. Karta Kocioł i strona Dom w E32 szacują gaz na dzień "
@@ -787,6 +932,27 @@ TEXT = {
         "who_controls": "Kto steruje kotłem", "yesterday_figures": "Wczoraj w liczbach",
         "dhw_target_short": "Cel ciepłej wody",
         "knowledge": "Co wie E32", "your_boiler": "Twój kocioł",
+        "boiler_ceiling": "Najwyższa temperatura wody: {when} Twój kocioł sam nie podnosi wody powyżej około {held} °C, "
+                          "więc blisko temperatury docelowej E32 zadaje najwyżej {asks} °C.",
+        "boiler_ceiling_off": "Najwyższa temperatura wody: {when} Twój kocioł sam nie podnosi wody powyżej około {held} "
+                              "°C; z włączonym Inteligentnym nagrzewaniem E32 zadawałby blisko temperatury docelowej "
+                              "najwyżej {asks} °C.",
+        "band_low": "przy temperaturze zewnętrznej poniżej {high} °C",
+        "band": "przy temperaturze zewnętrznej od {low} do {high} °C",
+        "band_high": "przy temperaturze zewnętrznej {low} °C i wyższej", "band_none": "przy obecnej temperaturze zewnętrznej",
+        "boiler_rest": "Przerwa: Twój kocioł odpoczywa {rest} za każdym razem, gdy osiągnie swoją temperaturę; E32 czeka "
+                       "tyle samo, zanim znów zażąda ciepła, chyba że któreś pomieszczenie jest zimne.",
+        "boiler_rest_long": "Przerwa: Twój kocioł odpoczywa {rest} za każdym razem, gdy osiągnie swoją temperaturę; E32 "
+                            "czeka 15 minut, zanim znów zażąda ciepła, chyba że któreś pomieszczenie jest zimne.",
+        "boiler_lowest": "Najniższa temperatura wody: Twój kocioł zaczyna grzać dopiero od około {flow} °C, więc E32 "
+                         "zadaje co najmniej tyle.",
+        "boiler_lowest_plan": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jaką "
+                              "zadaje E32 ({flow} °C).",
+        "boiler_lowest_plan_plain": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jaką "
+                                    "zadaje E32.",
+        "boiler_learning": "W trakcie nauki: {items}.", "learning_ceiling": "najwyższa temperatura wody",
+        "learning_rest": "przerwa", "learning_and": " i ",
+        "minute_one": "{n} minutę", "minute_few": "{n} minuty", "minute_other": "{n} minut",
         "curve_title": "Temperatura wody a temperatura zewnętrzna", "noticed": "Spostrzeżenia",
         "noticed_note": "Wczoraj jest porównywane ze zwykłymi dniami Twojego domu; to tylko informacja i niczego nie "
                         "zmienia.",
@@ -1114,14 +1280,86 @@ def _knowledge_section(t, knowledge):
                           _wide({"type": KNOWLEDGE_CARD_TYPE, "entity": knowledge, "visibility": _known(knowledge)}))
 
 
-def _boiler_section(t, boiler):
-    """Your boiler: what the E32 learned from the boiler itself, in one sentence behind a flame (the Boiler response
-    sensor's ``sentence``, insight.py); every known state has one. Hidden while the response is unknown."""
+def _minutes(t, n):
+    """A Jinja expression: whole minutes ``n`` in words with the plural each language needs (Polish: 1, 2-4, 5+)."""
+    return ("((" + json.dumps(t["minute_one"], ensure_ascii=False) + " if " + n + " == 1 else "
+            + json.dumps(t["minute_few"], ensure_ascii=False) + " if " + n + " % 10 in [2, 3, 4] and " + n
+            + " % 100 not in [12, 13, 14] else " + json.dumps(t["minute_other"], ensure_ascii=False)
+            + ") | replace('{n}', " + n + " ~ ''))")
+
+
+def _band(t, outdoor):
+    """Jinja: ``when`` set to the outdoor band the boiler's ceiling belongs to (BoilerResponse: 5 K bands from −10 °C,
+    below −5 and from 15 °C open), from the outdoor temperature the E32 uses (``outdoor``: a Jinja expression)."""
+    minus = "| replace('-', '\u2212')"
+    return ("{% set o = " + outdoor + " %}{% if o is number %}"
+            "{% set k = [[((o + 10) / 5) | round(0, 'floor') | int, 0] | max, 5] | min %}{% set lo = -10 + 5 * k %}"
+            "{% if k == 0 %}{% set when = " + json.dumps(t["band_low"].format(high="\u22125"), ensure_ascii=False)
+            + " %}{% elif k == 5 %}{% set when = " + json.dumps(t["band_high"].format(low="15"), ensure_ascii=False)
+            + " %}{% else %}{% set when = " + _jinja_text(t["band"], low="(lo ~ '') " + minus,
+                                                           high="((lo + 5) ~ '') " + minus) + " %}{% endif %}"
+            "{% else %}{% set when = " + json.dumps(t["band_none"], ensure_ascii=False) + " %}{% endif %}")
+
+
+def _boiler_section(t, boiler, flow=None, learned=None):
+    """Your boiler: what the E32 learned from the boiler itself (insight.py, E32 rc.5), each figure on a line of its own
+    once learned, and the ones it still learns on one line.
+
+    The Boiler response sensor (``boiler``) in its state "learned": the highest water temperature the boiler goes to by
+    itself in today's outdoor band (about its ``ceiling_c`` + 2 °C; the E32 asks at most that ceiling near the target
+    with Smart warm-up on, FlowPolicy, and with it off the line says what it would ask), its rest after
+    reaching it (``rest_min``, which the E32 keeps as its own burner rest, at most 15 minutes, unless a room is cold:
+    RestFloor). In its other states (collecting, no_return, not_driving) its one ``sentence`` says why nothing is learned
+    yet. Then the lowest water temperature the boiler heats at, from the learned overview's ``boiler_minimum_flow_c``
+    (``learned``); while the E32 drives the boiler and found none, the plan's lowest works (Knowledge, E32 rc.5).
+    ``flow``: the E32's flow entities (_flow_entities): the curve (its ``outdoor_c`` and ``minimum_flow_c``) and Smart
+    warm-up; what sets the water temperature now (the source) stays on the E32 device. Hidden while the response is
+    unknown; the text follows the sensors without a rebuild.
+    """
     if not boiler:
         return None
-    quoted = json.dumps(boiler)
-    return _section_known([boiler], _heading(t["your_boiler"], ICONS["boiler"]), {"type": "markdown", "content": (
-        "{% set s = state_attr(" + quoted + ", 'sentence') %}{% if s %}" + _icon("heating") + " {{ s }}{% endif %}")})
+    from .insight import HELD_ABOVE_CEILING_C
+    flow = flow or {}
+    b, curve, smart = (json.dumps(e) if e else None for e in (boiler, flow.get("curve"), flow.get("apply_learned")))
+
+    def attr(entity, name):
+        return "state_attr(" + entity + ", '" + name + "')" if entity else "none"
+
+    def line(concept, text):
+        return _icon(concept) + " " + text + "\n\n"
+    ceiling = (
+        "{% set c = " + attr(b, "ceiling_c") + " %}{% if c is number %}" + _band(t, attr(curve, "outdoor_c"))
+        + "{% set held = (c + " + str(HELD_ABOVE_CEILING_C) + ") | round(0) | int %}"
+        + "{% if " + ("is_state(" + smart + ", 'off')" if smart else "false") + " %}"
+        + line("ceiling", "{{ " + _jinja_text(t["boiler_ceiling_off"], when="when", held="held", asks="c | round(0) | int")
+               + " }}")
+        + "{% else %}" + line("ceiling", "{{ " + _jinja_text(t["boiler_ceiling"], when="when", held="held",
+                                                              asks="c | round(0) | int") + " }}")
+        + "{% endif %}{% else %}{% set learn.items = learn.items + ["
+        + json.dumps(t["learning_ceiling"], ensure_ascii=False) + "] %}{% endif %}")
+    rest = (
+        "{% set r = " + attr(b, "rest_min") + " %}{% if r is number %}{% set n = [(r + 0.5) | int, 1] | max %}"
+        + "{% if n > 15 %}" + line("rest", "{{ " + _jinja_text(t["boiler_rest_long"], rest=_minutes(t, "n")) + " }}")
+        + "{% else %}" + line("rest", "{{ " + _jinja_text(t["boiler_rest"], rest=_minutes(t, "n")) + " }}")
+        + "{% endif %}{% else %}{% set learn.items = learn.items + ["
+        + json.dumps(t["learning_rest"], ensure_ascii=False) + "] %}{% endif %}")
+    lowest = (
+        "{% set low = " + attr(json.dumps(learned) if learned else None, "boiler_minimum_flow_c") + " %}"
+        "{% if low is number %}" + line("lowest", "{{ " + _jinja_text(t["boiler_lowest"], flow="low | round(0) | int")
+                                         + " }}")
+        + "{% elif s in ['collecting', 'learned', 'no_return'] %}{% set m = " + attr(curve, "minimum_flow_c") + " %}"
+        "{% if m is number %}" + line("lowest", "{{ " + _jinja_text(t["boiler_lowest_plan"], flow="m | round(0) | int")
+                                       + " }}")
+        + "{% else %}" + line("lowest", t["boiler_lowest_plan_plain"]) + "{% endif %}{% endif %}")
+    learning = ("{% if learn.items %}" + line("learning", "{{ " + _jinja_text(
+        t["boiler_learning"], items="learn.items | join(" + json.dumps(t["learning_and"], ensure_ascii=False) + ")")
+        + " }}") + "{% endif %}")
+    content = ("{% set s = states(" + b + ") %}{% set learn = namespace(items=[]) %}"
+               "{% if s == 'learned' %}" + ceiling + rest + "{% else %}{% set sentence = " + attr(b, "sentence") + " %}"
+               "{% if sentence %}" + line("heating", "{{ sentence }}") + "{% endif %}{% endif %}"
+               + lowest + learning)
+    return _section_known([boiler], _heading(t["your_boiler"], ICONS["boiler"]),
+                          {"type": "markdown", "content": content})
 
 
 def _curve_section(t, curve):
@@ -1173,6 +1411,95 @@ def _settings_section(t, flow, rooms=None, week=None):
         _heading(t["smart_heating"], ICONS["settings"]), {"type": "entities", "entities": rows} if rows else None,
         _link(t["set_up_rooms"], "mdi:home-edit-outline", rooms) if rooms else None,
         _link(t["week_program"], "mdi:calendar-week", week) if week else None))
+
+
+def _at_macro(t):
+    """A Jinja macro ``at(moment)``: a moment (ISO text or datetime) as the local time of day, 14:32, with the date in
+    front when it is not today ("4 Nov 14:32")."""
+    months = json.dumps(t["months"].split(","), ensure_ascii=False)
+    return ("{% macro at(v) %}{% set m = as_datetime(v, none) if v is string else v %}{% if m is not none %}"
+            "{% set m = as_local(m) %}{% if m.date() != now().date() %}{{ m.day }} {{ " + months
+            + "[m.month - 1] }} {% endif %}{{ m.hour }}:{{ '%02d' % m.minute }}{% endif %}{% endmacro %}")
+
+
+REFUSALS = ("too_large", "invalid_json", "no_entity", "unknown_kind", "invalid_value", "unknown_room")
+
+
+def _connection_section(t, request, update=None):
+    """Connection with the E32 (rc.7), first on Diagnostics: one plain line per question, the details behind "More".
+
+    - Is the E32 heard? The heat request sensor (heating_link.HeatRequestSensor) is unavailable while the E32 is silent
+      (three heartbeats) and is written with every E32 message, so its ``last_reported`` is when it was last heard and,
+      while silent, its ``last_changed`` when it went quiet; with what to check.
+    - Do the room values reach the E32? Its ``ha_input`` (HeatingInputWatch.attributes): yes with the time the E32 last
+      took one, none for 15 minutes, or no since then (the repair heating_input_lost) with the value it refused last
+      and why, and the repair's advice.
+    - The MQTT broker: the E32 is heard through it; Home Assistant's newest send failed or not (``last_error_at`` after
+      ``last_sent``), the kind of failure in words (``last_error_kind``).
+    - The firmware: the update entity (firmware_update.py): its version, and an update available, skipped or installing.
+
+    More: when Home Assistant last sent a value, its last send error, the values dropped and a refusal while values
+    arrive. None without the heat request sensor (no E32); always shown otherwise (its first line has an answer).
+    """
+    if not request:
+        return None
+    q = json.dumps(request)
+    why = json.dumps({key: t["why_" + key] for key in REFUSALS}, ensure_ascii=False)
+    sends = json.dumps({key: t["send_" + key] for key in ("timeout", "unreachable", "waiting")}, ensure_ascii=False)
+
+    def line(concept, text):
+        return _icon(concept) + " " + text + "\n\n"
+
+    def say(key, **values):
+        return "{{ " + _jinja_text(t[key], **values) + " }}"
+    refused = "why.get(r.reason, r.reason)"
+    heard = (
+        "{% set st = states." + request + " %}{% set heard = states(" + q + ") not in ['unavailable', 'unknown'] %}"
+        "{% if heard %}" + line("link_ok", say("link_heard_yes", at="at(st.last_reported)"))
+        + "{% elif st %}" + line("link_problem", say("link_heard_no", at="at(st.last_changed)") + " " + t["link_heard_fix"])
+        + "{% else %}" + line("link_problem", t["link_heard_never"] + " " + t["link_heard_fix"]) + "{% endif %}")
+    values = (
+        "{% set h = state_attr(" + q + ", 'ha_input') if heard else none %}{% if h is mapping %}"
+        "{% set r = h.e32_last_rejected if h.e32_last_rejected is mapping and h.e32_last_rejected.at else none %}"
+        "{% if h.state == 'ok' and h.e32_last_input %}" + line("link_ok", say("link_input_yes", at="at(h.e32_last_input)"))
+        + "{% elif h.state == 'waiting' and h.e32_last_input %}"
+        + line("link_wait", say("link_input_quiet", at="at(h.e32_last_input)"))
+        + "{% elif h.state == 'not_received' %}" + _icon("link_problem") + " "
+        + "{% if h.e32_last_input %}" + say("link_input_no", at="at(h.e32_last_input)") + "{% else %}"
+        + t["link_input_no_plain"] + "{% endif %}"
+        + "{% if r %} " + say("link_refused", at="at(r.at)", why=refused) + "{% endif %} " + t["link_input_fix"] + "\n\n"
+        + "{% else %}" + line("link_unknown", t["link_input_unknown"]) + "{% endif %}"
+        # Home Assistant's newest send failed: one that worked in the same minute or later counts as working.
+        + "{% if h.last_error_at and (not h.last_sent or h.last_error_at > h.last_sent) %}"
+        # The kind of failure in words (the raw error text, in English, is behind "More").
+        + line("link_problem", say("link_broker_failed", at="at(h.last_error_at)",
+                                   error="sends.get(h.last_error_kind) or h.last_error"))
+        + "{% else %}" + line("link_ok", t["link_broker_ok"]) + "{% endif %}{% endif %}")
+    firmware = ""
+    if update:
+        u = json.dumps(update)
+        firmware = (
+            "{% set v = state_attr(" + u + ", 'installed_version') %}{% if v %}"
+            "{% set l = state_attr(" + u + ", 'latest_version') %}"
+            "{% if state_attr(" + u + ", 'in_progress') not in [none, false] and l %}"
+            + line("link_update", say("link_firmware_installing", latest="l"))
+            + "{% elif is_state(" + u + ", 'on') and l %}" + line("link_update", say("link_firmware_new", version="v", latest="l"))
+            + "{% elif l and l != v %}" + line("link_ok", say("link_firmware_skipped", version="v", latest="l"))
+            + "{% else %}" + line("link_ok", say("link_firmware", version="v")) + "{% endif %}{% endif %}")
+    more = (
+        "{% if h is mapping %}{% set d = namespace(lines=[]) %}"
+        "{% if h.last_sent %}{% set d.lines = d.lines + [" + _jinja_text(t["link_sent"], at="at(h.last_sent)") + "] %}"
+        "{% endif %}{% if h.last_error and h.last_error_at %}{% set d.lines = d.lines + ["
+        + _jinja_text(t["link_error"], at="at(h.last_error_at)", error="h.last_error") + "] %}{% endif %}"
+        "{% if h.dropped is number and h.dropped > 0 %}{% set d.lines = d.lines + ["
+        + _jinja_text(t["link_dropped"], n="h.dropped") + "] %}{% endif %}"
+        "{% if r and h.state != 'not_received' %}{% set d.lines = d.lines + ["
+        + _jinja_text(t["link_refused_earlier"], at="at(r.at)", why=refused) + "] %}{% endif %}"
+        "{% if d.lines %}<details><summary>" + t["more"] + "</summary>\n\n{% for x in d.lines %}- {{ x }}\n"
+        "{% endfor %}\n</details>{% endif %}{% endif %}")
+    content = (_at_macro(t) + "{% set why = " + why + " %}{% set sends = " + sends + " %}" + heard + values + firmware
+               + more)
+    return _section(_heading(t["connection"], ICONS["connection"]), {"type": "markdown", "content": content})
 
 
 def _per_day(title, entities, entity_id):
@@ -2313,7 +2640,11 @@ class RoomDashboard:
                  "gas": [hub[key] for key in ("heating_gas", "hot_water_gas") if key in hub],
                  "starts": hub.get("daily_burner_starts"), "mode": house_mode, "problem": problem,
                  "rooms": [{"entity": e32_room_entities[inline]["reason"],
-                            "name": self._room_name(inline, heating_hub, label)}] if inline else None}
+                            "name": self._room_name(inline, heating_hub, label)}] if inline else None,
+                 # HA 1.0.0rc7, the rest of the desktop sketch: the band's burner power and display code ("burner 37 %
+                 # · code -H"), the hot water's temperature and the burner starts in the last hour (the Boiler tab's).
+                 "modulation": essential("modulation"), "code": essential("code"), "dhw": essential("dhw"),
+                 "starts_hour": hub.get("burner_starts_last_hour")}
         # Across the whole view on a wide screen too, as the sketch (the section spans both columns).
         house_card = (_full({"type": HOUSE_CARD_TYPE, **{key: value for key, value in reads.items() if value}})
                       if request or activity else None)
@@ -2417,7 +2748,7 @@ class RoomDashboard:
         # temperature by outdoor temperature, then yesterday in figures, what stood out yesterday, the free heat and
         # Smart warm-up and weather compensation as rows; after them what it learned and who controls the boiler.
         learning = [section for section in (_knowledge_section(t, hub.get("knowledge")),
-                                            _boiler_section(t, hub.get("boiler_response")),
+                                            _boiler_section(t, hub.get("boiler_response"), flow, learned_overview),
                                             _curve_section(t, flow.get("curve"))) if section]
         # Yesterday in figures, once (dashboard-spec §6): the scoreboard (E32 rc.4) and the daily summary, with the
         # gas in the gas sensor's unit. Is it getting better? Only once one figure has a value. The headline figures
@@ -2773,7 +3104,10 @@ class RoomDashboard:
     def _diagnostics_sections(self, t, registry, hub, raw, thermostat):
         """The Diagnostics view (dashboard-spec §8): the E32, the thermostat on the boiler bus, the energy and hot
         water counters, the raw boiler data, the hot water capability and the older rooms."""
-        sections = []
+        # rc.7: first, in plain words, whether the E32 and Home Assistant reach each other (the rc.5 outage).
+        sections = [section for section in (_connection_section(
+            t, hub.get("heat_request"), registry.async_get_entity_id("update", DOMAIN, f"{self.prefix}_e32_firmware")),)
+            if section]
         device = [hub[metric] for metric in DEVICE_DIAGNOSTIC_METRICS if metric in hub]
         # Rows (not tiles) under each heading: whole names, also on a phone.
         if device:

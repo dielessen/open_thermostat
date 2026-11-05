@@ -339,3 +339,27 @@ async def test_the_card_sits_under_house_on_the_overview(hass):
     assert house[0]["heading"] == "House" and house[1]["entities"][0]["row"]["entity"] == select
     assert house[2]["type"] == "markdown" and house[2]["show_empty"] is False and select in house[2]["content"]
 
+
+
+@pytest.mark.asyncio
+async def test_holiday_from_the_list_starts_the_next_planned_holiday_now(hass):
+    """R2-14 (1.0.0rc7): picking Holiday in the house mode list on an E32 with planned holidays leaves now until the
+    next planned holiday's end, instead of an error; with nothing planned the error says how to start one."""
+    from custom_components.open_thermostat.e32_house import next_holiday_end
+    first, second = (future(3)[0], future(10)[0]), (future(20)[0], future(24)[0])
+    e32 = E32WithHolidays([first, second])
+    parent, hub = installed(hass, e32)
+    house = house_state(hass, parent, hub)
+    assert next_holiday_end(house.away) == first[1]
+    assert next_holiday_end(house.away, now=first[1]) == second[1]  # one that is over does not count
+    assert next_holiday_end({"on": False, "mode": "auto"}) is None  # an E32 before rc.4 plans none
+    await HouseModeSelect(house).async_select_option("holiday")
+    assert e32.commands[-1] == {"house_mode": "holiday", "until": first[1]}
+    e32.holidays = []
+    hub.update({**STATUS, "away": e32.away()})
+    house.answer = None
+    with pytest.raises(ServiceValidationError) as error:
+        await HouseModeSelect(house).async_select_option("holiday")
+    assert error.value.translation_key == "house_holiday_date_needed"
+    english = json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))["exceptions"]
+    assert english["house_holiday_date_needed"]["message"].startswith('To go on holiday, set "Holiday until"')

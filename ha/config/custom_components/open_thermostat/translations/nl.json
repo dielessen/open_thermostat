@@ -1625,7 +1625,7 @@
           "ble_sources": "Bluetooth-sensoren op de E32",
           "bluetooth_first": "Bluetooth-sensoren eerst gebruiken",
           "setpoint_entity": "Instelapparaat (optioneel)",
-          "fallback_temperature": "Temperatuur zonder Home Assistant",
+          "fallback_temperature": "Temperatuur zonder weekprogramma",
           "program": "Weekprogramma op de E32",
           "inactive_until": "Uit tot (optioneel)"
         },
@@ -1656,7 +1656,7 @@
           },
           "limits": {
             "name": "Temperatuurgrenzen",
-            "description": "De gewenste temperatuur, de temperatuur zonder Home Assistant en het programma blijven binnen deze grenzen.",
+            "description": "De gewenste temperatuur, de temperatuur zonder weekprogramma en het programma blijven binnen deze grenzen.",
             "data": {
               "minimum_temperature": "Minimumtemperatuur",
               "maximum_temperature": "Maximumtemperatuur"
@@ -2241,7 +2241,7 @@
       "e32_source_not_found": "{source} bestaat niet in Home Assistant.",
       "e32_source_not_celsius": "{source} meldt geen temperatuur (°C of °F). Kies een temperatuursensor.",
       "e32_source_no_temperature": "{source} meldt geen actuele temperatuur. Kies een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor.",
-      "e32_limits_invalid": "Gebruik grenzen tussen {range} met het minimum niet boven het maximum, en een temperatuur zonder Home Assistant daartussen.",
+      "e32_limits_invalid": "Gebruik grenzen tussen {range} met het minimum niet boven het maximum, en een temperatuur zonder weekprogramma daartussen.",
       "e32_program_invalid": "Regel {line} van het weekprogramma is niet leesbaar: {text}. Gebruik één regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18, en noem elke dag in maar één regel.",
       "e32_program_too_many": "Regel {line}: een dag kan maximaal 6 schakelpunten hebben.",
       "e32_program_outside_limits": "Regel {line}: een temperatuur ligt buiten de temperatuurgrenzen van de ruimte.",
@@ -2275,7 +2275,7 @@
       "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
       "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
       "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw.",
-      "controller_room_plan_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
+      "controller_room_plan_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (de Firmware-update van de E32 onder Instellingen → Updates in Home Assistant, of Systeem → Firmware bijwerken op de webpagina van de E32) en probeer het daarna opnieuw. Er is niets gewijzigd.",
       "controller_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
       "controller_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw.",
       "controller_readback_unconfirmed": "De E32 heeft zijn huidige ruimte-instellingen niet binnen 90 seconden teruggestuurd, dus deze opslag is niet bevestigd. Controleer of de E32 online is en met de MQTT-broker verbonden is, en probeer het daarna opnieuw.",
@@ -2491,7 +2491,7 @@
         "name": "Nominaal radiatorvermogen"
       },
       "room_fallback_setpoint": {
-        "name": "Temperatuur zonder Home Assistant"
+        "name": "Temperatuur zonder weekprogramma"
       },
       "away_temperature": {
         "name": "Temperatuur als niemand thuis is"
@@ -2527,8 +2527,8 @@
           "stale": "Meting verouderd",
           "lost": "Sensor kwijt",
           "inactive": "Uit",
-          "window_open": "Raam open, verwarming gepauzeerd",
-          "window_pending": "Raam open, pauzeert zo"
+          "window_open": "Raam of deur open, verwarming gepauzeerd",
+          "window_pending": "Raam of deur open, pauzeert zo"
         }
       },
       "room_reason": {
@@ -2635,6 +2635,16 @@
               "away": "Afwezig",
               "holiday": "Vakantie"
             }
+          },
+          "program": {
+            "name": "Weekprogramma",
+            "state": {
+              "comfort": "Comfort",
+              "eco": "Eco",
+              "night": "Nacht",
+              "holiday": "Vakantie",
+              "step": "{level} tot {time}, daarna {next}"
+            }
           }
         }
       },
@@ -2648,16 +2658,16 @@
         "name": "Batterij"
       },
       "shadow_e32_heating_time_today": {
-        "name": "Stooktijd vandaag (E32)"
+        "name": "E32-verwarmingstijd vandaag (proef)"
       },
       "shadow_tado_heating_time_today": {
-        "name": "Stooktijd vandaag (thermostaat)"
+        "name": "Thermostaat-verwarmingstijd vandaag (proef)"
       },
       "shadow_e32_starts_today": {
-        "name": "Branderstarts vandaag (E32)"
+        "name": "E32-branderstarts vandaag (proef)"
       },
       "shadow_tado_starts_today": {
-        "name": "Branderstarts vandaag (thermostaat)"
+        "name": "Thermostaat-branderstarts vandaag (proef)"
       },
       "shadow_agreement_today": {
         "name": "Overeenstemming met thermostaat vandaag"
@@ -2672,7 +2682,7 @@
         }
       },
       "heat_request": {
-        "name": "Ketelvraag (E32)",
+        "name": "Gevraagde watertemperatuur",
         "state_attributes": {
           "card": {
             "name": "Kaart",
@@ -2704,7 +2714,7 @@
               "legend_heating": "Verwarmen",
               "legend_hot_water": "Warm water",
               "legend_keep_warm": "Warmhouden",
-              "waiting": "De E32 heeft nog niets gemeld.",
+              "waiting": "De E32 meldt zich niet.",
               "now": "nu",
               "warm": "{room} warm",
               "early": "{m} min te vroeg",
@@ -2712,8 +2722,20 @@
               "on_time": "op tijd",
               "degree_days": "Graaddagen",
               "target": "doel {t} °C",
-              "per_day": "{n} dagen: {value} per dag",
-              "today_since": "Vandaag sinds middernacht"
+              "per_day": "Gemiddeld {value} per dag (afgelopen {n} dagen)",
+              "today_since": "Vandaag sinds middernacht",
+              "burner": "brander {n} %",
+              "code": "code {code}",
+              "water": "boiler {t} °C",
+              "last_hour": "{n} in het laatste uur",
+              "would_ask": "E32 zou {flow} °C vragen",
+              "no_wish": "De E32 zou geen warmte vragen",
+              "tap_open": "Warm water: kraan open",
+              "keeping_warm": "Warm water warmhouden",
+              "gas_estimate": "Gas vandaag (schatting)",
+              "no_warmup": "gisteren niet opgewarmd",
+              "late_hours": "{h} u {m} min te laat",
+              "early_hours": "{h} u {m} min te vroeg"
             }
           }
         }
@@ -3275,13 +3297,13 @@
         "name": "Bedrijfstijd ketel"
       },
       "heating_advice": {
-        "name": "CV-advies"
+        "name": "Verwarmingsadvies"
       },
       "learned_overview": {
         "name": "Wat de thermostaat geleerd heeft"
       },
       "knowledge": {
-        "name": "Kennis",
+        "name": "Bekend over je huis",
         "state_attributes": {
           "missing": {
             "name": "Nog te leren"
@@ -3445,7 +3467,7 @@
         "name": "RTC-temperatuur"
       },
       "hub_cpu_temperature": {
-        "name": "ESP32-processortemperatuur"
+        "name": "Temperatuur E32"
       },
       "hub_uptime": {
         "name": "Bedrijfstijd apparaat"
@@ -3535,13 +3557,13 @@
         "name": "Dagoverzicht"
       },
       "daily_burner_time": {
-        "name": "Brandertijd"
+        "name": "Brandertijd (totaal)"
       },
       "daily_burner_starts": {
-        "name": "Branderstarts vandaag"
+        "name": "Branderstarts (totaal)"
       },
       "daily_missed_comfort": {
-        "name": "Gemiste comforttijd"
+        "name": "Gemiste comforttijd (totaal)"
       },
       "boiler_activity": {
         "name": "Ketelactiviteit",
@@ -3583,7 +3605,9 @@
               "starts": "Starts afgelopen uur",
               "calm": "rustig",
               "often": "slaat te vaak aan en uit",
-              "today": "vandaag {n}"
+              "today": "vandaag {n}",
+              "no_e32": "Geen gegevens van de E32",
+              "resting": "In rust"
             }
           }
         }
@@ -3600,22 +3624,22 @@
         }
       },
       "room_warm_on_time": {
-        "name": "Op tijd warm"
+        "name": "Op tijd warm gisteren (minuten te laat)"
       },
       "room_overshoot": {
-        "name": "Warmer dan gewenst"
+        "name": "Warmer dan gewenst gisteren"
       },
       "burner_starts_per_heating_hour": {
-        "name": "Branderstarts per stookuur"
+        "name": "Branderstarts per stookuur (gisteren)"
       },
       "short_cycling_hours": {
-        "name": "Korte brandtijden (u)"
+        "name": "Korte brandtijden gisteren"
       },
       "heating_gas_yesterday": {
-        "name": "Gas voor verwarming (schatting)"
+        "name": "Energie voor verwarmen gisteren (schatting)"
       },
       "gas_per_degree_day": {
-        "name": "Gas per graaddag"
+        "name": "Verwarmingsenergie per graaddag (gisteren)"
       }
     },
     "select": {
@@ -3979,11 +4003,11 @@
     },
     "valve_battery_low": {
       "title": "Batterij radiatorkraan bijna leeg in {room}",
-      "description": "De batterij van {valves} in {room} is bijna leeg (ongeveer 20 % of minder). Vervang hem binnenkort: een kraan met een lege batterij volgt de E32 niet meer. Deze melding verdwijnt vanzelf zodra de kraan weer een volle batterij meldt."
+      "description": "Batterij bijna leeg (ongeveer 20 % of minder) in {room}: {valves}. Vervang hem binnenkort: een kraan met een lege batterij volgt de E32 niet meer. Deze melding verdwijnt vanzelf zodra de kraan een batterij meldt die niet meer bijna leeg is."
     },
     "valve_offline": {
       "title": "Radiatorkraan meldt zich niet in {room}",
-      "description": "{valves} in {room} heeft zich langer dan twee uur niet bij Zigbee2MQTT gemeld. Controleer de batterij en de Zigbee-verbinding. De ruimte blijft verwarmen op haar andere temperatuurbronnen; de kraan regelt zelf door op zijn laatste setpoint."
+      "description": "Al meer dan twee uur geen melding bij Zigbee2MQTT in {room}: {valves}. Controleer de batterij en de Zigbee-verbinding. De ruimte blijft verwarmen op haar andere temperatuurbronnen; een kraan regelt zelf door op zijn laatste setpoint."
     },
     "valve_single_source": {
       "title": "{room} hangt af van één temperatuurbron",
@@ -3998,8 +4022,8 @@
       "description": "{name}: Home Assistant kon al meer dan 3 dagen geen back-up van de E32-instellingen maken (laatste back-up: {last}). Zonder recente back-up krijgt een vervangende E32 je huidige instellingen niet terug. Controleer of de E32 aan staat en zijn webpagina opent, en of zijn wachtwoord in Home Assistant nog klopt; druk daarna op Nu een back-up van de E32 maken op het E32-apparaat. Deze melding verdwijnt na de volgende geslaagde back-up."
     },
     "heating_input_lost": {
-      "title": "De E32 ontvangt de kamerwaarden van Home Assistant niet",
-      "description": "De E32 heeft al {minutes} minuten geen kamerwaarden van Home Assistant aangenomen en regelt de kamers daarom met zijn eigen sensoren en weekprogramma. Home Assistant stuurde de laatste waarde om {last_sent} (laatste verzendfout: {error}). OpenThermostat is opnieuw begonnen met verzenden. Blijft deze melding staan, herstart dan Home Assistant: de integratie herladen is niet altijd genoeg. Deze melding verdwijnt vanzelf zodra de E32 de waarden weer aanneemt."
+      "title": "De E32 ontvangt de ruimtewaarden van Home Assistant niet",
+      "description": "De E32 neemt sinds {since} de ruimtewaarden van Home Assistant niet meer aan en regelt de ruimtes daarom met zijn eigen sensoren en weekprogramma's. Home Assistant blijft ze sturen. {cause} Blijft dit zo, herstart dan Home Assistant. Deze melding verdwijnt zodra de E32 de waarden weer aanneemt."
     },
     "e32_time_zone": {
       "title": "De E32 gebruikt een andere tijdzone",
@@ -4027,6 +4051,37 @@
         }
       },
       "description": "{name}: de klok van de E32 gebruikt {e32}, Home Assistant gebruikt {home}. Weekprogramma's zouden op het verkeerde moment schakelen. Kies Oplossen om de E32 op {home} te zetten. De E32 start één keer opnieuw op."
+    },
+    "e32_room_source_missing": {
+      "title": "Kies een nieuwe temperatuurbron voor {room}",
+      "description": "{room} leest zijn temperatuur van {source}, en die bestaat niet meer in Home Assistant: hij is hernoemd of verwijderd. Tot je een andere kiest, gebruikt {room} zijn andere temperatuurbronnen, als hij die heeft; zonder bron vraagt hij geen warmte.\n\nKies Repareren om een thermostaat of temperatuursensor te kiezen, of open Configureren → Ruimtes → {room}. Deze melding verdwijnt vanzelf als {source} terugkomt.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Kies een temperatuurbron voor {room}",
+            "description": "Kies de thermostaat of temperatuursensor die de temperatuur in {room} meet. Alleen de temperatuurbron verandert; de andere instellingen en het weekprogramma van de ruimte blijven.",
+            "data": {
+              "source": "Temperatuurbron"
+            },
+            "data_description": {
+              "source": "Een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "De E32 kan {source} niet gebruiken: entiteit-ID's mogen hoogstens 80 tekens hebben.",
+          "e32_source_wrong_domain": "{source} kan hier niet gebruikt worden. Kies een thermostaat of temperatuursensor.",
+          "e32_source_not_found": "{source} bestaat niet in Home Assistant.",
+          "e32_source_no_temperature": "{source} meldt geen actuele temperatuur. Kies een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor.",
+          "e32_source_not_celsius": "{source} meldt geen temperatuur (°C of °F). Kies een temperatuursensor.",
+          "save_failed": "De E32 heeft het ruimteplan niet opgeslagen. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Verbind eerst de E32 (Configureren → E32-verbinding) zodat Home Assistant het ruimteplan kan bewerken.",
+          "e32_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is en probeer het opnieuw.",
+          "room_missing": "Deze ruimte staat niet meer in het ruimteplan van de E32."
+        }
+      }
     }
   },
   "services": {
@@ -4184,7 +4239,7 @@
       "message": "Kies Automatisch, Thuis, Afwezig of Vakantie."
     },
     "house_holiday_date_needed": {
-      "message": "Stel eerst \"Vakantie tot\" in: de vakantie begint met haar einddatum."
+      "message": "Zet voor een vakantie \"Vakantie tot\" op de dag dat je terug bent; de huismodus wordt dan vanzelf Vakantie."
     },
     "house_mode_update_required": {
       "message": "Hiervoor is E32-firmware beta.23 of nieuwer nodig. Werk de E32 bij met zijn Firmware-entiteit."
@@ -4233,6 +4288,36 @@
     },
     "house_holiday_too_many": {
       "message": "Er kunnen hoogstens 8 vakanties gepland worden. Verwijder er eerst een."
+    },
+    "firmware_download_failed": {
+      "message": "De firmware kon niet van GitHub worden gedownload. Controleer de internetverbinding van Home Assistant en probeer het opnieuw."
+    },
+    "firmware_verification_failed": {
+      "message": "De gedownloade firmware hoort niet bij deze release (controlesom). Er is niets geïnstalleerd."
+    },
+    "firmware_upload_failed": {
+      "message": "De E32 nam de firmware niet aan ({error}). Controleer of de webpagina opent en probeer het opnieuw."
+    },
+    "firmware_not_confirmed": {
+      "message": "De E32 meldde de nieuwe versie niet binnen 3 minuten. Kijk op de webpagina; hij kan nog aan het herstarten zijn."
+    },
+    "firmware_release_unknown": {
+      "message": "Deze release wordt niet meer aangeboden. Zoek opnieuw naar updates."
+    },
+    "e32_not_connected": {
+      "message": "Home Assistant heeft nog geen E32-verbinding. Koppel de E32 onder Configureren → E32-verbinding en probeer het daarna opnieuw."
+    },
+    "e32_not_reached": {
+      "message": "De E32 antwoordde niet, dus er is niets gewijzigd. Controleer of hij aan staat en zijn webpagina opent, en probeer het daarna opnieuw."
+    },
+    "e32_answer_unreadable": {
+      "message": "De E32 gaf een antwoord dat deze versie niet kan lezen, dus er is niets gewijzigd. Werk de E32-firmware en de integratie samen bij."
+    },
+    "e32_update_required": {
+      "message": "De firmware op deze E32 is hiervoor te oud. Werk de E32 eerst bij (zijn Firmware-update onder Instellingen → Updates) en probeer het daarna opnieuw."
+    },
+    "e32_busy": {
+      "message": "De E32 is aan het bijwerken of herstarten. Probeer het opnieuw zodra zijn webpagina weer gewoon opent."
     }
   },
   "device": {

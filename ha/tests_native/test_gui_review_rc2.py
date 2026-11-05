@@ -147,8 +147,8 @@ def test_the_temperature_without_home_assistant_is_a_room_setting():
     def category(cls):
         return cls.__new__(cls).entity_category
     assert category(RoomFallbackSetpoint) == EntityCategory.CONFIG
-    # The room's on/off and its "off until" stay controls on the device page.
-    assert category(RoomStateSelect) is None and category(RoomInactiveUntil) is None
+    # 1.0.0rc7: the room's on/off and its "off until" are settings too: the thermostat's Off/Auto is the control.
+    assert category(RoomStateSelect) == EntityCategory.CONFIG and category(RoomInactiveUntil) == EntityCategory.CONFIG
 
 
 def test_every_icon_belongs_to_a_translated_entity():

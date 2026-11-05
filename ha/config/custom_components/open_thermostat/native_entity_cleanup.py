@@ -531,3 +531,32 @@ def cleanup_removed_rooms(hass, entry, prefix, plan, now=None):
                          ", ".join(sorted(returned)))
             hub.forget_removed_rooms(returned)
     return removed
+
+
+async def async_tidy_statistics(hass, entity_id, *, unit=None, drop=False):
+    """Bring the long-term statistics of ``entity_id`` along once its unit or state class changed (1.0.0rc7).
+
+    Home Assistant raises a repair ("The unit of ... has changed", "... no longer has a state class") for
+    statistics that no longer fit the sensor, which the user can only clear by hand. ``unit``: the same
+    numbers under a new label, so the history stays. ``drop``: the sensor keeps no statistics any more.
+    Nothing happens without the recorder or statistics, or once they fit; never raises.
+    """
+    if not entity_id or "recorder" not in hass.config.components:
+        return
+    try:
+        from functools import partial
+        from homeassistant.components.recorder import get_instance
+        from homeassistant.components.recorder.statistics import get_metadata
+        instance = get_instance(hass)
+        found = (await instance.async_add_executor_job(partial(get_metadata, hass, statistic_ids={entity_id}))
+                 ).get(entity_id)
+        if found is None:
+            return
+        if drop:
+            instance.async_clear_statistics([entity_id])
+            _LOGGER.info("OpenThermostat: %s keeps no statistics any more; its old ones were removed", entity_id)
+        elif found[1].get("unit_of_measurement") != unit:
+            instance.async_update_statistics_metadata(entity_id, new_unit_class=None, new_unit_of_measurement=unit)
+            _LOGGER.info("OpenThermostat: the statistics of %s are now in %s", entity_id, unit)
+    except Exception:  # noqa: BLE001 - statistics housekeeping never stops an entity
+        _LOGGER.debug("OpenThermostat: the statistics of %s could not be tidied", entity_id, exc_info=True)

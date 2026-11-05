@@ -8,6 +8,7 @@ from copy import deepcopy
 
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import EntityCategory
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.template import Template
 
@@ -62,11 +63,15 @@ def test_each_figure_appears_once_the_e32_reported_a_value():
     entities = scoreboard_entities(hub())
     assert list(entities) == [("scoreboard", key) for key in HOUSE] + [("room", "woonkamer", "warm_on_time"),
                                                                        ("room", "woonkamer", "overshoot")]
-    # A figure only today has also counts (the first day after the update).
+    # A figure only today has creates nothing yet (1.0.0rc7): the state is yesterday's, so it would read
+    # "unknown" all through the first day after the update; today's figure is an attribute once it exists.
     today_only = deepcopy(BOARD)
     today_only["yesterday"] = None
-    assert ("scoreboard", "heating_gas_yesterday") in scoreboard_entities(hub(today_only))
-    assert ("room", "woonkamer", "overshoot") not in scoreboard_entities(hub(today_only))
+    assert scoreboard_entities(hub(today_only)) == {}
+    yesterday_empty = deepcopy(BOARD)
+    yesterday_empty["yesterday"]["heating_kwh"] = None
+    assert ("scoreboard", "heating_gas_yesterday") not in scoreboard_entities(hub(yesterday_empty))
+    assert ("scoreboard", "burner_starts_per_heating_hour") in scoreboard_entities(hub(yesterday_empty))
 
 
 def test_the_room_figures():
@@ -91,10 +96,13 @@ def test_the_house_figures():
     assert starts.extra_state_attributes == {"day": "2026-11-04", "today": 1.5, "heating_hours": 9}
     assert short.device_class == SensorDeviceClass.DURATION and short.native_unit_of_measurement == "h"
     assert gas.native_unit_of_measurement == "kWh" and gas.device_class is None  # a day's figure, not a meter
+    assert per_degree_day.native_unit_of_measurement == "kWh/°C·d"  # per degree-day, not kWh (1.0.0rc7)
     assert gas.extra_state_attributes == {"day": "2026-11-04", "today": 6.1}
     assert per_degree_day.extra_state_attributes == {"day": "2026-11-04", "today": None, "heating_kwh": 18.2,
                                                      "degree_days": 9.4}
     assert all(e.state_class == SensorStateClass.MEASUREMENT for e in (starts, short, gas, per_degree_day))
+    # Diagnostic: the Learning view shows them, the device page keeps them out of the main list.
+    assert all(e.entity_category == EntityCategory.DIAGNOSTIC for e in entities.values())
 
 
 def test_odd_figures_are_left_out():

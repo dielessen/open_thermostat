@@ -321,7 +321,9 @@ async def test_diagnostics_shows_each_value_once_and_hides_counters_until_they_h
     diagnostics = view(config, "diagnostics")
     assert (diagnostics["type"], diagnostics["max_columns"]) == ("sections", 2)
     sections = headed(diagnostics)
-    assert list(sections) == ["E32", "Thermostat on the bus", "Energy and hot water counters", "Raw boiler data"]
+    # rc.7: first, in plain words, whether the E32 and Home Assistant reach each other (test_dashboard_e32_link.py).
+    assert list(sections) == ["Connection with the E32", "E32", "Thermostat on the bus", "Energy and hot water counters",
+                              "Raw boiler data"]
     # The thermostat on the bus (a trial run's old thermostat): its rows, here and nowhere else.
     thermostat = sections["Thermostat on the bus"][1]
     assert [row["row"]["entity"] for row in thermostat["entities"]][0] == fields["thermostat_requested_flow_temperature"]
@@ -412,7 +414,7 @@ async def test_dutch_headings_for_the_new_groups(hass):
     reported = headed(view(config, "boiler"))["Wat de ketel meldt"]
     assert [c["title"] for c in reported if c["type"] == "entities"] == ["Verwarming", "Warm water",
                                                                           "Status en storingen"]
-    assert list(headed(view(config, "diagnostics"))) == ["E32", "Thermostaat op de bus",
+    assert list(headed(view(config, "diagnostics"))) == ["Verbinding met de E32", "E32", "Thermostaat op de bus",
                                                          "Tellers voor energie en warm water", "Ruwe keteldata"]
     assert set(TEXT["en"]) == set(TEXT["nl"]) == set(TEXT["pl"])
 

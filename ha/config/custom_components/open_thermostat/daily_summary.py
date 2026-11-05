@@ -30,7 +30,7 @@ import time
 from datetime import date, datetime, timedelta, timezone
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import UnitOfTime
+from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
@@ -387,9 +387,12 @@ class DailySummarySensor(_SummaryEntity):
 
 
 class SummaryTotalSensor(RestoreEntity, _SummaryEntity):
-    """A running total (total_increasing): its change per day in the statistics is the day's figure."""
+    """A running total (total_increasing): its change per day in the statistics is the day's figure.
+
+    Diagnostic: the cards show the day's figure from the statistic; the total itself is a counter."""
 
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, summary, key):
         super().__init__(summary, {"burner_s": "burner_time", "starts": "burner_starts",

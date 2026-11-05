@@ -141,8 +141,9 @@ def valve_error(err):
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unconfirmed")
         return ServiceValidationError(translation_domain=DOMAIN, translation_key="valves_rejected",
                                       translation_placeholders={"error": err.error})
-    return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
-                              translation_placeholders={"error": str(err)})
+    from .room_plan import link_error
+    return link_error(str(err)) or HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
+                                                      translation_placeholders={"error": str(err)})
 
 
 class ValveLink:
@@ -193,8 +194,8 @@ class ValveLink:
 
 
 def unreadable():
-    return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
-                              translation_placeholders={"error": "controller_response_invalid"})
+    from .room_plan import link_error
+    return link_error("controller_response_invalid")
 
 
 def valve_link(hass, entry):

@@ -82,7 +82,7 @@ examples; use your own.
   reads below 8 °C, off again at 9 °C.
 - **Radiator valves.** The E32 (Zigbee2MQTT valves) or Home Assistant (valves
   of other integrations) drives a room's valves only while the E32 controls
-  the boiler **and** that room's **Valve control** switch is on; it is off by
+  the boiler **and** that room's **Radiator valve control** switch is on; it is off by
   default. Switch it on per room after the attended tests, if you want it. See
   [Radiator valves](USER-GUIDE.md#radiator-valves).
 - **No automatic restarts while active.** While the E32 owns the boiler, Wi-Fi,
@@ -235,7 +235,7 @@ asked. The other tests stay attended by hand.
 | Test | Do | Pass when | Check |
 | --- | --- | --- | --- |
 | Start | Target ~1 °C above the room | Heating active within 2 min (up to ~10 min boiler anti-cycling); flow rises ≥ 3 °C within 15 min | Page: request and last sent; HA: Heating active, Water temperature to heating (flow); bus: Selected flow = request |
-| Modulation | Target +1, +2, +3 °C | Flow follows the request within ±3 °C; never above the ceiling; heating stays on across the 60 s refresh | HA: Boiler request (E32) vs Water temperature to heating (flow) and Water temperature target (boiler); monitor: no `request_above_limit` |
+| Modulation | Target +1, +2, +3 °C | Flow follows the request within ±3 °C; never above the ceiling; heating stays on across the 60 s refresh | HA: Requested water temperature vs Water temperature to heating (flow) and Water temperature target (boiler); monitor: no `request_above_limit` |
 | Stop | Target ≥ 0.5 °C below the room | Minimum burner time respected; heating off within ~30 s of the first zero; no restart within 5 min | Page: reason; HA: Heating active, Burner starts last hour |
 | Hot water while heating | Open a hot tap 3 min | Hot water has priority; heating resumes within 5 min; no stop, no warning | HA: Hot water active, Heating active; page stays `active` |
 | Hand-back button | Press **Give control back to my thermostat** | Zero for at least a minute, then the trial run ("Trial run: your thermostat controls the boiler."); nothing sent afterwards | Page text; `transmitted_frames` stops; monitor `handed_back` |

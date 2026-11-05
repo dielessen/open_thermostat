@@ -125,8 +125,10 @@ def flow_error(err):
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="flow_settings_unconfirmed")
         return ServiceValidationError(translation_domain=DOMAIN, translation_key="flow_settings_rejected",
                                       translation_placeholders={"error": err.error})
-    return HomeAssistantError(translation_domain=DOMAIN, translation_key="flow_settings_unreachable",
-                              translation_placeholders={"error": str(err)})
+    from .room_plan import link_error
+    return link_error(str(err)) or HomeAssistantError(translation_domain=DOMAIN,
+                                                      translation_key="flow_settings_unreachable",
+                                                      translation_placeholders={"error": str(err)})
 
 
 class FlowSettingsLink:
@@ -217,8 +219,8 @@ class FlowSettingsLink:
         """POST one change; the E32 answers with what it stored (that is the read-back)."""
         from .controller_link import ControllerLinkError
         if self.settings is None:
-            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="flow_settings_unreachable",
-                                     translation_placeholders={"error": "not_read"})
+            from .room_plan import link_error
+            raise link_error("not_read")  # the E32 did not answer when its settings were read
         try:
             answer = await self._call(change)
         except ControllerLinkError as err:

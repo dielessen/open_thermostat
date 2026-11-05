@@ -197,3 +197,46 @@ async def test_product_sensor_platform_cleans_before_adding_and_creates_no_legac
     # The E32 rooms first (sensor.py: every later step is optional).
     assert calls == [("cleanup", "fixture"), "async_setup_heating_link", "async_setup_boiler_fields",
                      ("telemetry", {"native_metrics": True}), "async_setup_shadow_metrics"]
+
+
+class FakeRecorder:
+    """The recorder calls async_tidy_statistics makes: metadata read in its executor, a clear or a new unit."""
+
+    def __init__(self, metadata):
+        self.metadata, self.cleared, self.relabelled = metadata, [], []
+
+    async def async_add_executor_job(self, job):
+        return job()
+
+    def async_clear_statistics(self, statistic_ids):
+        self.cleared.append(statistic_ids)
+
+    def async_update_statistics_metadata(self, statistic_id, **change):
+        self.relabelled.append((statistic_id, change))
+
+
+@pytest.mark.asyncio
+async def test_statistics_follow_a_new_unit_or_go_with_the_state_class(hass, monkeypatch):
+    """1.0.0rc7: a sensor OpenThermostat changes never leaves Home Assistant's "unit changed" or "no longer has a
+    state class" repair behind: the same numbers get the new unit, statistics of a sensor without any are removed."""
+    from homeassistant.components import recorder
+    from homeassistant.components.recorder import statistics
+    from custom_components.open_thermostat.native_entity_cleanup import async_tidy_statistics
+    fake = FakeRecorder({"sensor.per_degree_day": (1, {"unit_of_measurement": "kWh"}),
+                         "sensor.uptime": (2, {"unit_of_measurement": "h"})})
+    monkeypatch.setattr(recorder, "get_instance", lambda hass: fake)
+    monkeypatch.setattr(statistics, "get_metadata", lambda hass, statistic_ids: {
+        k: v for k, v in fake.metadata.items() if k in statistic_ids})
+    await async_tidy_statistics(hass, "sensor.per_degree_day", unit="kWh/°C·d")
+    assert fake.relabelled == [] and fake.cleared == []  # no recorder loaded: nothing
+    hass.config.components.add("recorder")
+    await async_tidy_statistics(hass, "sensor.per_degree_day", unit="kWh/°C·d")
+    await async_tidy_statistics(hass, "sensor.uptime", drop=True)
+    await async_tidy_statistics(hass, "sensor.without_statistics", drop=True)
+    assert fake.relabelled == [("sensor.per_degree_day", {"new_unit_class": None, "new_unit_of_measurement": "kWh/°C·d"})]
+    assert fake.cleared == [["sensor.uptime"]]
+    fake.metadata["sensor.per_degree_day"] = (1, {"unit_of_measurement": "kWh/°C·d"})
+    await async_tidy_statistics(hass, "sensor.per_degree_day", unit="kWh/°C·d")  # already fits: once only
+    assert len(fake.relabelled) == 1
+    monkeypatch.setattr(statistics, "get_metadata", lambda hass, statistic_ids: 1 / 0)
+    await async_tidy_statistics(hass, "sensor.uptime", drop=True)  # never raises

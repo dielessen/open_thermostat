@@ -9,6 +9,10 @@
    today (heating too while the band shows a problem, which then cannot say it); then the day so far, a strip from
    midnight to now (heating, hot water, keeping warm) with the hours and "now" under it. The layout, sizes and
    spacing are the owner's sketch (rc.5 design, Main/Overzicht-donker/Overzicht-desktop).
+   HA 1.0.0rc7 completes the desktop sketch: the band also says the burner power and the boiler's display code
+   ("burner 37 % · code -H"; on a wide card on its right before the house mode chip, on a phone under the words), the
+   hot water figure its temperature ("water 65 °C") and the burner starts how many came in the last hour; each only
+   while its entity is in the card's config (modulation, code, dhw, starts_hour) and has a value.
 
    Only Home Assistant is read: the states of the entities in the card's config, the boiler activity since
    midnight (history/history_during_period: again when the activity changes, at most every 5 minutes; the
@@ -38,7 +42,8 @@ const TEXT = {title: 'Your house', heating: 'Heating', status_heating: 'Heating 
  all_reasons: 'All reasons', mode: 'House mode: {mode}', today: 'Today', legend_heating: 'Heating', legend_hot_water: 'Hot water',
  legend_keep_warm: 'Keeping warm', waiting: 'The E32 has not reported yet.', now: 'now', warm: '{room} was warm', early: '{m} min early',
  late: '{m} min late', on_time: 'on time', degree_days: 'Degree-days', target: 'target {t} °C', per_day: '{n} days: {value} a day',
- today_since: 'Today since midnight'};
+ today_since: 'Today since midnight', burner: 'burner {n} %', code: 'code {code}', water: 'water {t} °C',
+ last_hour: '{n} in the last hour'};
 // The scoreboard sensors' own names (strings.json entity.sensor.<key>.name), English as the last resort.
 const NAMES = {burner_starts_per_heating_hour: 'Burner starts per heating hour', heating_gas_yesterday: 'Gas for heating (estimate)'};
 const DASH = '—';  // a figure not known yet: the same in every language
@@ -94,6 +99,7 @@ p{margin:0}
 border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.2);color:#fff;font:inherit;font-size:12px;font-weight:500;cursor:pointer;
 white-space:nowrap;--mdc-icon-size:16px}
 .chip ha-icon{color:#fff;display:flex}
+.boiler{order:1;flex:1 1 100%;margin:-4px 0 0 32px;font-size:12px;line-height:1.35;color:#fff;overflow-wrap:anywhere}
 .status [data-focus]:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .reasons{padding:8px 16px 10px;border-bottom:1px solid var(--oth-line)}
 .reasons summary{cursor:pointer;font-size:14px;font-weight:500;padding:4px 0;min-height:24px}
@@ -133,7 +139,8 @@ border-top:1px solid var(--oth-line)}
 @container house (max-width:340px){.main{flex-basis:100%}.chip{margin-left:32px}.status{padding:12px}.figure,.figure.top{padding-left:12px;padding-right:12px}.today{padding:10px 12px 12px}
 .reasons{padding:8px 12px 10px}}
 @container house (min-width:720px){.status{gap:8px 12px;padding:14px 22px}.main{gap:12px}.main>ha-icon{--mdc-icon-size:24px}
-.line{font-size:18px}.sub,.chip{font-size:13px}
+.line{font-size:18px}.sub,.chip,.boiler{font-size:13px}
+.boiler{order:0;flex:0 1 auto;margin:0 0 0 auto;text-align:right}.boiler+.chip{margin-left:0}
 .figures{grid-template-columns:repeat(var(--n,4),minmax(0,1fr))}.p2{grid-column:auto}.figure,.figure.top{padding:20px 22px}
 .label,.note,.today-title,.legend,.ticks{font-size:13px}.note{margin-top:6px}.value .num,.value.unknown{font-size:34px}
 .trend{gap:4px 12px}.spark{flex:1 1 64px;min-width:64px;max-width:110px}.reasons{padding:8px 22px 10px}
@@ -164,7 +171,7 @@ const hour12 = hass => {
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const numeric = value => { const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value; return finite(n) ? n : null; };
 // A figure and its unit stay on one line ("41 °C" is never cut into "41" and "°C" on a phone).
-const together = text => typeof text === 'string' ? text.replace(/ (°C|m³|kWh)/g, NBSP + '$1') : text;
+const together = text => typeof text === 'string' ? text.replace(/ (°C|m³|kWh|%)/g, NBSP + '$1') : text;
 const known = st => !!st && typeof st.state === 'string' && !['unknown', 'unavailable', ''].includes(st.state);
 const entityId = value => typeof value === 'string' && value.includes('.') ? value : undefined;
 const SVG = 'http://www.w3.org/2000/svg';
@@ -306,7 +313,8 @@ class OpenThermostatHouse extends OpenThermostatCard {
   const rooms = (Array.isArray(config.rooms) ? config.rooms : []).filter(room => room && id(room.entity)).slice(0, 1);
   this._config = {request: id(config.request), activity: id(config.activity), heating: id(config.heating), flow: id(config.flow),
    hot_water: id(config.hot_water), taps: id(config.taps), gas, starts: id(config.starts), mode: id(config.mode),
-   problem: id(config.problem), rooms};
+   problem: id(config.problem), rooms, modulation: id(config.modulation), code: id(config.code), dhw: id(config.dhw),
+   starts_hour: id(config.starts_hour)};
   this._key = null; this.reset();
   if (this._hass) { this.track(); this.refresh(); this.render(); }
  }
@@ -339,7 +347,8 @@ class OpenThermostatHouse extends OpenThermostatCard {
  getGridOptions() { return {columns: 12, min_columns: 12}; }
  entities() {
   const c = this._config;
-  return [c.request, c.activity, c.heating, c.flow, c.hot_water, c.taps, ...c.gas, c.starts, c.mode, c.problem, c.rooms[0]?.entity].filter(Boolean);
+  return [c.request, c.activity, c.heating, c.flow, c.hot_water, c.taps, ...c.gas, c.starts, c.mode, c.problem, c.rooms[0]?.entity,
+   c.modulation, c.code, c.dhw, c.starts_hour].filter(Boolean);
  }
  degrees(value) { return this.number(Math.round(value)); }
  time(ms) {
@@ -463,6 +472,27 @@ class OpenThermostatHouse extends OpenThermostatCard {
   if (value !== null) return {tone: 'rest', icon: ICON.rest, line: this.t('no_request'), fromRequest: true};
   return {tone: 'wait', icon: ICON.wait, line: this.t('waiting')};
  }
+ // A value of an entity in the config, or null (missing, unknown, not a number).
+ value(id) { const st = this.st(id); return known(st) ? numeric(st.state) : null; }
+ // The boiler in a few words, as the sketch: its burner power and its display code ("burner 37 % · code -H"); the
+ // code's meaning in the tooltip. Each part only while it has a value; null without either.
+ boilerWords() {
+  const c = this._config, parts = [], power = this.value(c.modulation), code = this.st(c.code);
+  let title = '';
+  if (power !== null) parts.push(['power', this.t('burner', {n: this.number(Math.max(0, Math.min(100, Math.round(power))))})]);
+  const text = known(code) ? code.state.replace(/[\s.]/g, '') : '';
+  if (text && text !== '--') {
+   // A fault's cause number with it, as the Boiler tab's Now card ("3L 214"); normal operation the code alone.
+   const a = code.attributes || {}, severity = typeof a.severity === 'string' ? a.severity : null;
+   const cause = Number.isInteger(a.cause) && severity && severity !== 'normal' ? ' ' + a.cause : '';
+   parts.push(['code', this.t('code', {code: text + cause})]);
+   title = typeof a.meaning === 'string' ? a.meaning.trim() : '';
+  }
+  if (!parts.length) return null;
+  const box = make('p', {class: 'boiler', 'data-boiler': '', title: title || null});
+  parts.forEach(([key, words], i) => box.append(...(i ? [' · '] : []), make('span', {['data-' + key]: ''}, words)));
+  return box;
+ }
  // The line under it: the rooms that want heat (not the room shown in the card) and the boiler request.
  wanting(status, inlined) {
   const request = this.st(this._config.request);
@@ -512,6 +542,8 @@ class OpenThermostatHouse extends OpenThermostatCard {
   if (sub) words.append(make('p', {class: 'sub'}, sub));
   main.append(icon(status.icon), words);
   box.append(main);
+  const boiler = this.boilerWords();
+  if (boiler) box.append(boiler);
   if (status.problem) {
    // A tap leads to the fix: Repairs (Home Assistant's own navigation: the new path and location-changed). The link
    // is the icon and the words, with a chevron that says so; the house mode chip beside it is a control of its own.
@@ -550,15 +582,22 @@ class OpenThermostatHouse extends OpenThermostatCard {
    const n = known(taps) ? numeric(taps.state) : null, activity = this.st(config.activity), water = this.st(config.hot_water);
    const running = known(activity) ? RUNNING.has(activity.state) : water?.state === 'on';
    const count = n === null ? null : Math.round(n), num = count === null ? null : this.number(count);
-   list.push(this.figure('hot_water', this.t('hot_water'), count === null ? null
+   const box = this.figure('hot_water', this.t('hot_water'), count === null ? null
     : count === 0 ? this.t('taps_none') : count === 1 ? this.t('taps_one') : this.t('taps', {n: num}), num,
-    running ? make('p', {class: 'note running', 'data-running': ''}, this.t('running')) : null));
+    running ? make('p', {class: 'note running', 'data-running': ''}, this.t('running')) : null);
+   // As the sketch ("vandaag · boiler 65 °C"): the hot water's temperature under the taps.
+   const hot = this.value(config.dhw);
+   if (hot !== null) box.append(make('p', {class: 'note', 'data-dhw': ''}, this.t('water', {t: this.degrees(hot)})));
+   list.push(box);
   }
   const gas = config.gas.filter(id => this.st(id));
   if (gas.length) list.push(this.gasFigure(gas));
   if (this.st(config.starts)) {
    const starts = this.today([config.starts]), num = starts === null ? null : this.number(Math.round(starts));
-   list.push(this.figure('starts', this.t('starts_today'), num, num));
+   // As the sketch ("vandaag · 1 in het laatste uur"): the starts in the last hour under today's.
+   const hour = this.value(config.starts_hour);
+   list.push(this.figure('starts', this.t('starts_today'), num, num, hour === null ? null
+    : make('p', {class: 'note', 'data-last-hour': ''}, this.t('last_hour', {n: this.number(Math.round(hour))}))));
   }
   if (!list.length) return null;
   // As the sketch: two by two on a phone (an odd last one across both), one row on a wide card (≥ 720 px), as many

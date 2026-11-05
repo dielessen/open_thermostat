@@ -21,6 +21,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from homeassistant.const import EntityCategory
 from homeassistant.core import HassJob
 from homeassistant.util import dt as dt_util
 
@@ -390,7 +391,8 @@ async def test_the_heat_request_sensor_and_the_diagnostics_show_the_route(hass, 
     monkeypatch.setattr(heating_link, "async_setup_heating_link", setup)
     await link.start()
     sensor = next(e for e in added if isinstance(e, heating_link.HeatRequestSensor))
-    assert "ha_input" in sensor._unrecorded_attributes
+    assert {"ha_input", "rooms", "revision"} <= sensor._unrecorded_attributes  # every room once a minute: not recorded
+    assert sensor.entity_category == EntityCategory.DIAGNOSTIC
     attributes = sensor.extra_state_attributes["ha_input"]
     assert attributes["state"] == "ok" and attributes["e32_last_input"] is not None and attributes["last_sent"] is not None
     assert attributes["last_error"] is None and attributes["dropped"] == 0 and attributes["e32_last_rejected"] is None

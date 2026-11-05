@@ -1349,13 +1349,19 @@ class RoomEntity(HubEntity):
 
 
 class HeatRequestSensor(HubEntity, SensorEntity):
-    """The E32's computed boiler flow request (0 when it does not ask for heat)."""
+    """The E32's computed boiler flow request, "Requested water temperature" (0 when it does not ask for heat).
+
+    0 stays the "no request" state: the house and boiler-now cards read it so (frontend). Diagnostic: the
+    cards and the Boiler view show it, the device page keeps it out of the main list.
+    """
 
     _attr_translation_key = "heat_request"
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
-    # Whether the E32 gets Home Assistant's values (HeatingInputWatch.attributes): live only, not in the history.
-    _unrecorded_attributes = frozenset({"ha_input"})
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # Live only, not in the history: whether the E32 gets Home Assistant's values (HeatingInputWatch.attributes),
+    # every room's state (the room entities keep their own history) and the plan revision.
+    _unrecorded_attributes = frozenset({"ha_input", "rooms", "revision"})
 
     def __init__(self, hub):
         self._attach(hub, "hub_heat_request")

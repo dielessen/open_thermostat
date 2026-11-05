@@ -2672,7 +2672,7 @@
         }
       },
       "heat_request": {
-        "name": "Ketelvraag (E32)",
+        "name": "Gevraagde watertemperatuur",
         "state_attributes": {
           "card": {
             "name": "Kaart",

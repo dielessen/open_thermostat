@@ -1635,7 +1635,7 @@
         }
       },
       "heat_request": {
-        "name": "Żądanie do kotła (E32)",
+        "name": "Żądana temperatura wody",
         "state_attributes": {
           "card": {
             "name": "Karta",

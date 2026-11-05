@@ -269,7 +269,7 @@ NAMES = {
                "room_status": ("Control status", "Regelstatus"),
                "ble_temperature": ("Temperature", "Temperatuur"), "ble_humidity": ("Humidity", "Luchtvochtigheid"),
                "ble_battery": ("Battery", "Batterij"),
-               "heat_request": ("Boiler request (E32)", "Ketelvraag (E32)"),
+               "heat_request": ("Requested water temperature", "Gevraagde watertemperatuur"),
                "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur"),
                "room_learning": ("Learning status", "Leerstatus"),
                "room_flow_advice": ("Recommended water temperature", "Geadviseerde watertemperatuur"),

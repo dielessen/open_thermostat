@@ -1635,7 +1635,7 @@
         }
       },
       "heat_request": {
-        "name": "Boiler request (E32)",
+        "name": "Requested water temperature",
         "state_attributes": {
           "card": {
             "name": "Card",

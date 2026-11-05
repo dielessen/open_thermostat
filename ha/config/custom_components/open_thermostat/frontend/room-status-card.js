@@ -97,7 +97,11 @@ const clockMoment = (hass, value, now = Date.now()) => {
  const days = clockDay(hass, ms) - clockDay(hass, now), time = clockTime(hass, ms);
  if (days === 0) return time;
  if (Math.abs(days) === 1) {
-  try { return new Intl.RelativeTimeFormat(clockLocale(hass), {numeric: 'auto'}).format(days, 'day') + ' ' + time; } catch (e) { /* older browser */ }
+  try {
+   const word = new Intl.RelativeTimeFormat(clockLocale(hass), {numeric: 'auto'}).format(days, 'day');
+   // Polish "do"/"od"/"na" would need the genitive ("do jutra"): the time first keeps every sentence right ("do 06:30 jutro").
+   return /^pl\b/.test(clockLocale(hass)) ? time + ' ' + word : word + ' ' + time;
+  } catch (e) { /* older browser */ }
  }
  try { return new Date(ms).toLocaleString(clockLocale(hass), {weekday: 'short', day: 'numeric', month: 'short', ...clockOptions(hass)}); }
  catch (e) { return new Date(ms).toISOString().slice(0, 16).replace('T', ' '); }

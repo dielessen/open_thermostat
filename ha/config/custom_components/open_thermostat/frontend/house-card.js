@@ -47,7 +47,7 @@ const TEXT = {title: 'Your house', heating: 'Heating', status_heating: 'Heating 
  tap_open: 'Hot water: tap open', keeping_warm: 'Keeping hot water warm', gas_estimate: 'Gas today (estimate)',
  no_warmup: 'no warm-up yesterday', late_hours: '{h} h {m} min late', early_hours: '{h} h {m} min early',
  not_warm: 'not warm within 3 h', yesterday_starts: 'Burner starts per heating hour',
- yesterday_heating: 'Heating energy (estimate)'};
+ yesterday_heating: 'Heating energy (estimate)', warm_on_time: '{room}: warm on time'};
 // The warm-on-time sensor's value for a room that did not get warm within 3 hours (the firmware's ArrivalLearner cap).
 const NOT_WARM_MIN = 180;
 const DASH = '—';  // a figure not known yet: the same in every language
@@ -214,7 +214,11 @@ const clockMoment = (hass, value, now = Date.now()) => {
  const days = clockDay(hass, ms) - clockDay(hass, now), time = clockTime(hass, ms);
  if (days === 0) return time;
  if (Math.abs(days) === 1) {
-  try { return new Intl.RelativeTimeFormat(clockLocale(hass), {numeric: 'auto'}).format(days, 'day') + ' ' + time; } catch (e) { /* older browser */ }
+  try {
+   const word = new Intl.RelativeTimeFormat(clockLocale(hass), {numeric: 'auto'}).format(days, 'day');
+   // Polish "do"/"od"/"na" would need the genitive ("do jutra"): the time first keeps every sentence right ("do 06:30 jutro").
+   return /^pl\b/.test(clockLocale(hass)) ? time + ' ' + word : word + ' ' + time;
+  } catch (e) { /* older browser */ }
  }
  try { return new Date(ms).toLocaleString(clockLocale(hass), {weekday: 'short', day: 'numeric', month: 'short', ...clockOptions(hass)}); }
  catch (e) { return new Date(ms).toISOString().slice(0, 16).replace('T', ' '); }
@@ -865,7 +869,9 @@ class OpenThermostatYesterday extends OpenThermostatCard {
    // The firmware records a room that did not get warm within 3 hours after the switch as 180 min late (ArrivalLearner):
    // that is no lateness to count, so it says so, muted as "no warm-up yesterday".
    const never = minutes !== null && minutes >= NOT_WARM_MIN;
-   add('room', c.room.entity, this.t('warm', {room: c.room.name || room.attributes?.friendly_name || c.room.entity}),
+   // A room that was not warm (no warm-up, or not within 3 hours) is labelled with the question, not "was warm".
+   const name = c.room.name || room.attributes?.friendly_name || c.room.entity;
+   add('room', c.room.entity, this.t(none || never ? 'warm_on_time' : 'warm', {room: name}),
     none ? this.t('no_warmup') : never ? this.t('not_warm') : m === null ? null : m > 0 ? (long ? this.t('late_hours', long) : this.t('late', {m: num}))
      : m < 0 ? (long ? this.t('early_hours', long) : this.t('early', {m: num})) : this.t('on_time'), none || never);
   }

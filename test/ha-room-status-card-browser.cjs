@@ -22,6 +22,7 @@ function resources(lang){
 const since=new Date(Date.now()-25*60000).toISOString(),until=new Date(Date.now()+10*86400000).toISOString();  // a holiday ten days on: its date
 // The week program's next step: in two hours (today, or with its weekday after midnight), in three days.
 const soon=new Date(Date.now()+2*3600000).toISOString(),later=new Date(Date.now()+3*86400000).toISOString();
+const TOMORROW_0630=(()=>{const t=new Date();t.setDate(t.getDate()+1);t.setHours(6,30,0,0);return t.toISOString();})();
 const reason=(state,line,values,extra)=>({state,attributes:{room_id:'living',line,values,temperature:20.6,setpoint:22.5,presence:null,window:null,
  valve_position:null,valve_problem:null,friendly_name:'Living Reason',...extra}});
 const STATES={
@@ -36,25 +37,32 @@ const STATES={
  // A program that changes nothing in the coming week: the level now, no step on the card.
  'sensor.even_reason':reason('warm_enough','warm_enough',{temperature:20.1,target:20},{temperature:20.1,setpoint:20,
   program:{level:'comfort',target:20,next_at:null,next_level:null,next_target:null}}),
+ // Night until tomorrow 06:30 (the browser's day): "tomorrow 06:30" in English and Dutch, the time first in Polish
+ // ("Noc do 06:30 jutro": "do" would need the genitive "jutra").
+ 'sensor.night_reason':reason('warm_enough','warm_enough',{temperature:18.2,target:18},{temperature:18.2,setpoint:18,
+  program:{level:'night',target:18,next_at:TOMORROW_0630,next_level:'comfort',next_target:20.5}}),
  'sensor.attic_reason':{state:'unavailable',attributes:{friendly_name:'Attic Reason'}},
  'switch.smart_warm_up':{state:'on',attributes:{}},'select.house_mode':{state:'auto',attributes:{}},
 };
-const ROOMS=['living','kitchen','bedroom','study','hall','warm','even','attic','gone'];
+const ROOMS=['living','kitchen','bedroom','study','hall','warm','even','night','attic','gone'];
 // A figure and its unit stay together: a no-break space before °C and % (the regular expressions' \s takes it too).
 const NB=s=>s.replace(/ (°C|%)/g,'\u00a0$1');
 const WORDS={
  en:{living:NB('Heating: 20.6 → 22.5 °C'),kitchen:/^Paused: Back door open since (\S+ )?\d{1,2}:\d\d( [AP]M)?$/,bedroom:NB('Away: nobody of this room is home (18 °C)'),
   study:'Frost protection only (room off)',hall:/^Holiday until .+ \(15\s°C\)$/,now:'20.6',spoken:'Now 20.6 °C, Target 22.5 °C',
   valves:NB('Radiator valves open: 40 %'),home:'Someone of this room is home',
+  tomorrow:/^Night until tomorrow\s6:30\sAM, then Comfort 20\.5\u00a0°C$/,
   step:/^Comfort until (\S+\s)?\d{1,2}:\d\d(\s[AP]M)?, then Night 18\.0\u00a0°C$/,own:/^21\.5\u00a0°C until .+, then Eco 19\.0\u00a0°C$/},
  nl:{living:NB('Verwarmt: 20,6 → 22,5 °C'),kitchen:/^Gepauzeerd: Back door open sinds (\S+ )?\d\d:\d\d$/,bedroom:NB('Afwezig: niemand van deze ruimte is thuis (18 °C)'),
   study:'Alleen vorstbeveiliging (ruimte uit)',hall:/^Vakantie tot .+ \(15\s°C\)$/,now:'20,6',spoken:'Nu 20,6 °C, Gewenst 22,5 °C',
   valves:NB('Radiatorkranen open: 40 %'),home:'Iemand van deze ruimte is thuis',
+  tomorrow:/^Nacht tot morgen\s06:30, daarna Comfort 20,5\u00a0°C$/,
   step:/^Comfort tot (\S+\s)?\d\d:\d\d, daarna Nacht 18,0\u00a0°C$/,own:/^21,5\u00a0°C tot .+, daarna Eco 19,0\u00a0°C$/},
- pl:{living:NB('Grzeje: 20,6 → 22,5 °C'),kitchen:/^Wstrzymane: Back door otwarte od (\S+ )?\d\d:\d\d$/,bedroom:NB('Nieobecność: nikogo z tego pomieszczenia nie ma w domu (18 °C)'),
+ pl:{living:NB('Grzeje: 20,6 → 22,5 °C'),kitchen:/^Wstrzymane: Back door otwarte od \d\d:\d\d( wczoraj)?$/,bedroom:NB('Nieobecność: nikogo z tego pomieszczenia nie ma w domu (18 °C)'),
   study:'Tylko ochrona przed mrozem (pomieszczenie wyłączone)',hall:/^Urlop do .+ \(15\s°C\)$/,now:'20,6',spoken:'Teraz 20,6 °C, Cel 22,5 °C',
   valves:NB('Otwarcie zaworów grzejnikowych: 40 %'),home:'Ktoś z tego pomieszczenia jest w domu',
-  step:/^Komfort do (\S+\s)?\d\d:\d\d, potem Noc 18,0\u00a0°C$/,own:/^21,5\u00a0°C do .+, potem Eko 19,0\u00a0°C$/},
+  tomorrow:/^Noc do 06:30\sjutro, potem Komfort 20,5\u00a0°C$/,
+  step:/^Komfort do \d\d:\d\d(\sjutro)?, potem Noc 18,0\u00a0°C$/,own:/^21,5\u00a0°C do .+, potem Eko 19,0\u00a0°C$/},
 };
 // Home Assistant's default theme colours (light and dark) and its state colours.
 const THEMES={light:'--primary-text-color:#212121;--secondary-text-color:#727272;--card-background-color:#fff;--secondary-background-color:#f5f5f5;'+
@@ -104,13 +112,14 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   assert.equal(await why('living'),words.living);assert.match(await why('kitchen'),words.kitchen);
   assert.equal(await why('bedroom'),words.bedroom);assert.equal(await why('study'),words.study);assert.match(await why('hall'),words.hall);
   assert.deepEqual(await page.locator('.why').evaluateAll(n=>n.map(x=>x.dataset.reason)),
-   ['heating','window_open','room_away','off','holiday','warm_enough','warm_enough']);
-  assert.deepEqual(await page.locator('.name').allInnerTexts(),['Living','Kitchen','Bedroom','Study','Hall','Warm','Even','Attic','Gone']);
+   ['heating','window_open','room_away','off','holiday','warm_enough','warm_enough','warm_enough']);
+  assert.deepEqual(await page.locator('.name').allInnerTexts(),['Living','Kitchen','Bedroom','Study','Hall','Warm','Even','Night','Attic','Gone']);
   // The week program's step after the sentence and a middle dot, in the same muted line (the sketch); a point with its
   // own temperature by that temperature; nothing without a next step or without the attribute.
   assert.match(await room('living').locator('[data-step]').innerText(),words.step);
   assert.equal(await room('living').locator('.why').innerText(),words.living+' · '+await room('living').locator('[data-step]').innerText());
   assert.match(await room('warm').locator('[data-step]').innerText(),words.own);
+  assert.match(await room('night').locator('[data-step]').innerText(),words.tomorrow);
   // Beyond tomorrow a moment has its date (a weekday alone is ambiguous after six days): the holiday ten days on, the
   // program step three days on; the viewer's 12/24 hours as the language has them here.
   const dated=await page.evaluate(([lang,...isos])=>{const h12=/h1[12]/.test(new Intl.DateTimeFormat(lang,{hour:'numeric'}).resolvedOptions().hourCycle);
@@ -158,7 +167,7 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
    const s=c.shadowRoot,surface=getComputedStyle(s.querySelector('ha-card')).backgroundColor;
    return [...[...s.querySelectorAll('.chip')].map(x=>[c.dataset.room+' '+x.dataset.chip,getComputedStyle(x).color,getComputedStyle(x).backgroundColor]),
     ...[...s.querySelectorAll('.why,.name,.now,.missing')].map(x=>[c.dataset.room+' '+x.className,getComputedStyle(x).color,surface])];}));
-  assert.equal(pairs.length,18+25,'the chips and lines of every card');
+  assert.equal(pairs.length,20+28,'the chips and lines of every card');
   for(const [name,fg,bg] of pairs)assert(contrast(fg,bg)>=4.5,`${lang} ${theme} ${name}: ${fg} on ${bg}: ${contrast(fg,bg).toFixed(2)}`);
   // The layout: the disc, the words and the temperature in one row; the chips under them; nothing wider than the screen.
   const row=await room('living').evaluate(c=>{const s=c.shadowRoot,r=q=>s.querySelector(q).getBoundingClientRect();

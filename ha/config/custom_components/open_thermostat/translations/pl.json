@@ -588,7 +588,7 @@
           "ble_sources": "Czujniki Bluetooth na E32",
           "bluetooth_first": "Najpierw używaj czujników Bluetooth",
           "setpoint_entity": "Urządzenie nastawcze (opcjonalnie)",
-          "fallback_temperature": "Temperatura bez Home Assistant",
+          "fallback_temperature": "Temperatura bez programu tygodniowego",
           "program": "Program tygodniowy na E32",
           "inactive_until": "Wyłączony do (opcjonalnie)"
         },
@@ -619,7 +619,7 @@
           },
           "limits": {
             "name": "Limity temperatury",
-            "description": "Temperatura docelowa, temperatura bez Home Assistant i program mieszczą się w tych limitach.",
+            "description": "Temperatura docelowa, temperatura bez programu tygodniowego i program mieszczą się w tych limitach.",
             "data": {
               "minimum_temperature": "Temperatura minimalna",
               "maximum_temperature": "Temperatura maksymalna"
@@ -1204,7 +1204,7 @@
       "e32_source_not_found": "{source} nie istnieje w Home Assistant.",
       "e32_source_not_celsius": "{source} nie zgłasza temperatury (°C lub °F). Wybierz czujnik temperatury.",
       "e32_source_no_temperature": "{source} nie zgłasza bieżącej temperatury. Wybierz termostat, który mierzy temperaturę pomieszczenia, lub czujnik temperatury.",
-      "e32_limits_invalid": "Użyj limitów w zakresie {range}, z minimum nie wyższym niż maksimum, oraz temperatury bez Home Assistant mieszczącej się w nich.",
+      "e32_limits_invalid": "Użyj limitów w zakresie {range}, z minimum nie wyższym niż maksimum, oraz temperatury bez programu tygodniowego mieszczącej się w nich.",
       "e32_program_invalid": "Nie udało się odczytać linii {line} programu tygodniowego: {text}. Użyj jednej linii na grupę dni, na przykład mon-fri: 06:30 20.5; 22:30 18, i wymień każdy dzień tylko w jednej linii.",
       "e32_program_too_many": "Linia {line}: dzień może mieć najwyżej 6 punktów przełączenia.",
       "e32_program_outside_limits": "Linia {line}: temperatura jest poza limitami temperatury pomieszczenia.",
@@ -1454,7 +1454,7 @@
         "name": "Moc znamionowa grzejników"
       },
       "room_fallback_setpoint": {
-        "name": "Temperatura bez Home Assistant"
+        "name": "Temperatura bez programu tygodniowego"
       },
       "away_temperature": {
         "name": "Temperatura, gdy nikogo nie ma w domu"

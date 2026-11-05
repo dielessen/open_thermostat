@@ -289,7 +289,7 @@ Assistant — you edit rooms here." on the **Rooms** page.
    floor heating). **Inactive until** switches a room off until a date.
 3. Under **Temperature sources**, choose the Bluetooth sensor. Up to four
    sources in order: the first fresh one leads, the others are fallback.
-4. Set the **Temperature without Home Assistant** (for example 19 °C) and the
+4. Set the **Temperature without a week program** (for example 19 °C) and the
    room's **Minimum** and **Maximum**.
 5. Turn on **Use a week program**. Choose a template under **Start from a
    template**, set the **Comfort**, **Eco** and **Night** temperatures, and
@@ -365,7 +365,7 @@ and the paired Bluetooth thermometer as fallback.
      temperature at every switch point; see
      [Week program and setting device](#week-program-and-setting-device).
      Leave it empty to use the room's own thermostat in Home Assistant.
-   - **Temperature without Home Assistant:** for example 19 °C.
+   - **Temperature without a week program:** for example 19 °C.
    - **Week program on the E32:** the form starts with the "Workdays and
      weekend" template. Keep it and adjust it in the visual planner (the
      **Week program** tab of the OpenThermostat dashboard), or type one line

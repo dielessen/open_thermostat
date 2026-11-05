@@ -1625,7 +1625,7 @@
           "ble_sources": "Bluetooth-sensoren op de E32",
           "bluetooth_first": "Bluetooth-sensoren eerst gebruiken",
           "setpoint_entity": "Instelapparaat (optioneel)",
-          "fallback_temperature": "Temperatuur zonder Home Assistant",
+          "fallback_temperature": "Temperatuur zonder weekprogramma",
           "program": "Weekprogramma op de E32",
           "inactive_until": "Uit tot (optioneel)"
         },
@@ -1656,7 +1656,7 @@
           },
           "limits": {
             "name": "Temperatuurgrenzen",
-            "description": "De gewenste temperatuur, de temperatuur zonder Home Assistant en het programma blijven binnen deze grenzen.",
+            "description": "De gewenste temperatuur, de temperatuur zonder weekprogramma en het programma blijven binnen deze grenzen.",
             "data": {
               "minimum_temperature": "Minimumtemperatuur",
               "maximum_temperature": "Maximumtemperatuur"
@@ -2241,7 +2241,7 @@
       "e32_source_not_found": "{source} bestaat niet in Home Assistant.",
       "e32_source_not_celsius": "{source} meldt geen temperatuur (°C of °F). Kies een temperatuursensor.",
       "e32_source_no_temperature": "{source} meldt geen actuele temperatuur. Kies een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor.",
-      "e32_limits_invalid": "Gebruik grenzen tussen {range} met het minimum niet boven het maximum, en een temperatuur zonder Home Assistant daartussen.",
+      "e32_limits_invalid": "Gebruik grenzen tussen {range} met het minimum niet boven het maximum, en een temperatuur zonder weekprogramma daartussen.",
       "e32_program_invalid": "Regel {line} van het weekprogramma is niet leesbaar: {text}. Gebruik één regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18, en noem elke dag in maar één regel.",
       "e32_program_too_many": "Regel {line}: een dag kan maximaal 6 schakelpunten hebben.",
       "e32_program_outside_limits": "Regel {line}: een temperatuur ligt buiten de temperatuurgrenzen van de ruimte.",
@@ -2491,7 +2491,7 @@
         "name": "Nominaal radiatorvermogen"
       },
       "room_fallback_setpoint": {
-        "name": "Temperatuur zonder Home Assistant"
+        "name": "Temperatuur zonder weekprogramma"
       },
       "away_temperature": {
         "name": "Temperatuur als niemand thuis is"

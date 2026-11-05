@@ -555,7 +555,7 @@ Right after connecting, choose **Add the first room**. Later, go to
    any. Tick **Use the Bluetooth sensors first** to make them lead and keep the
    Home Assistant sources as backup.
 6. **Setting device (optional)**: see [11.3](#113-the-setting-device).
-7. **Temperature without Home Assistant**: a safe fixed temperature, for
+7. **Temperature without a week program**: a safe fixed temperature, for
    example 19 °C. The E32 uses it only in the rare case that the room has no
    usable week program, for example when the E32 has no valid clock.
 8. **Week program on the E32**: the form fills in the **Workdays and weekend**

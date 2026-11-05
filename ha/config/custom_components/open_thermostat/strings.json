@@ -588,7 +588,7 @@
           "ble_sources": "Bluetooth sensors on the E32",
           "bluetooth_first": "Use the Bluetooth sensors first",
           "setpoint_entity": "Setting device (optional)",
-          "fallback_temperature": "Temperature without Home Assistant",
+          "fallback_temperature": "Temperature without a week program",
           "program": "Week program on the E32",
           "inactive_until": "Off until (optional)"
         },
@@ -619,7 +619,7 @@
           },
           "limits": {
             "name": "Temperature limits",
-            "description": "The target temperature, the temperature without Home Assistant and the program stay within these limits.",
+            "description": "The target temperature, the temperature without a week program and the program stay within these limits.",
             "data": {
               "minimum_temperature": "Minimum temperature",
               "maximum_temperature": "Maximum temperature"
@@ -1204,7 +1204,7 @@
       "e32_source_not_found": "{source} does not exist in Home Assistant.",
       "e32_source_not_celsius": "{source} does not report a temperature (°C or °F). Choose a temperature sensor.",
       "e32_source_no_temperature": "{source} reports no current temperature. Choose a thermostat that measures the room temperature, or a temperature sensor.",
-      "e32_limits_invalid": "Use limits between {range} with the minimum not above the maximum, and a temperature without Home Assistant within them.",
+      "e32_limits_invalid": "Use limits between {range} with the minimum not above the maximum, and a temperature without a week program within them.",
       "e32_program_invalid": "Line {line} of the week program could not be read: {text}. Use one line per group of days, for example mon-fri: 06:30 20.5; 22:30 18, and name each day in one line only.",
       "e32_program_too_many": "Line {line}: a day can have up to 6 switch points.",
       "e32_program_outside_limits": "Line {line}: a temperature is outside the room's temperature limits.",
@@ -1454,7 +1454,7 @@
         "name": "Radiator rated power"
       },
       "room_fallback_setpoint": {
-        "name": "Temperature without Home Assistant"
+        "name": "Temperature without a week program"
       },
       "away_temperature": {
         "name": "Temperature when nobody is home"

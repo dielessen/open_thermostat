@@ -1699,7 +1699,9 @@
               "no_warmup": "wczoraj bez nagrzewania",
               "late_hours": "{h} godz. {m} min za późno",
               "early_hours": "{h} godz. {m} min za wcześnie",
-              "not_warm": "nie ciepło w ciągu 3 godz."
+              "not_warm": "nie ciepło w ciągu 3 godz.",
+              "yesterday_starts": "Starty palnika na godzinę grzania",
+              "yesterday_heating": "Energia na ogrzewanie (szacunek)"
             }
           }
         }

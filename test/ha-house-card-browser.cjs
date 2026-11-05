@@ -486,10 +486,17 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   const figures=async name=>yesterday(name).locator('.figure').evaluateAll(f=>f.map(x=>[x.dataset.figure,x.querySelector('.label').textContent,
    x.querySelector('.value').textContent,x.classList.contains('p2')]));
   assert.deepEqual(await figures('full'),[['room',fill(W.warm,{room:'Woonkamer'}),fill(W.early,{m:'4'}),false],
-   ['starts',sensorName('burner_starts_per_heating_hour'),n(1.3,1),false],['gas',sensorName('heating_gas_yesterday'),n(18.2,1)+NB+'kWh',false],
+   ['starts',W.yesterday_starts,n(1.3,1),false],['gas',W.yesterday_heating,n(18.2,1)+NB+'kWh',false],
    ['degree_days',W.degree_days,n(9.2,1),false]]);
   assert.deepEqual(await figures('late'),[['room',fill(W.warm,{room:'Badkamer'}),fill(W.late,{m:'12'}),false],
-   ['starts',sensorName('burner_starts_per_heating_hour'),'—',false],['gas',sensorName('heating_gas_yesterday'),n(18.2,1)+NB+'kWh',true]]);
+   ['starts',W.yesterday_starts,'—',false],['gas',W.yesterday_heating,n(18.2,1)+NB+'kWh',true]]);
+  // The card's own short labels (its heading says "yesterday"): never the sensors' names, "(yesterday)" or "(total)".
+  assert.deepEqual([W.yesterday_starts,W.yesterday_heating,W.degree_days],{en:['Burner starts per heating hour','Heating energy (estimate)','Degree-days'],
+   nl:['Branderstarts per stookuur','Energie voor verwarmen (schatting)','Graaddagen'],
+   pl:['Starty palnika na godzinę grzania','Energia na ogrzewanie (szacunek)','Stopniodni']}[lang]);
+  const ylabels=await page.locator('openthermostat-yesterday').evaluateAll(cards=>cards.flatMap(c=>[...c.shadowRoot.querySelectorAll('.label')].map(l=>l.textContent)));
+  for(const label of ylabels)assert.doesNotMatch(label,/\((yesterday|gisteren|wczoraj|total|totaal|łącznie)\)/i,label);
+  assert(!ylabels.includes(sensorName('burner_starts_per_heating_hour'))||sensorName('burner_starts_per_heating_hour')===W.yesterday_starts);
   assert.deepEqual(await figures('on_time'),[['room',fill(W.warm,{room:'Slaapkamer'}),W.on_time,true]]);
   // No warm-up yesterday in words, muted (not "—" under "was warm"); 72 minutes as an hour and 12 minutes.
   assert.deepEqual(await figures('none'),[['room',fill(W.warm,{room:'Zolder'}),W.no_warmup,true]]);

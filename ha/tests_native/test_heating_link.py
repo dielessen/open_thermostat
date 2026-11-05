@@ -282,7 +282,7 @@ NAMES = {
                       "heating_problem": ("Heating problem", "Verwarmingsprobleem")},
     "select": {"room_state": ("Heating", "Verwarmen")},
     "datetime": {"room_inactive_until": ("Off until", "Uit tot")},
-    "number": {"room_fallback_setpoint": ("Temperature without Home Assistant", "Temperatuur zonder Home Assistant")},
+    "number": {"room_fallback_setpoint": ("Temperature without a week program", "Temperatuur zonder weekprogramma")},
 }
 
 
@@ -300,8 +300,8 @@ def test_entity_names_are_plain_glossary_names_in_both_languages():
     assert nl["sensor"]["room_status"]["state"] == {"ok": "In orde", "fallback": "Reservesensor in gebruik",
                                                     "stale": "Meting verouderd", "lost": "Sensor kwijt",
                                                     "inactive": "Uit",
-                                                    "window_open": "Raam open, verwarming gepauzeerd",
-                                                    "window_pending": "Raam open, pauzeert zo"}
+                                                    "window_open": "Raam of deur open, verwarming gepauzeerd",
+                                                    "window_pending": "Raam of deur open, pauzeert zo"}
     assert nl["select"]["room_state"]["state"] == {"active": "Aan", "inactive": "Uit"}
 
 

@@ -525,9 +525,9 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
         # The learned values read like the room's other entities, on the same room device.
         assert [e.entity_id for e in learned] == ["sensor.woonkamer_learning_status",
                                                   "sensor.woonkamer_recommended_water_temperature",
-                                                  "sensor.woonkamer_predicted_heating_start"]
+                                                  "sensor.woonkamer_smart_warm_up_start"]
         assert hass.states.get("sensor.woonkamer_learning_status").state == "ready"
-        assert hass.states.get("sensor.woonkamer_predicted_heating_start").state == "2026-10-30T03:35:00+00:00"
+        assert hass.states.get("sensor.woonkamer_smart_warm_up_start").state == "2026-10-30T03:35:00+00:00"
         assert hass.states.get("sensor.woonkamer_recommended_water_temperature").state == "34"
         assert {entities.async_get(e.entity_id).device_id for e in learned} == {
             devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"),

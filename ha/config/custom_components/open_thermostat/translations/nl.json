@@ -2527,8 +2527,8 @@
           "stale": "Meting verouderd",
           "lost": "Sensor kwijt",
           "inactive": "Uit",
-          "window_open": "Raam open, verwarming gepauzeerd",
-          "window_pending": "Raam open, pauzeert zo"
+          "window_open": "Raam of deur open, verwarming gepauzeerd",
+          "window_pending": "Raam of deur open, pauzeert zo"
         }
       },
       "room_reason": {

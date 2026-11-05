@@ -1490,8 +1490,8 @@
           "stale": "Pomiar nieaktualny",
           "lost": "Utracono czujnik",
           "inactive": "Wyłączone",
-          "window_open": "Okno otwarte, ogrzewanie wstrzymane",
-          "window_pending": "Okno otwarte, wkrótce wstrzymanie"
+          "window_open": "Otwarte okno lub drzwi, ogrzewanie wstrzymane",
+          "window_pending": "Otwarte okno lub drzwi, wkrótce wstrzymanie"
         }
       },
       "room_reason": {

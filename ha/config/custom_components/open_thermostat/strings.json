@@ -1490,8 +1490,8 @@
           "stale": "Measurement stale",
           "lost": "Sensor lost",
           "inactive": "Off",
-          "window_open": "Window open, heating paused",
-          "window_pending": "Window open, pausing soon"
+          "window_open": "Window or door open, heating paused",
+          "window_pending": "Window or door open, pausing soon"
         }
       },
       "room_reason": {

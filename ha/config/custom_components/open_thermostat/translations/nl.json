@@ -2756,7 +2756,7 @@
         "name": "Geadviseerde watertemperatuur"
       },
       "room_heating_start": {
-        "name": "Verwachte start verwarmen"
+        "name": "Start slim opwarmen"
       },
       "dhw_taps_today": {
         "name": "Warmwatertappen vandaag"

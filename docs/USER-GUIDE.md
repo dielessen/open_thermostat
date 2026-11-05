@@ -1083,7 +1083,7 @@ During the trial run nothing is sent to the boiler either way.
 | --- | --- |
 | Learning status | Collecting data, Learning or Learned. Learning uses stable heating periods without hot water and with fresh readings, so it takes several heating periods. |
 | Recommended water temperature (1 °C) | The coolest water (flow temperature) that warms the room by 1 °C in an acceptable time. Unknown until learned. Its attributes show what the room control asks now, for comparison. |
-| Predicted heating start | When the E32 would start heating to reach the next higher week-program temperature on time. Its attributes compare night strategies (holding a night temperature versus letting it drop) in kWh, m³ and €. |
+| Smart warm-up start | When the E32 starts heating to reach the next higher week-program temperature on time. Its attributes compare night strategies (holding a night temperature versus letting it drop) in kWh, m³ and €. |
 
 What the E32 has learned is kept when it restarts, loses power or gets a
 firmware update, so learning carries on where it was (it is saved every 6

@@ -273,7 +273,7 @@ NAMES = {
                "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur"),
                "room_learning": ("Learning status", "Leerstatus"),
                "room_flow_advice": ("Recommended water temperature", "Geadviseerde watertemperatuur"),
-               "room_heating_start": ("Predicted heating start", "Verwachte start verwarmen"),
+               "room_heating_start": ("Smart warm-up start", "Start slim opwarmen"),
                "dhw_taps_today": ("Hot water taps today", "Warmwatertappen vandaag"),
                "dhw_keep_warm_today": ("Keeping hot water warm today", "Warm water warmhouden vandaag"),
                "dhw_burner_time_today": ("Hot water burner time today", "Brandertijd warm water vandaag")},

@@ -1719,7 +1719,7 @@
         "name": "Zalecana temperatura wody"
       },
       "room_heating_start": {
-        "name": "Przewidywany start grzania"
+        "name": "Start inteligentnego nagrzewania"
       },
       "dhw_taps_today": {
         "name": "Pobory ciepłej wody dziś"

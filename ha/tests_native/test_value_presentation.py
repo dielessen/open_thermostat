@@ -55,15 +55,17 @@ def test_on_off_fields_read_on_or_off():
         assert Shown(name, 1).extra_state_attributes["raw_value"] == 1
 
 
-def test_codes_read_their_meaning_and_unknown_codes_read_code_n():
-    cases = {"configured_dhw_comfort_mode": {0x00: "hot", 0xD8: "eco", 0xEC: "intelligent", 7: "Code 7"},
+def test_codes_read_their_meaning_and_unknown_codes_read_their_number():
+    cases = {"configured_dhw_comfort_mode": {0x00: "hot", 0xD8: "eco", 0xEC: "intelligent", 7: "7"},
              "configured_dhw_charge_type": {0: "charge_pump", 1: "three_way_valve"},
-             "configured_dhw_circulation_mode": {0: "off", 2: "2x3min", 7: "continuous", 9: "Code 9"},
-             "reported_dhw_type": {1: "flow", 4: "layered_buffer", 5: "Code 5"},
+             "configured_dhw_circulation_mode": {0: "off", 2: "2x3min", 7: "continuous", 9: "9"},
+             "reported_dhw_type": {1: "flow", 4: "layered_buffer", 5: "5"},
              "configured_pump_mode": {0: "proportional", 3: "delta_p_3"}}
     for name, values in cases.items():
         for raw, state in values.items():
             assert Shown(name, raw).native_value == state, (name, raw)
+    # 1.0.0rc7: an unknown code is its number, not English "Code 5"; the raw value stays an attribute.
+    assert Shown("reported_dhw_type", 5).extra_state_attributes["raw_value"] == 5
     # The live installation of 30 Oct 2026: "2.0", "1.0", "0.0", "1.0" became words.
     assert [Shown(n, r).native_value for n, r in (("configured_dhw_circulation_mode", 2), (
         "configured_dhw_charge_type", 1), ("configured_dhw_comfort_mode", 0), ("reported_dhw_type", 1))] == [
@@ -150,7 +152,8 @@ def test_memory_reads_whole_kilobytes_and_the_uptime_hours_for_a_duration():
     # 1.27 h: the frontend formats a duration in h (not in s) as "1h 16m".
     assert (round(uptime.native_value, 4), uptime.native_unit_of_measurement, uptime.suggested_display_precision) == (
         1.2692, "h", 2)
-    assert (uptime.device_class, uptime.state_class) == (SensorDeviceClass.DURATION, SensorStateClass.TOTAL_INCREASING)
+    # No statistics since 1.0.0rc7: a sum of uptimes over restarts means nothing (the old ones are removed).
+    assert (uptime.device_class, uptime.state_class) == (SensorDeviceClass.DURATION, None)
 
 
 @pytest.mark.parametrize("old_unit,new_unit,value,unit_class,expected", [

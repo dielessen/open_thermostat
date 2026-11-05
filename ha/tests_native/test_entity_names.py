@@ -104,6 +104,8 @@ async def test_names_follow_the_language_and_existing_entity_ids_stay(hass, monk
             "OpenThermostat Geschatte energie")
         assert hass.states.get(connected.entity_id).attributes["friendly_name"] == "OpenThermostat Verbonden"
         assert hass.states.get(uptime.entity_id).attributes["friendly_name"] == "OpenThermostat Bedrijfstijd apparaat"
+        # 1.0.0rc7: no long-term statistics for the uptime (a sum over restarts means nothing).
+        assert uptime.state_class is None and "state_class" not in hass.states.get(uptime.entity_id).attributes
     finally:
         for platform in platforms:
             await platform.async_reset()

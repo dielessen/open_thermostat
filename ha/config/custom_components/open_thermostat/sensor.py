@@ -40,7 +40,8 @@ HUB_METRICS = {
         "memory_max_alloc": ("mem_max_alloc", SensorDeviceClass.DATA_SIZE, UnitOfInformation.KILOBYTES, SensorStateClass.MEASUREMENT, "Maximum allocable memory"),
         "rtc_temperature": ("temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "RTC temperature"),
         "cpu_temperature": ("cpu_temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "E32 temperature"),
-        "uptime": ("uptime", SensorDeviceClass.DURATION, UnitOfTime.HOURS, SensorStateClass.TOTAL_INCREASING, "Device uptime"),
+        # No statistics (1.0.0rc7): a sum of uptimes over restarts means nothing, and each heartbeat is a new state.
+        "uptime": ("uptime", SensorDeviceClass.DURATION, UnitOfTime.HOURS, None, "Device uptime"),
     },
     "ems_metrics": {
         "energy": ("totalEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation energy"),
@@ -649,6 +650,10 @@ class HubMetric(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
+        if self._metric == "uptime":  # its statistics from before 1.0.0rc7 go (no "state class removed" repair)
+            from .native_entity_cleanup import async_tidy_statistics
+            self.hass.async_create_background_task(async_tidy_statistics(self.hass, self.entity_id, drop=True),
+                                                   "open_thermostat uptime statistics")
         if self._legacy_compat and self._entry_id:
             note_metric_definition_migration(self.hass, self._entry_id)
         if self._legacy_schema_seen and self._entry_id:

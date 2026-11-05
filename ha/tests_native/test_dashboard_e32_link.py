@@ -49,7 +49,7 @@ def lines(hass, card):
 def at(moment, language="en"):
     """As the template's at(): the local time of day, the date in front when it is not today."""
     local = dt_util.as_local(moment)
-    clock = f"{local.hour}:{local.minute:02d}"
+    clock = f"{local.hour:02d}:{local.minute:02d}"  # R4-10: 09:05, as every other time in Home Assistant
     if local.date() == dt_util.now().date():
         return clock
     return f"{local.day} {TEXT[language]['months'].split(',')[local.month - 1]} {clock}"
@@ -206,6 +206,9 @@ async def test_a_silent_e32_says_since_when_and_what_to_check(hass, language):
      OK + "Firmware: 1.0.0-rc.5; you skipped 1.0.0."),
     ("off", {"installed_version": "1.0.0-rc.5", "latest_version": "1.0.0-rc.5", "in_progress": False},
      OK + "Firmware: 1.0.0-rc.5, up to date."),
+    # R4-8: a development build is not older than the release: nothing was skipped.
+    ("off", {"installed_version": "v1.0.0-e32v2-rc.6-dev", "latest_version": "v1.0.0-e32v2-rc.5", "skipped_version": None},
+     OK + "Firmware: v1.0.0-e32v2-rc.6-dev, up to date."),
     ("unknown", {}, None)])
 async def test_the_firmware_line_follows_the_update_entity(hass, state, attributes, line):
     section, request, firmware = link_installation(hass)
@@ -241,3 +244,15 @@ async def test_a_failing_send_is_said_in_the_viewers_words(hass, language, kind,
     hass.states.async_set(request, "41", {"ha_input": ha_input("ok", taken_at, sent=minute(5)[1],
                                                                error="Connection refused", error_at=failed_at, kind=kind)})
     assert lines(hass, section["cards"][1])[2] == PROBLEM + words.format(at=at(failed, language))
+
+
+@pytest.mark.asyncio
+async def test_the_times_have_two_digit_hours(hass):
+    """R4-10: Diagnostics writes 09:05 as every other time in Home Assistant, never 9:05; another day with its date."""
+    from custom_components.open_thermostat.dashboard import _at_macro
+    morning = dt_util.now().replace(hour=9, minute=5, second=0, microsecond=0)
+    render = lambda moment: Template(_at_macro(TEXT["en"]) + "{{ at(m) }}", hass).async_render(  # noqa: E731
+        {"m": moment.isoformat()}, parse_result=False)
+    assert render(morning) == "09:05"
+    earlier = morning - timedelta(days=3)
+    assert render(earlier) == f"{earlier.day} {TEXT['en']['months'].split(',')[earlier.month - 1]} 09:05"

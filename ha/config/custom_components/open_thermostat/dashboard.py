@@ -1414,12 +1414,12 @@ def _settings_section(t, flow, rooms=None, week=None):
 
 
 def _at_macro(t):
-    """A Jinja macro ``at(moment)``: a moment (ISO text or datetime) as the local time of day, 14:32, with the date in
-    front when it is not today ("4 Nov 14:32")."""
+    """A Jinja macro ``at(moment)``: a moment (ISO text or datetime) as the local time of day, 14:32 or 09:05 (two
+    digits, as everywhere in Home Assistant), with the date in front when it is not today ("4 Nov 14:32")."""
     months = json.dumps(t["months"].split(","), ensure_ascii=False)
     return ("{% macro at(v) %}{% set m = as_datetime(v, none) if v is string else v %}{% if m is not none %}"
             "{% set m = as_local(m) %}{% if m.date() != now().date() %}{{ m.day }} {{ " + months
-            + "[m.month - 1] }} {% endif %}{{ m.hour }}:{{ '%02d' % m.minute }}{% endif %}{% endmacro %}")
+            + "[m.month - 1] }} {% endif %}{{ '%02d' % m.hour }}:{{ '%02d' % m.minute }}{% endif %}{% endmacro %}")
 
 
 REFUSALS = ("too_large", "invalid_json", "no_entity", "unknown_kind", "invalid_value", "unknown_room")
@@ -1484,7 +1484,9 @@ def _connection_section(t, request, update=None):
             "{% if state_attr(" + u + ", 'in_progress') not in [none, false] and l %}"
             + line("link_update", say("link_firmware_installing", latest="l"))
             + "{% elif is_state(" + u + ", 'on') and l %}" + line("link_update", say("link_firmware_new", version="v", latest="l"))
-            + "{% elif l and l != v %}" + line("link_ok", say("link_firmware_skipped", version="v", latest="l"))
+            # Skipped only when Home Assistant recorded the skip: a development build is no older release.
+            + "{% elif l and l == state_attr(" + u + ", 'skipped_version') %}"
+            + line("link_ok", say("link_firmware_skipped", version="v", latest="l"))
             + "{% else %}" + line("link_ok", say("link_firmware", version="v")) + "{% endif %}{% endif %}")
     more = (
         "{% if h is mapping %}{% set d = namespace(lines=[]) %}"

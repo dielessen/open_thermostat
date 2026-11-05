@@ -428,7 +428,7 @@ def content():
                 ["De E32 kent je huis", "Sinds rc.5 zegt de E32 hoeveel hij al van je huis weet: <b>De E32 kent je huis: 70 %</b>, met in gewone "
                  "woorden wat hij nog moet leren, bijvoorbeeld \"Hij moet nog zien hoe snel de woonkamer opwarmt\". Het getal stijgt vanzelf "
                  "terwijl de verwarming draait; het is alleen informatie en er is niets in te stellen. Home Assistant: dashboardtabblad "
-                 + ui("Leren en instellingen") + ", bovenaan " + ui("Wat de E32 weet") + "; de sensoren " + ui("Kennis") + " en "
+                 + ui("Leren en instellingen") + ", bovenaan " + ui("Wat de E32 weet") + "; de sensoren " + ui("Bekend over je huis") + " en "
                  + ui("Reactie van de ketel") + " staan op het E32-apparaat. E32: <b>Huis → Wat de thermostaat heeft geleerd</b>."],
                 ["Luisteren naar de ketel", "Haalt de ketel de gevraagde watertemperatuur en slaat hij zelf af terwijl een ruimte nog warmte wil, "
                  "dan vroeg de E32 meer dan het huis opneemt. Gebeurt dat twee keer in één warmtevraag, dan leert de E32 een <b>plafond</b> voor "

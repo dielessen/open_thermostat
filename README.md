@@ -14,7 +14,7 @@ energy figures and updates with one click.
 runs every day in the developer's home. Version 1.0.0 follows once rc.5 has run
 for 14 days unchanged and without problems with the E32 controlling the boiler.
 
-**Updating from rc.4?** Install Home Assistant integration 1.0.0rc6 first in
+**Updating from rc.4?** Install Home Assistant integration 1.0.0rc7 first in
 HACS (switch **Pre-release** on) and restart Home Assistant. Then press
 **Install** on the E32's **Firmware** entity (E32 firmware 1.0.0-rc.5) and
 confirm the takeover again: a firmware update clears it

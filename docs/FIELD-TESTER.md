@@ -14,10 +14,10 @@ on your own, that meets the 1.0 criterion "an install guide someone else has
 followed".
 
 Versions: E32 firmware **1.0.0-rc.5** with Home Assistant integration
-**1.0.0rc6**, or a newer pair that the release notes name together.
+**1.0.0rc7**, or a newer pair that the release notes name together.
 
 Already testing rc.4 (or rc.3)? Do not start over: update with the three steps
-in [INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0rc6
+in [INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0rc7
 first, then the E32's **Firmware** entity, then confirm the takeover again)
 and read [What to look at in rc.5](#what-to-look-at-in-rc5).
 
@@ -88,7 +88,7 @@ it is done.
    3. Release candidates are pre-releases, which HACS does not offer by
       default. In the HACS list, open the three dots of **OpenThermostat**,
       choose **Download**, open **Need a different version?** and pick
-      **1.0.0rc6**.
+      **1.0.0rc7**.
    4. Restart Home Assistant (**Settings → System → Restart**).
 
    To be offered the next release candidate as an update, switch on the

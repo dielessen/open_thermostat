@@ -1,7 +1,7 @@
 # Installatie met vastlegging: stappen voor Mark
 
 Deze stappen gelden voor de release in `install-config.json` (nu E32 **v1.0.0-e32v2-rc.5** met HA
-**1.0.0rc6**, vanaf rc.4 en 1.0.0rc5). De opdrachten staan in [README.md](README.md).
+**1.0.0rc7**, vanaf rc.4 en 1.0.0rc6). De opdrachten staan in [README.md](README.md).
 
 **Wat er gebeurt:** eerst gaat Home Assistant naar de nieuwe integratie, via HACS. Daarna gaat de E32 naar de
 nieuwe firmware, via Home Assistant. Tussendoor maak ik metingen; die vormen samen het acceptatiebewijs.
@@ -32,7 +32,7 @@ Gaat er iets mis, dan stoppen we hier en verandert er niets.
 
 1. Ga naar **HACS** → **OpenThermostat**.
 2. Kies de drie puntjes → **Download**.
-3. Klap **Need a different version?** open en kies de versie uit `install-config.json` (nu **1.0.0rc6**).
+3. Klap **Need a different version?** open en kies de versie uit `install-config.json` (nu **1.0.0rc7**).
    Druk op **Download**.
 4. Verwijder de integratie niet. Er hoeft niets weg: HACS schrijft over dezelfde map heen.
 5. Start Home Assistant opnieuw. Gebruik de melding "Opnieuw opstarten vereist", of ga naar Instellingen →

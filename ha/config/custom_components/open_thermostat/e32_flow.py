@@ -80,7 +80,7 @@ SOURCES = ["rule", "curve", "learned", "optimum_start"]
 GAS_STATUSES = ["no_meter", "collecting", "calibrated", "meter_stale"]
 # The Learning view's cards (E32 rc.5), the sixth card module (week_planner.card_modules), versioned with the
 # manifest like the other card URLs: "Water temperature by outdoor temperature" and what the E32 knows (a ring).
-CURVE_CARD_URL = "/open_thermostat/heating-curve-card-1.0.0rc6.js"
+CURVE_CARD_URL = "/open_thermostat/heating-curve-card-1.0.0rc7.js"
 CURVE_CARD_TYPE = "custom:openthermostat-heating-curve"
 KNOWLEDGE_CARD_TYPE = "custom:openthermostat-knowledge"
 # WeatherCurve (src/control/WeatherCurve.h): the standard slope follows the water temperature in hard frost

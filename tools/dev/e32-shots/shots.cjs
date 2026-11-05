@@ -233,7 +233,7 @@ const SHOTS = {
     await page.route('http://ha.test/**', r => {
       const p = new URL(r.request().url()).pathname;
       if (p === '/') return r.fulfill({contentType: 'text/html', body: '<meta name="viewport" content="width=device-width, initial-scale=1"><body style="margin:0;padding:16px;background:#fafafa;font:14px Roboto,system-ui,sans-serif;color:#212121"><main style="max-width:968px"></main></body>'});
-      if (p === '/open_thermostat/week-editor-1.0.0rc6.js') return r.fulfill({contentType: 'application/javascript', body: fs.readFileSync(path.join(frontend, 'week-editor.js'))});
+      if (p === '/open_thermostat/week-editor-1.0.0rc7.js') return r.fulfill({contentType: 'application/javascript', body: fs.readFileSync(path.join(frontend, 'week-editor.js'))});
       if (p === '/card.js') return r.fulfill({contentType: 'application/javascript', body: fs.readFileSync(path.join(frontend, 'e32-week-card.js'))});
       return r.fulfill({status: 404, body: ''});
     });

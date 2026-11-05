@@ -421,7 +421,7 @@ OpenThermostat is a *custom repository* in HACS: you add it once.
 4. Restart Home Assistant (**Settings → System → Restart**). *Why:* Home
    Assistant only loads new integrations at start-up.
 
-**Pre-releases** (versions such as `1.0.0rc6`): HACS offers only
+**Pre-releases** (versions such as `1.0.0rc7`): HACS offers only
 stable versions unless you ask for more. Two ways:
 
 - **One specific version:** in the HACS list, open the three dots of the
@@ -437,7 +437,7 @@ stable versions unless you ask for more. Two ways:
 
 1. On the [releases page](https://github.com/dielessen/open_thermostat/releases),
    choose the **Home Assistant** release that the release notes pair with your
-   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc6`.
+   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc7`.
    Download `OpenThermostat-HA-<version>.zip`.
 2. Extract the ZIP on your computer. It contains a folder
    `custom_components/open_thermostat`.
@@ -890,10 +890,10 @@ When a new release pair comes out, read its release notes first. They say
 which integration goes with which firmware. Usually: **update the integration
 first, then the firmware.**
 
-**From 1.0.0-rc.4 to 1.0.0-rc.5** (Home Assistant integration 1.0.0rc6), while
+**From 1.0.0-rc.4 to 1.0.0-rc.5** (Home Assistant integration 1.0.0rc7), while
 someone is home:
 
-1. Update OpenThermostat in HACS to **1.0.0rc6** and restart Home Assistant
+1. Update OpenThermostat in HACS to **1.0.0rc7** and restart Home Assistant
    ([13.2](#132-update-the-integration)). HACS offers it only while the
    **Pre-release** switch is on ([9.1](#91-with-hacs-recommended)).
 2. Install E32 1.0.0-rc.5 from the **Firmware** update entity
@@ -913,7 +913,7 @@ The two new sensors **Known about your house** and **Boiler response** read unkn
 the E32 runs rc.5 and has reported.
 
 **Coming from 1.0.0-rc.3?** The same order and the same versions (integration
-1.0.0rc6, firmware 1.0.0-rc.5); the changes of rc.4 come along. From the first
+1.0.0rc7, firmware 1.0.0-rc.5); the changes of rc.4 come along. From the first
 morning after the update Smart warm-up starts heating early (see
 [Warm on time](USER-GUIDE.md#warm-on-time-smart-warm-up)). The **Yesterday**
 sensors appear once the E32 has measured a day.

@@ -1149,7 +1149,11 @@ class HeatingInputWatch:
             # Since when, as a local time (with the day when not today), not a count of minutes that stands still
             # between the re-creations.
             since = dt_util.as_local(self.wall() - timedelta(seconds=age))
-            text = since.strftime("%H:%M") if since.date() == dt_util.now().date() else since.strftime("%d-%m %H:%M")
+            from .learned_overview import TEXT as LEARNED, language
+            months = LEARNED[language(self.hass)]["months"].split()
+            # Another day as the dashboard writes it ("4 Nov 22:15"); never "04-11", which also reads as 11 April.
+            text = (since.strftime("%H:%M") if since.date() == dt_util.now().date()
+                    else f"{since.day} {months[since.month - 1]} {since:%H:%M}")
             ir.async_create_issue(
                 self.hass, DOMAIN, self.issue_id, is_fixable=False, is_persistent=False,
                 severity=ir.IssueSeverity.WARNING, translation_key=INPUT_ISSUE,

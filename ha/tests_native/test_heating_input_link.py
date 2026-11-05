@@ -247,8 +247,11 @@ def _e32(hub, age, rejected=None, **status):
 
 
 def _since(moment):
+    """R4-9: the time, with the day as the dashboard writes it when not today ("4 Nov 17:00", never "04-11")."""
     local = dt_util.as_local(moment)
-    return local.strftime("%H:%M") if local.date() == dt_util.now().date() else local.strftime("%d-%m %H:%M")
+    months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+    return local.strftime("%H:%M") if local.date() == dt_util.now().date() else (
+        f"{local.day} {months[local.month - 1]} {local:%H:%M}")
 
 
 @pytest.mark.asyncio
@@ -291,6 +294,7 @@ async def test_the_e32_not_accepting_raises_a_repair_and_sends_everything_again(
     # and no cause while nothing was refused and every send worked: no "-" and no English error text.
     assert issue.translation_key == "heating_input_lost"
     assert issue.translation_placeholders == {"since": _since(WALL - timedelta(seconds=3)), "cause": ""}
+    assert "-" not in issue.translation_placeholders["since"]
     attributes = watch.attributes()
     assert attributes["state"] == "not_received" and attributes["e32_last_input"] == "2026-11-04T17:00:00+00:00"
     assert attributes["last_sent"] is not None and attributes["last_error"] is None

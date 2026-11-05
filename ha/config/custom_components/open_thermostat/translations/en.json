@@ -3999,7 +3999,7 @@
     },
     "heating_input_lost": {
       "title": "The E32 does not receive the room values from Home Assistant",
-      "description": "The E32 has accepted no room values from Home Assistant for {minutes} minutes, so it runs the rooms on its own sensors and week program. Home Assistant last sent a value at {last_sent} (last send error: {error}). OpenThermostat has started sending afresh. If this message stays, restart Home Assistant: reloading the integration is not always enough. This message clears itself once the E32 accepts the values again."
+      "description": "The E32 has not taken the room values from Home Assistant since {since}, so it runs the rooms on its own sensors and week programs. Home Assistant keeps sending them. {cause} If this stays, restart Home Assistant. This message goes away once the E32 takes the values again."
     },
     "e32_time_zone": {
       "title": "The E32 uses another time zone",

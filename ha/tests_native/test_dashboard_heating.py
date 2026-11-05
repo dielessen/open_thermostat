@@ -130,7 +130,8 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     assert [x["entity"] for x in day["entities"]] == [rooms["woonkamer"][k] for k in ("temperature", "setpoint")]
     assert day["visibility"] == active and "title" not in day
     off = next(c for c in living if c["type"] == "markdown")
-    assert off == {"type": "markdown", "content": "This room is off and never asks for heat.", "visibility": inactive}
+    assert off == {"type": "markdown", "content": "This room is off: only frost protection keeps it from getting too cold.",
+                   "visibility": inactive}
     # A Bluetooth-only room has no thermostat card, so it shows its measurement and target as a pair.
     bathroom = rooms_view["sections"][1]["cards"]
     assert not any(c["type"] == "thermostat" for c in bathroom)
@@ -407,8 +408,9 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
     assert (advice["entity"], advice["name"]) == (room["flow_advice"], "Recommended water temperature")
     assert advice["visibility"] == [on, {"condition": "state", "entity": room["learning"], "state": "ready"},
                                     known(room["flow_advice"])]
-    assert (start["entity"], start["name"], start["visibility"]) == (
-        room["heating_start"], "Heating starts", [on, known(room["heating_start"])])
+    # Named after its sensor; hidden besides while Smart warm-up is off or the room is away (rc7, R1-4).
+    assert (start["entity"], start["name"], start["visibility"][:2]) == (
+        room["heating_start"], "Smart warm-up start", [on, known(room["heating_start"])])
     # A room without learned entities gets no learning area.
     assert not any(c.get("heading") == "Learning" for c in rooms_view["sections"][1]["cards"])
     # How the learning works: the note under what it learned (rc.5: no section of its own), only while the E32
@@ -435,7 +437,7 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
     # In Dutch.
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
-    for words in ('"Leren"', "Geadviseerde watertemperatuur", "Start verwarmen", '"Warm water"',
+    for words in ('"Leren"', "Geadviseerde watertemperatuur", "Start slim opwarmen", '"Warm water"',
                   "Wat de thermostaat heeft geleerd", "leert ook hoe snel elke ruimte opwarmt", "alleen advies"):
         assert words in text, words
 

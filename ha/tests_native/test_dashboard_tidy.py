@@ -172,7 +172,7 @@ async def test_an_inactive_room_is_compact_without_a_dial_or_learning_and_links_
     # While off: the heading's "Off" badge, one calm line and a link to its settings; nothing to switch.
     shown_off = [c for c in bathroom if c.get("visibility") == off]
     assert [c["type"] for c in shown_off] == ["markdown", "heading"]
-    assert shown_off[0]["content"] == "This room is off and never asks for heat."
+    assert shown_off[0]["content"] == "This room is off: only frost protection keeps it from getting too cold."
     assert shown_off[1]["heading"] == "Badkamer settings"
     assert shown_off[1]["tap_action"] == {"action": "navigate",
                                           "navigation_path": "/config/integrations/integration/open_thermostat"}

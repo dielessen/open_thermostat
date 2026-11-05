@@ -291,10 +291,10 @@ TEXT = {
         "flame_chart": "Observed flame time per day",
         "models_note": "Room heat models are estimates, not measured heat; unknown or stale inputs leave gaps.",
         "room_history": "{room}: target and measured", "room_measured": "Measured", "room_target": "Target",
-        "learning": "Learning", "flow_advice": "Recommended water temperature", "heating_start": "Heating starts",
+        "learning": "Learning", "flow_advice": "Recommended water temperature", "heating_start": "Smart warm-up start",
         "learning_note": "The E32 also learns how fast each room warms up and works out the coolest water "
                          "that still warms the room 1 °C in time (the recommended water temperature).",
-        "advice_only": "For now this is advice only; the E32 keeps using its room control.",
+        "advice_only": "Smart warm-up is off, so this is advice only; the E32 keeps using its room control.",
         "dhw_taps": "Taps today", "dhw_today": "Hot water today",
         "advice": "Advice", "advice_where": "Where", "advice_confidence": "Confidence",
         "advice_note": "Advice only: nothing is changed automatically.",
@@ -315,24 +315,24 @@ TEXT = {
         "gas_note": "Add heating and hot water to the Energy dashboard under Gas consumption; keeping warm is a part of hot water, so leave it out there.",
         "yesterday": "Yesterday", "burner_per_day": "Burner hours per day",
         "missed_per_day": "Missed comfort per day (minutes)",
-        "day_burner": "Burner {h} h, {n} starts ({short} shorter than 10 minutes).",
+        "day_burner": "Burner {h} h, {starts}{short}.",
         "day_gas": "Gas: heating {heating}, hot water {hot_water}.",
         "day_room": "{room}: asked for heat {h} h; warm after {ttt} min on average; missed comfort {missed} min.",
         "day_room_no_step": "{room}: asked for heat {h} h; missed comfort {missed} min.",
         "day_outdoor": "Outdoor {low} to {high} °C.", "day_outdoor_one": "Outdoor {low} °C.",
         "day_partial": "Partial day: the E32 was not heard all day, so the figures are incomplete.",
         "scoreboard_on_time": "warm on time",
-        "scoreboard_late": "warm {m} min late",
-        "scoreboard_early": "warm {m} min early",
+        "scoreboard_late": "warm {d} late",
+        "scoreboard_early": "warm {d} early",
         "scoreboard_overshoot": "{c} °C too warm",
         "scoreboard_hours": "Heating time: {h} h",
         "scoreboard_burner": "Burner starts per heating hour: {n}",
         "scoreboard_short": "Short burner runs: {h} h",
-        "scoreboard_gas": "Gas for heating (estimate): {kwh} kWh",
+        "scoreboard_gas": "Gas for heating (boiler's estimate): {kwh} kWh",
         "scoreboard_degree_days": "Degree-days: {d}",
         "scoreboard_degree_day": "{v} kWh per degree-day",
         "scoreboard_note": "Every day the thermostat checks whether each room was warm on time without getting too warm, how often the burner started and how much gas went to heating. It learns from this; every figure keeps its history on its own sensor.",
-        "day_none": "The first full day appears here tomorrow.",
+        "day_none": "The first day appears here tomorrow.",
         "outdoor": "Outdoor",
         "flow_settings": "Weather compensation and learning",
         "flow_source": "Water temperature set by",
@@ -342,6 +342,7 @@ TEXT = {
         "house_mode": "House mode", "boiler_now": "Boiler",
         # rc.4: the next holiday under House (house.holidays.v1).
         "holiday_next": "Holiday from {from} to {until}", "holiday_now": "On holiday until {until}",
+        "holiday_day": "Holiday on {from}",
         "months": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
         "learned_latest": "Latest change",
         "compare_link": "E32 compared with your thermostat",
@@ -351,7 +352,7 @@ TEXT = {
         "flow_short": "Water to heating", "return_short": "Water back",
         "e32": "E32", "thermostat": "Thermostat",
         "comparison_view": "Comparison",
-        "room_off": "This room is off and never asks for heat.",
+        "room_off": "This room is off: only frost protection keeps it from getting too cold.",
         "room_no_source": "{room} is off and has no working temperature source. Choose a source to "
             "use it again, or remove the room if you no longer need it.",
         "choose_source": "Choose a source",
@@ -420,14 +421,46 @@ TEXT = {
         "warm_up_now": "{room} is warming up now to be {target} °C at **{time}**.",
         "warm_up_from": "{when} {room} starts warming up at **{start}**.",
         "warm_up_off": "{when} {room} starts heating at **{time}** for {target} °C (Smart warm-up is off).",
-        "arrived_late": "Yesterday it was warm {m} minutes late.", "arrived_late_one": "Yesterday it was warm 1 minute late.",
-        "arrived_early": "Yesterday it was warm {m} minutes early.",
-        "arrived_early_one": "Yesterday it was warm 1 minute early.", "arrived_on_time": "Yesterday it was warm on time.",
-        "weather_outside": "Outside {outdoor} °C", "weather_asks": "weather compensation asks for {flow} °C water",
+        "arrived_late": "{day} it was warm {m} minutes late.", "arrived_late_one": "{day} it was warm 1 minute late.",
+        "arrived_early": "{day} it was warm {m} minutes early.",
+        "arrived_early_one": "{day} it was warm 1 minute early.", "arrived_on_time": "{day} it was warm on time.",
+        "weather_outside": "Outdoor {outdoor} °C", "weather_asks": "weather compensation asks for {flow} °C water",
         "weather_off": "weather compensation is off; it would ask for {flow} °C water",
         "line_standard": "standard line", "line_house": "line estimated from your house",
         "line_learned": "line learned for your house", "line_follows": "the learned line follows after {m} steady periods",
         "line_follows_n": "the learned line follows after {m} steady periods, {n} of {m} so far",
+        # rc7: the sentences review (R1, R3): Today in every case, Yesterday in figures, the Learning view.
+        "cycling_info_shadow": "Your current thermostat lets the burner switch on and off often; the E32 will lengthen the rest once it controls the boiler.",
+        "day_starts": "{n} starts",
+        "day_starts_one": "1 start",
+        "day_short": " ({short} shorter than 10 minutes)",
+        "day_burner_none": "The burner did not start.",
+        "scoreboard_not_warm": "not warm within 3 h",
+        "scoreboard_short_none": "Short burner runs: none",
+        "figures_day": "These figures are from {date}: the E32 has no newer full day.",
+        "holiday_hint": "To plan a holiday: Configure → House → House mode and holiday.",
+        "dur_h_m": "{h} h {m} min",
+        "dur_h": "{h} h",
+        "warm_up_now_estimate": "{room} is warming up now (estimate) to be {target} °C at **{time}**.",
+        "warm_up_late": "{room} is warming up now; {target} °C may come a little after **{time}**.",
+        "warm_up_trial": "{when} {room} would warm up from **{start}** to be {target} °C at **{time}** (trial run).",
+        "warm_up_trial_now": "{room} would be warming up now to be {target} °C at **{time}** (trial run).",
+        "at_tomorrow": "{time} tomorrow",
+        "at_date": "{time} on {date}",
+        "today_away": "{room} is set to away: no early warm-up.",
+        "today_nobody": "Nobody is home for {room}: no early warm-up.",
+        "today_holiday": "{room} is on holiday until {date}; it is warm again when you are back.",
+        "today_return": "{room} is warming up for your return.",
+        "today_window": "{room} is paused: a window or door is open.",
+        "day_yesterday": "Yesterday",
+        "day_today": "Today",
+        "day_on": "On {date}",
+        "arrived_late_long": "{day} it was warm {d} late.",
+        "arrived_early_long": "{day} it was warm {d} early.",
+        "arrived_not_warm": "{day} it did not get warm within 3 hours.",
+        "weather_idle": "when a room asks for heat, weather compensation sends {flow} °C water",
+        "correction_up": "the line gives {base} °C, the room correction adds {extra} °C",
+        "line_gives": "the line gives {base} °C",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -532,10 +565,10 @@ TEXT = {
         "models_note": "Warmtemodellen per ruimte zijn schattingen, geen gemeten warmte; onbekende of verouderde "
                        "invoer laat gaten.",
         "room_history": "{room}: gewenst en gemeten", "room_measured": "Gemeten", "room_target": "Gewenst",
-        "learning": "Leren", "flow_advice": "Geadviseerde watertemperatuur", "heating_start": "Start verwarmen",
+        "learning": "Leren", "flow_advice": "Geadviseerde watertemperatuur", "heating_start": "Start slim opwarmen",
         "learning_note": "De E32 leert ook hoe snel elke ruimte opwarmt en berekent de laagste "
                          "watertemperatuur die de ruimte nog op tijd 1 °C opwarmt (de geadviseerde watertemperatuur).",
-        "advice_only": "Voorlopig is dat alleen advies; de E32 blijft zijn ruimteregeling gebruiken.",
+        "advice_only": "Slim opwarmen staat uit, dus dit is alleen advies; de E32 blijft zijn ruimteregeling gebruiken.",
         "dhw_taps": "Tappen vandaag", "dhw_today": "Warm water vandaag",
         "advice": "Advies", "advice_where": "Waar", "advice_confidence": "Zekerheid",
         "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
@@ -555,25 +588,25 @@ TEXT = {
         "gas_estimate": "Geschat uit het brandervermogen en het vermogen van de ketel (geen gasmeter).",
         "gas_note": "Voeg verwarmen en warm water toe aan het energiedashboard onder Gasverbruik; warmhouden is een deel van warm water, laat dat daar weg.",
         "yesterday": "Gisteren", "burner_per_day": "Branderuren per dag",
-        "missed_per_day": "Gemiste comfort per dag (minuten)",
-        "day_burner": "Brander {h} uur, {n} starts ({short} korter dan 10 minuten).",
+        "missed_per_day": "Gemist comfort per dag (minuten)",
+        "day_burner": "Brander {h} uur, {starts}{short}.",
         "day_gas": "Gas: verwarmen {heating}, warm water {hot_water}.",
-        "day_room": "{room}: vroeg {h} uur warmte; gemiddeld na {ttt} min op temperatuur; gemiste comfort {missed} min.",
-        "day_room_no_step": "{room}: vroeg {h} uur warmte; gemiste comfort {missed} min.",
+        "day_room": "{room}: vroeg {h} uur warmte; gemiddeld na {ttt} min op temperatuur; gemist comfort {missed} min.",
+        "day_room_no_step": "{room}: vroeg {h} uur warmte; gemist comfort {missed} min.",
         "day_outdoor": "Buiten {low} tot {high} °C.", "day_outdoor_one": "Buiten {low} °C.",
         "day_partial": "Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig.",
         "scoreboard_on_time": "op tijd warm",
-        "scoreboard_late": "{m} min te laat warm",
-        "scoreboard_early": "{m} min te vroeg warm",
+        "scoreboard_late": "{d} te laat warm",
+        "scoreboard_early": "{d} te vroeg warm",
         "scoreboard_overshoot": "{c} °C te warm",
         "scoreboard_hours": "Stooktijd: {h} u",
         "scoreboard_burner": "Branderstarts per stookuur: {n}",
         "scoreboard_short": "Korte brandtijden: {h} u",
-        "scoreboard_gas": "Gas voor verwarming (schatting): {kwh} kWh",
+        "scoreboard_gas": "Gas voor verwarming (schatting van de ketel): {kwh} kWh",
         "scoreboard_degree_days": "Graaddagen: {d}",
         "scoreboard_degree_day": "{v} kWh per graaddag",
         "scoreboard_note": "Elke dag kijkt de thermostaat of elke ruimte op tijd warm was zonder te warm te worden, hoe vaak de brander startte en hoeveel gas naar verwarmen ging. Hij leert daarvan; elk getal houdt zijn geschiedenis bij op zijn eigen sensor.",
-        "day_none": "Morgen staat hier de eerste volledige dag.",
+        "day_none": "Morgen staat hier de eerste dag.",
         "outdoor": "Buiten",
         "flow_settings": "Weerafhankelijke regeling en leren",
         "flow_source": "Watertemperatuur bepaald door",
@@ -582,6 +615,7 @@ TEXT = {
         "apply_learned": "Slim opwarmen",
         "house_mode": "Huismodus", "boiler_now": "Ketel",
         "holiday_next": "Vakantie vanaf {from} t/m {until}", "holiday_now": "Op vakantie t/m {until}",
+        "holiday_day": "Vakantie op {from}",
         "months": "jan,feb,mrt,apr,mei,jun,jul,aug,sep,okt,nov,dec",
         "learned_latest": "Laatste aanpassing",
         "compare_link": "E32 vergeleken met je thermostaat",
@@ -591,7 +625,7 @@ TEXT = {
         "flow_short": "Aanvoerwater", "return_short": "Retourwater",
         "e32": "E32", "thermostat": "Thermostaat",
         "comparison_view": "Vergelijking",
-        "room_off": "Deze ruimte staat uit en vraagt nooit warmte.",
+        "room_off": "Deze ruimte staat uit: alleen de vorstbeveiliging houdt hem warm genoeg.",
         "room_no_source": "{room} staat uit en heeft geen werkende temperatuurbron. Kies een bron "
             "om de ruimte weer te gebruiken, of verwijder hem als je hem niet meer nodig hebt.",
         "choose_source": "Kies een bron",
@@ -649,22 +683,54 @@ TEXT = {
         "free_heat": "Gratis warmte",
         "today": "Vandaag", "home_or_away": "Thuis of weg", "holiday": "Vakantie", "plan": "Plannen",
         "when_today": "Vandaag", "when_tomorrow": "Morgen", "when_date": "Op {date}",
-        "warm_up_at": "{when} warmt {room} vanaf **{start}** op om **{time}** op {target} °C te zijn.",
-        "warm_up_estimate": "{when} warmt {room} vanaf **{start}** (schatting) op om **{time}** op {target} °C te zijn.",
+        "warm_up_at": "{when} begint {room} om **{start}** met opwarmen, zodat het om **{time}** {target} °C is.",
+        "warm_up_estimate": "{when} begint {room} om **{start}** (schatting) met opwarmen, zodat het om **{time}** {target} °C is.",
         "warm_up_ready": "{when} is {room} warm genoeg voor {target} °C om **{time}**; koelt de ruimte voor die tijd "
                          "af, dan begint het opwarmen eerder.",
-        "warm_up_now": "{room} warmt nu op om **{time}** op {target} °C te zijn.",
+        "warm_up_now": "{room} warmt nu op, zodat het om **{time}** {target} °C is.",
         "warm_up_from": "{when} begint {room} om **{start}** met opwarmen.",
         "warm_up_off": "{when} begint {room} om **{time}** met verwarmen naar {target} °C (Slim opwarmen staat uit).",
-        "arrived_late": "Gisteren was het {m} minuten te laat warm.",
-        "arrived_late_one": "Gisteren was het 1 minuut te laat warm.",
-        "arrived_early": "Gisteren was het {m} minuten te vroeg warm.",
-        "arrived_early_one": "Gisteren was het 1 minuut te vroeg warm.", "arrived_on_time": "Gisteren was het op tijd warm.",
-        "weather_outside": "Buiten {outdoor} °C", "weather_asks": "weerafhankelijke regeling vraagt {flow} °C water",
-        "weather_off": "weerafhankelijke regeling staat uit; die zou {flow} °C water vragen",
+        "arrived_late": "{day} was het {m} minuten te laat warm.",
+        "arrived_late_one": "{day} was het 1 minuut te laat warm.",
+        "arrived_early": "{day} was het {m} minuten te vroeg warm.",
+        "arrived_early_one": "{day} was het 1 minuut te vroeg warm.", "arrived_on_time": "{day} was het op tijd warm.",
+        "weather_outside": "Buiten {outdoor} °C", "weather_asks": "de weerafhankelijke regeling vraagt {flow} °C water",
+        "weather_off": "de weerafhankelijke regeling staat uit; die zou {flow} °C water vragen",
         "line_standard": "standaardlijn", "line_house": "lijn geschat uit je huis", "line_learned": "lijn geleerd voor je huis",
         "line_follows": "de geleerde lijn volgt na {m} rustige periodes",
         "line_follows_n": "de geleerde lijn volgt na {m} rustige periodes, nu {n} van {m}",
+        # rc7: the sentences review (R1, R3): Today in every case, Yesterday in figures, the Learning view.
+        "cycling_info_shadow": "Je huidige thermostaat laat de brander vaak aan en uit gaan; de E32 verlengt de rusttijd zodra hij de ketel regelt.",
+        "day_starts": "{n} starts",
+        "day_starts_one": "1 start",
+        "day_short": " ({short} korter dan 10 minuten)",
+        "day_burner_none": "De brander startte niet.",
+        "scoreboard_not_warm": "niet warm binnen 3 uur",
+        "scoreboard_short_none": "Korte brandtijden: geen",
+        "figures_day": "Deze cijfers zijn van {date}: de E32 heeft geen nieuwere volledige dag.",
+        "holiday_hint": "Vakantie plannen: Configureren → Huis → Huismodus en vakantie.",
+        "dur_h_m": "{h} u {m} min",
+        "dur_h": "{h} u",
+        "warm_up_now_estimate": "{room} warmt nu op (schatting), zodat het om **{time}** {target} °C is.",
+        "warm_up_late": "{room} warmt nu op; {target} °C wordt misschien pas iets na **{time}** gehaald.",
+        "warm_up_trial": "{when} zou {room} om **{start}** met opwarmen beginnen, zodat het om **{time}** {target} °C is (proefperiode).",
+        "warm_up_trial_now": "{room} zou nu opwarmen, zodat het om **{time}** {target} °C is (proefperiode).",
+        "at_tomorrow": "{time} morgen",
+        "at_date": "{time} op {date}",
+        "today_away": "{room} staat op afwezig: niet eerder opwarmen.",
+        "today_nobody": "Niemand is thuis voor {room}: niet eerder opwarmen.",
+        "today_holiday": "{room} is met vakantie t/m {date}; bij thuiskomst is het weer warm.",
+        "today_return": "{room} warmt op voor je thuiskomst.",
+        "today_window": "{room} is gepauzeerd: er staat een raam of deur open.",
+        "day_yesterday": "Gisteren",
+        "day_today": "Vandaag",
+        "day_on": "Op {date}",
+        "arrived_late_long": "{day} was het {d} te laat warm.",
+        "arrived_early_long": "{day} was het {d} te vroeg warm.",
+        "arrived_not_warm": "{day} werd het binnen 3 uur niet warm.",
+        "weather_idle": "als een ruimte warmte vraagt, stuurt de weerafhankelijke regeling water van {flow} °C",
+        "correction_up": "de lijn geeft {base} °C, de ruimtecorrectie doet er {extra} °C bij",
+        "line_gives": "de lijn geeft {base} °C",
     },
     # Polish: the terms of translations/pl.json and docs/UX-GLOSSARY.md; E32 page names stay English.
     "pl": {
@@ -770,10 +836,10 @@ TEXT = {
         "models_note": "Modele cieplne pomieszczeń to szacunki, a nie zmierzone ciepło; nieznane lub nieaktualne "
                        "dane zostawiają luki.",
         "room_history": "{room}: docelowa i zmierzona", "room_measured": "Zmierzona", "room_target": "Docelowa",
-        "learning": "Nauka", "flow_advice": "Zalecana temperatura wody", "heating_start": "Start grzania",
+        "learning": "Nauka", "flow_advice": "Zalecana temperatura wody", "heating_start": "Start inteligentnego nagrzewania",
         "learning_note": "E32 uczy się też, jak szybko nagrzewa się każde pomieszczenie, i wylicza najchłodniejszą "
                          "wodę, która wciąż nagrzeje je o 1 °C na czas (zalecana temperatura wody).",
-        "advice_only": "Na razie to tylko porada; E32 nadal używa regulacji pokojowej.",
+        "advice_only": "Inteligentne nagrzewanie jest wyłączone, więc to tylko porada; E32 nadal używa regulacji pokojowej.",
         "dhw_taps": "Pobory dziś", "dhw_today": "Ciepła woda dziś",
         "advice": "Porady", "advice_where": "Gdzie", "advice_confidence": "Pewność",
         "advice_note": "Tylko porada: nic nie jest zmieniane automatycznie.",
@@ -795,24 +861,24 @@ TEXT = {
                     "częścią ciepłej wody, więc tam je pomiń.",
         "yesterday": "Wczoraj", "burner_per_day": "Godziny pracy palnika na dzień",
         "missed_per_day": "Utracony komfort na dzień (minuty)",
-        "day_burner": "Palnik: {h} godz., starty: {n} (krótsze niż 10 minut: {short}).",
+        "day_burner": "Palnik: {h} godz., {starts}{short}.",
         "day_gas": "Gaz: ogrzewanie {heating}, ciepła woda {hot_water}.",
         "day_room": "{room}: żądanie ciepła przez {h} godz.; ciepło średnio po {ttt} min; utracony komfort {missed} min.",
         "day_room_no_step": "{room}: żądanie ciepła przez {h} godz.; utracony komfort {missed} min.",
         "day_outdoor": "Na zewnątrz od {low} do {high} °C.", "day_outdoor_one": "Na zewnątrz {low} °C.",
         "day_partial": "Niepełny dzień: E32 nie był słyszalny przez cały dzień, więc dane są niekompletne.",
         "scoreboard_on_time": "ciepło na czas",
-        "scoreboard_late": "ciepło {m} min za późno",
-        "scoreboard_early": "ciepło {m} min za wcześnie",
+        "scoreboard_late": "ciepło {d} za późno",
+        "scoreboard_early": "ciepło {d} za wcześnie",
         "scoreboard_overshoot": "{c} °C za ciepło",
         "scoreboard_hours": "Czas grzania: {h} godz.",
         "scoreboard_burner": "Starty palnika na godzinę grzania: {n}",
         "scoreboard_short": "Krótkie cykle palnika: {h} godz.",
-        "scoreboard_gas": "Gaz na ogrzewanie (szacunek): {kwh} kWh",
+        "scoreboard_gas": "Gaz na ogrzewanie (szacunek kotła): {kwh} kWh",
         "scoreboard_degree_days": "Stopniodni: {d}",
         "scoreboard_degree_day": "{v} kWh na stopniodzień",
         "scoreboard_note": "Każdego dnia termostat sprawdza, czy każde pomieszczenie było ciepłe na czas i nie za ciepłe, jak często startował palnik i ile gazu poszło na ogrzewanie. Uczy się z tego; każda liczba ma swoją historię na własnym czujniku.",
-        "day_none": "Pierwszy pełny dzień pojawi się tu jutro.",
+        "day_none": "Pierwszy dzień pojawi się tu jutro.",
         "outdoor": "Na zewnątrz",
         "flow_settings": "Kompensacja pogodowa i nauka",
         "flow_source": "Temperatura wody ustalana przez",
@@ -821,6 +887,7 @@ TEXT = {
         "apply_learned": "Inteligentne nagrzewanie",
         "house_mode": "Tryb domu", "boiler_now": "Kocioł",
         "holiday_next": "Urlop od {from} do {until}", "holiday_now": "Urlop do {until}",
+        "holiday_day": "Urlop {from}",
         "months": "sty,lut,mar,kwi,maj,cze,lip,sie,wrz,paź,lis,gru",
         "learned_latest": "Ostatnia zmiana",
         "compare_link": "E32 w porównaniu z Twoim termostatem",
@@ -830,7 +897,7 @@ TEXT = {
         "flow_short": "Woda do ogrzewania", "return_short": "Woda powrotna",
         "e32": "E32", "thermostat": "Termostat",
         "comparison_view": "Porównanie",
-        "room_off": "To pomieszczenie jest wyłączone i nigdy nie żąda ciepła.",
+        "room_off": "To pomieszczenie jest wyłączone: chroni je tylko ochrona przed mrozem.",
         "room_no_source": "Pomieszczenie {room} jest wyłączone i nie ma działającego źródła temperatury. Wybierz "
             "źródło, aby znów z niego korzystać, albo usuń pomieszczenie, jeśli nie jest już potrzebne.",
         "choose_source": "Wybierz źródło",
@@ -899,15 +966,47 @@ TEXT = {
                          "się wychłodzi, nagrzewanie zacznie się wcześniej.",
         "warm_up_now": "{room}: nagrzewanie trwa, aby o **{time}** było {target} °C.",
         "warm_up_from": "{room}: {when} nagrzewanie od **{start}**.",
-        "warm_up_off": "{room}: {when} grzanie od **{time}** do {target} °C (Inteligentne nagrzewanie wyłączone).",
-        "arrived_late": "Wczoraj ciepło {m} min za późno.", "arrived_late_one": "Wczoraj ciepło 1 min za późno.",
-        "arrived_early": "Wczoraj ciepło {m} min za wcześnie.", "arrived_early_one": "Wczoraj ciepło 1 min za wcześnie.",
-        "arrived_on_time": "Wczoraj ciepło na czas.",
-        "weather_outside": "Na zewnątrz {outdoor} °C", "weather_asks": "kompensacja pogodowa zadaje {flow} °C wody",
-        "weather_off": "kompensacja pogodowa jest wyłączona; zadałaby {flow} °C wody",
+        "warm_up_off": "{room}: {when} grzanie od **{time}**, temperatura docelowa {target} °C (Inteligentne nagrzewanie wyłączone).",
+        "arrived_late": "{day} ciepło {m} min za późno.", "arrived_late_one": "{day} ciepło 1 min za późno.",
+        "arrived_early": "{day} ciepło {m} min za wcześnie.", "arrived_early_one": "{day} ciepło 1 min za wcześnie.",
+        "arrived_on_time": "{day} ciepło na czas.",
+        "weather_outside": "Na zewnątrz {outdoor} °C", "weather_asks": "kompensacja pogodowa żąda {flow} °C wody",
+        "weather_off": "kompensacja pogodowa jest wyłączona; żądałaby {flow} °C wody",
         "line_standard": "linia standardowa", "line_house": "linia oszacowana na podstawie Twojego domu",
         "line_learned": "linia wyuczona dla Twojego domu", "line_follows": "wyuczona linia po {m} stabilnych okresach",
         "line_follows_n": "wyuczona linia po {m} stabilnych okresach, na razie {n} z {m}",
+        # rc7: the sentences review (R1, R3): Today in every case, Yesterday in figures, the Learning view.
+        "cycling_info_shadow": "Obecny termostat często włącza i wyłącza palnik; E32 wydłuży przerwę, gdy przejmie sterowanie.",
+        "day_starts": "starty: {n}",
+        "day_starts_one": "starty: 1",
+        "day_short": " (krótsze niż 10 minut: {short})",
+        "day_burner_none": "Palnik się nie uruchomił.",
+        "scoreboard_not_warm": "nie ciepło w ciągu 3 godz.",
+        "scoreboard_short_none": "Krótkie cykle palnika: brak",
+        "figures_day": "Te dane są z dnia {date}: E32 nie ma nowszego pełnego dnia.",
+        "holiday_hint": "Aby zaplanować urlop: Konfiguruj → Dom → Tryb domu i urlop.",
+        "dur_h_m": "{h} godz. {m} min",
+        "dur_h": "{h} godz.",
+        "warm_up_now_estimate": "{room}: nagrzewanie trwa (szacunek), aby o **{time}** było {target} °C.",
+        "warm_up_late": "{room}: nagrzewanie trwa; {target} °C może być dopiero nieco po **{time}**.",
+        "warm_up_trial": "{room}: {when} nagrzewanie byłoby od **{start}**, aby o **{time}** było {target} °C (okres próbny).",
+        "warm_up_trial_now": "{room}: nagrzewanie trwałoby teraz, aby o **{time}** było {target} °C (okres próbny).",
+        "at_tomorrow": "{time} jutro",
+        "at_date": "{time} {date}",
+        "today_away": "{room}: tryb nieobecności, bez wcześniejszego nagrzewania.",
+        "today_nobody": "{room}: nikogo nie ma w domu, bez wcześniejszego nagrzewania.",
+        "today_holiday": "{room}: urlop do {date}; po powrocie będzie ciepło.",
+        "today_return": "{room}: nagrzewanie na Twój powrót.",
+        "today_window": "{room}: wstrzymane, otwarte okno lub drzwi.",
+        "day_yesterday": "Wczoraj",
+        "day_today": "Dziś",
+        "day_on": "Dnia {date}",
+        "arrived_late_long": "{day} ciepło {d} za późno.",
+        "arrived_early_long": "{day} ciepło {d} za wcześnie.",
+        "arrived_not_warm": "{day} nie zrobiło się ciepło w ciągu 3 godzin.",
+        "weather_idle": "gdy pomieszczenie potrzebuje ciepła, kompensacja pogodowa żąda {flow} °C wody",
+        "correction_up": "linia daje {base} °C, korekta pomieszczenia dodaje {extra} °C",
+        "line_gives": "linia daje {base} °C",
     },
 }
 
@@ -1039,11 +1138,12 @@ def _known_entities_card(entity_ids, hidden=None, title=None):
     return card
 
 
-def _room_lines_card(t, learned, names, on):
-    """What the thermostat learned for this room (its lines of the learned overview), or a short "nothing yet"."""
+def _room_lines_card(t, learned, room_id, on):
+    """What the thermostat learned for this room (its lines of the learned overview, found by the room's ID: a name
+    renamed in Home Assistant or on the E32 still finds them), or a short "nothing yet"."""
     quoted = json.dumps(learned)
-    content = ("{% set names = " + json.dumps(list(names), ensure_ascii=False) + " %}"
-               "{% set mine = (state_attr(" + quoted + ", 'rooms') or []) | selectattr('name', 'in', names) | list %}"
+    content = ("{% set mine = (state_attr(" + quoted + ", 'rooms') or []) | selectattr('room_id', 'eq', "
+               + json.dumps(room_id) + ") | list %}"
                "{% if mine and mine[0].lines %}{% for line in mine[0].lines %}- {{ line.text }}"
                "{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}"
                "{% else %}" + t["room_nothing"] + "{% endif %}")
@@ -1051,26 +1151,31 @@ def _room_lines_card(t, learned, names, on):
             "visibility": [*on, {"condition": "state", "entity": learned, "state_not": "unavailable"}]}
 
 
-def _learning_cards(t, room, active=None, learned=None, names=()):
+def _learning_cards(t, room, active=None, learned=None, room_id=None, smart=None):
     """A compact "Learning" area under a room: status badge, what it learned, recommended flow, predicted start.
 
     Nothing without the learned entities (older firmware); hidden while the E32 reports none
-    and while the room is off (``active``: the room's "on" condition).
+    and while the room is off (``active``: the room's "on" condition). The Smart warm-up start shows only while Smart
+    warm-up (``smart``, its switch) is on and the room's Reason is not away, nobody home, an open window or the
+    warm-up for the end of a holiday: then the E32 does not start early, so a time would mislead.
     """
     learning, advice, start = room.get("learning"), room.get("flow_advice"), room.get("heating_start")
     on = list(active or [])
     if not learning:
         return ([_heading(t["learning"], "mdi:school-outline", style="subtitle", visibility=on),
-                 _room_lines_card(t, learned, names, on)] if learned else [])
+                 _room_lines_card(t, learned, room_id, on)] if learned else [])
     badge = {"type": "entity", "entity": learning, "show_state": True, "show_icon": True, "color": "teal"}
+    used = [{"condition": "state", "entity": smart, "state_not": "off"}] if smart else []
+    if room.get("reason"):
+        used.append({"condition": "state", "entity": room["reason"], "state_not": ["holiday", *HELD_REASONS]})
     return [
         _heading(t["learning"], "mdi:school-outline", [badge], "subtitle", on + _known(learning)),
-        _room_lines_card(t, learned, names, on + _known(learning)) if learned else None,
+        _room_lines_card(t, learned, room_id, on + _known(learning)) if learned else None,
         # The advice only means something once the room is learned.
         # The whole width: "Recommended water temperature" was cut short in half a section.
         _wide(_tile(advice, t["flow_advice"],
                     visibility=[*on, {"condition": "state", "entity": learning, "state": "ready"}, *_known(advice)])),
-        _wide(_tile(start, t["heating_start"], visibility=on + _known(start))),
+        _wide(_tile(start, t["heating_start"], visibility=on + _known(start) + used)),
     ]
 
 
@@ -1123,12 +1228,17 @@ def _learned_sections(t, learned, how=None):
     summary = ("{% set e = state_attr(" + quoted + ", 'explanation') or '' %}{% set p = e.split('. ', 1) %}"
                "{{ p[0] }}{% if p | length > 1 %}.\n\n<details><summary>" + t["more"] + "</summary>\n\n{{ p[1] }}\n\n</details>"
                "{% endif %}\n\n"
-               "{% for room in state_attr(" + quoted + ", 'rooms') or [] %}- **{{ room.name }}** · {{ room.progress }}\n"
-               "{% endfor %}{% for change in (state_attr(" + quoted + ", 'changes') or [])[:1] %}\n"
-               "*" + t["learned_latest"] + ":* {{ change.text }}{% endfor %}")
+               "{% for room in state_attr(" + quoted + ", 'rooms') or [] %}- **{{ room.name }}** · {{ room.progress }}"
+               "{% if room.summary %} · {{ room.summary }}{% endif %}\n"
+               # The latest change the thermostat made (one with a time): never a trial-run proposal, and nothing while
+               # it changed nothing (the section "What it changed by itself" says that, once).
+               "{% endfor %}{% for change in ((state_attr(" + quoted + ", 'changes') or []) | selectattr('time')"
+               " | list)[:1] %}\n*" + t["learned_latest"] + ":* {{ change.text }}{% endfor %}")
     house = "{% set items = state_attr(" + quoted + ", 'house') or [] %}" + lines
+    # "5 Nov: ...", as every other date on the dashboard (not "05-11", which reads as 11 May in English).
     changes = ("{% for change in state_attr(" + quoted + ", 'changes') or [] %}- {% if change.time %}"
-               "{{ as_timestamp(change.time) | timestamp_custom('%d-%m') }}: {% endif %}{{ change.text }}\n{% endfor %}")
+               "{% set c = as_local(as_datetime(change.time)) %}{{ " + _date(t, "c") + " }}: {% endif %}"
+               "{{ change.text }}\n{% endfor %}")
     shown = [{"condition": "state", "entity": learned, "state_not": "unavailable"}]
     sections = []
     for heading, icon, content, note in ((t["learned"], ICONS["learning"], summary, how),
@@ -1457,9 +1567,13 @@ def _summary_lines(t, summary, gas_unit, scoreboard_gas=None):
     gas = "d.gas and d.gas.heating is not none and d.gas.hot_water is not none"
     if scoreboard_gas:
         gas += " and not is_number(states(" + json.dumps(scoreboard_gas) + "))"
+    starts = ("(" + json.dumps(t["day_starts_one"], ensure_ascii=False) + " if d.burner_starts == 1 else "
+              + _jinja_text(t["day_starts"], n="d.burner_starts") + ")")
+    short = "(" + _jinja_text(t["day_short"], short="d.short_runs") + " if d.short_runs else '')"
     return (
         "{% set d = state_attr(" + q + ", 'last_day') %}{% if d %}- "
-        + fill(t["day_burner"], h=number("d.burner_hours"), n="d.burner_starts", short="d.short_runs")
+        + "{% if not d.burner_starts and not d.burner_hours %}" + t["day_burner_none"] + "{% else %}"
+        + fill(t["day_burner"], h=number("d.burner_hours"), starts=starts, short=short) + "{% endif %}"
         + "{% if " + gas + " %} "
         + fill(t["day_gas"], heating=number("d.gas.heating") + " ~ '" + unit + "'",
                hot_water=number("d.gas.hot_water") + " ~ '" + unit + "'")
@@ -1468,7 +1582,8 @@ def _summary_lines(t, summary, gas_unit, scoreboard_gas=None):
         + "{% if d.outdoor.min == d.outdoor.max %}" + fill(t["day_outdoor_one"], low=number("d.outdoor.min"))
         + "{% else %}" + fill(t["day_outdoor"], low=number("d.outdoor.min"), high=number("d.outdoor.max"))
         + "{% endif %}"
-        + "{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}"
+        + "{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none"
+        " and (r.time_to_target_minutes | round | int) > 0 %}"
         # Whole minutes ("25 min", not "25.0 min": the summary keeps the median as a float).
         + fill(t["day_room"], room="r.name", h=number("r.heat_hours"), ttt="r.time_to_target_minutes | round | int",
                missed="r.missed_minutes")
@@ -1520,17 +1635,24 @@ def _scoreboard_lines(t, rooms, names, house, large=()):
     def line(prefix):
         return ("{% if parts %}{% set shown.lines = shown.lines + 1 %}- " + prefix + "{{ parts | join(' · ') }}\n"
                 "{% endif %}")
+    def minutes(x):
+        """Whole minutes: "12 min", or "1 h 35 min" from an hour."""
+        return "((" + x + " ~ ' min') if " + x + " < 60 else " + _duration(t, x) + ")"
     content = ""
     for room_id, keys in rooms.items():
         content += "{% set parts = [] %}"
         if keys.get("warm_on_time") and ("warm_on_time", room_id) not in large:  # minutes after the switch time
+            # 3 hours or more: the E32 counts a room that never got warm as 3 hours late, so "not warm within 3 h".
             content += ("{% set v = states(" + json.dumps(keys["warm_on_time"]) + ") %}{% if is_number(v) %}"
                         "{% set m = v | float | round(0) | int %}{% set parts = parts + [("
-                        + _jinja_text(t["scoreboard_late"], m="m") + ") if m > 0 else ("
-                        + _jinja_text(t["scoreboard_early"], m="-m") + ") if m < 0 else "
+                        + json.dumps(t["scoreboard_not_warm"], ensure_ascii=False) + ") if m >= " + str(NOT_WARM_MIN)
+                        + " else (" + _jinja_text(t["scoreboard_late"], d=minutes("m")) + ") if m > 0 else ("
+                        + _jinja_text(t["scoreboard_early"], d=minutes("(-m)")) + ") if m < 0 else "
                         + json.dumps(t["scoreboard_on_time"], ensure_ascii=False) + "] %}{% endif %}")
-        if keys.get("overshoot"):
-            content += part(keys["overshoot"], _jinja_text(t["scoreboard_overshoot"], c=_figure(t, 1)))
+        if keys.get("overshoot"):  # the highest temperature above the target: 0 or below is not too warm
+            content += ("{% set v = states(" + json.dumps(keys["overshoot"]) + ") %}{% if is_number(v) and v | float > 0.05 %}"
+                        "{% set parts = parts + [" + _jinja_text(t["scoreboard_overshoot"], c=_figure(t, 1)) + "] %}"
+                        "{% endif %}")
         content += line("**{{ " + json.dumps(names.get(room_id, room_id), ensure_ascii=False) + " }}**: ")
     # (sensor, its attribute or None for the state, text, placeholder, decimals): the heating hours and the
     # degree-days ride as attributes on the burner-starts and gas-per-degree-day sensors (scoreboard.py).
@@ -1545,12 +1667,24 @@ def _scoreboard_lines(t, rooms, names, house, large=()):
             content += "{% set parts = [] %}"
             for key, attribute, text, name, digits in figures:
                 if (key, attribute) in said:
-                    content += part(house[key], _jinja_text(t[text], **{name: _figure(t, digits)}), attribute)
+                    figure = _jinja_text(t[text], **{name: _figure(t, digits)})
+                    if key == "short_cycling_hours":  # "Short burner runs: none", not "0.0 h"
+                        figure = ("(" + json.dumps(t["scoreboard_short_none"], ensure_ascii=False)
+                                  + " if (v | float) < 0.05 else " + figure + ")")
+                    content += part(house[key], figure, attribute)
             content += line("")
+    # The E32's "yesterday" is its last scored day: after a day without a trusted clock an older one, said once.
+    dated = next((entity for keys in rooms.values() for entity in keys.values()), None) or next(iter(house.values()), None)
+    if dated:
+        months = json.dumps(t["months"].split(","), ensure_ascii=False)
+        content = ("{% set yd = state_attr(" + json.dumps(dated) + ", 'day') %}"
+                   "{% if yd is string and yd | length == 10 and yd != (now() - timedelta(days=1)).strftime('%Y-%m-%d') %}"
+                   "_{{ " + _jinja_text(t["figures_day"], date="(yd[8:10] | int) ~ ' ' ~ " + months + "[(yd[5:7] | int) - 1]")
+                   + " }}_\n\n{% endif %}" + content)
     return content
 
 
-def _yesterday_figures(t, rooms, names, house, summary=None, missed=None, gas_unit=None, lead=None):
+def _yesterday_figures(t, rooms, names, house, summary=None, missed=None, gas_unit=None, lead=None, meter=False):
     """Yesterday in figures (dashboard-spec §6), once, on the Learning view: the four headline figures large, two
     by two (frontend/house-card.js, custom:openthermostat-yesterday: the lead room warm on time, burner starts per
     heating hour, gas for heating and the degree-days, each from its own scoreboard sensor), under them the rest of
@@ -1563,6 +1697,8 @@ def _yesterday_figures(t, rooms, names, house, summary=None, missed=None, gas_un
     until one of its own has, and the lines while they have nothing to add (one gas figure: the summary's gas line
     only while the scoreboard has none).
     """
+    if meter:  # measured with the gas meter: the summary's gas line in the meter's unit, not the boiler's estimate
+        house = {key: entity for key, entity in house.items() if key != "heating_gas_yesterday"}
     scoreboard = [entity for keys in rooms.values() for entity in keys.values()] + list(house.values())
     if not scoreboard and not summary:
         return None
@@ -1702,6 +1838,7 @@ def _holiday_card(t, select):
         + ".split(',') %}"
         "{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}"
         "{% if f <= now() %}" + t["holiday_now"].replace("{until}", day("u"))
+        + "{% elif f.date() == u.date() %}" + t["holiday_day"].replace("{from}", day("f"))
         + "{% else %}" + t["holiday_next"].replace("{from}", day("f")).replace("{until}", day("u"))
         + "{% endif %}{% endif %}")}
 
@@ -1710,8 +1847,9 @@ def _holiday_card(t, select):
 
 
 def _clock(moment):
-    """A Jinja expression: the local datetime ``moment`` as a time of day, 6:10 (no leading zero, as in the sketch)."""
-    return "(" + moment + ".hour ~ ':' ~ ('%02d' % " + moment + ".minute))"
+    """A Jinja expression: the local datetime ``moment`` as a time of day, 06:10 (two digits, as the E32 pages, the
+    Rooms view and the glossary write it)."""
+    return "(('%02d' % " + moment + ".hour) ~ ':' ~ ('%02d' % " + moment + ".minute))"
 
 
 def _degrees(t, value):
@@ -1720,113 +1858,199 @@ def _degrees(t, value):
             + ") | replace('.', " + json.dumps(t["decimal"]) + ")))")
 
 
+def _date(t, moment):
+    """A Jinja expression: the local datetime ``moment`` as "5 Nov" (the language's months)."""
+    months = json.dumps(t["months"].split(","), ensure_ascii=False)
+    return moment + ".day ~ ' ' ~ " + months + "[" + moment + ".month - 1]"
+
+
 def _when(t, days, moment):
     """A Jinja expression: "Today", "Tomorrow" or "On 7 Nov" for ``moment``, ``days`` days from today."""
-    months = json.dumps(t["months"].split(","), ensure_ascii=False)
-    date = _jinja_text(t["when_date"], date=moment + ".day ~ ' ' ~ " + months + "[" + moment + ".month - 1]")
+    date = _jinja_text(t["when_date"], date=_date(t, moment))
     return ("(" + json.dumps(t["when_today"], ensure_ascii=False) + " if " + days + " == 0 else "
             + json.dumps(t["when_tomorrow"], ensure_ascii=False) + " if " + days + " == 1 else (" + date + "))")
 
 
-def _warm_up_line(t, name, start, state=None, warm=None, smart=None):
-    """One line of Today for a room that is switched on: when it warms up and for what ("Tomorrow Living room warms
-    up from 6:10 to be 20.5 °C at 7:00."), then how yesterday's warm-up turned out ("Yesterday it was warm 4 minutes
-    early.").
+def _duration(t, minutes):
+    """A Jinja expression: whole minutes of an hour or more as "1 h 35 min" or "2 h" (the language's units)."""
+    return ("(" + _jinja_text(t["dur_h_m"], h=minutes + " // 60", m=minutes + " % 60") + " if " + minutes
+            + " % 60 else " + _jinja_text(t["dur_h"], h=minutes + " // 60") + ")")
 
-    From the room's "Heating starts" sensor (heating_link.RoomHeatingStartSensor: its state the start the E32 plans,
-    its attributes the program step it plans for, switch_at and target_c, start_now, lead_minutes and estimate) and
-    its "Warm on time" (scoreboard.py: yesterday, minutes after the switch time; negative: early). With Smart warm-up
+
+# The room's Reason (room_overview.REASONS) while the E32 holds its week program (away, nobody home or an open window:
+# RoomOverrides::holdsProgram, no early start) or heats for the end of a holiday: Today says that instead of a warm-up
+# the E32 does not do. The E32's own telemetry plan still says "planned" then.
+HELD_REASONS = {"away": "today_away", "room_away": "today_nobody", "house_away": "today_nobody",
+                "away_return": "today_return", "window_open": "today_window"}
+NOT_WARM_MIN = 180  # ArrivalLearner: a room not warm within 3 hours counts as 3 hours late
+
+
+def _arrived(t, warm):
+    """Jinja: how the room's last judged warm-up turned out, from its "Warm on time" (scoreboard.py: minutes after the
+    switch time, negative early). Today's figure once this morning was judged ("Today it was warm 2 minutes late."),
+    else yesterday's ("Yesterday ..."; "On 3 Nov ..." while the E32's last scored day is an older one); an hour or
+    more in hours and minutes; 3 hours or more is "did not get warm within 3 hours" (the E32 counts that as 3 h)."""
+    q = json.dumps(warm)
+    yesterday = json.dumps(t["day_yesterday"], ensure_ascii=False)
+    months = json.dumps(t["months"].split(","), ensure_ascii=False)
+    older = _jinja_text(t["day_on"], date="(yd[8:10] | int) ~ ' ' ~ " + months + "[(yd[5:7] | int) - 1]")
+    return ("{% set tm = state_attr(" + q + ", 'today') %}{% if is_number(tm) %}{% set m = tm %}"
+            "{% set dd = " + json.dumps(t["day_today"], ensure_ascii=False) + " %}"
+            "{% else %}{% set m = states(" + q + ") %}{% set yd = state_attr(" + q + ", 'day') %}"
+            "{% set dd = " + yesterday + " if not yd or yd is not string or yd | length != 10"
+            " or yd == (now() - timedelta(days=1)).strftime('%Y-%m-%d') else (" + older + ") %}{% endif %}"
+            "{% if is_number(m) %}{% set m = m | float | round(0) | int %} "
+            "{% if m >= " + str(NOT_WARM_MIN) + " %}{{ " + _jinja_text(t["arrived_not_warm"], day="dd") + " }}"
+            "{% elif m >= 60 %}{{ " + _jinja_text(t["arrived_late_long"], day="dd", d=_duration(t, "m")) + " }}"
+            "{% elif m > 1 %}{{ " + _jinja_text(t["arrived_late"], day="dd", m="m") + " }}"
+            "{% elif m == 1 %}{{ " + _jinja_text(t["arrived_late_one"], day="dd") + " }}"
+            "{% elif m <= -60 %}{{ " + _jinja_text(t["arrived_early_long"], day="dd", d=_duration(t, "(-m)")) + " }}"
+            "{% elif m < -1 %}{{ " + _jinja_text(t["arrived_early"], day="dd", m="-m") + " }}"
+            "{% elif m == -1 %}{{ " + _jinja_text(t["arrived_early_one"], day="dd") + " }}"
+            "{% else %}{{ " + _jinja_text(t["arrived_on_time"], day="dd") + " }}{% endif %}{% endif %}")
+
+
+def _warm_up_line(t, name, start, state=None, warm=None, smart=None, reason=None, request=None):
+    """One line of Today for a room that is switched on: when it warms up and for what ("Tomorrow Living room warms
+    up from 06:10 to be 20.5 °C at 07:00."), then how its last warm-up turned out ("Yesterday it was warm 4 minutes
+    early.", _arrived).
+
+    From the room's "Smart warm-up start" sensor (heating_link.RoomHeatingStartSensor: its state the start the E32
+    plans, later by what the free heat gives, its attributes the program step it plans for, switch_at and target_c,
+    start_now, reachable, lead_minutes and estimate) and its "Warm on time" (scoreboard.py). With Smart warm-up
     switched off the heating starts at the program time, so the line says that. With no lead (lead_minutes 0) the
     room is warm enough already; the E32 has no cooling model yet and plans from the room's temperature now, so the
     start moves earlier as it cools, and the line says so. A start no morning has judged yet (estimate) says
-    "(estimate)", as the Learning tab does. Nothing while the start is unknown (no step up within
-    24 hours) or the room is off (``state``, its on/off select); _today_section shows the card on the same terms.
+    "(estimate)", as the Learning tab does; a start that cannot reach the target in time says it may come a little
+    later. In the trial run (the heat request's mode ``shadow``) the E32 heats nothing early: "would warm up".
+    While the room's Reason (``reason``) is away, nobody home, an open window or warming up for the end of a holiday,
+    the E32 does no early start (RoomOverrides::holdsProgram), so the line says that instead. A program step on
+    another day than the start says its day ("at 00:30 tomorrow"). Nothing while the start is unknown (no step up
+    within 24 hours) or the room is off (``state``, its on/off select); _today_section shows the card on the same
+    terms.
     """
     q, room = json.dumps(start), json.dumps(name, ensure_ascii=False)
     on = " and not is_state(" + json.dumps(state) + ", 'inactive')" if state else ""
     off = "is_state(" + json.dumps(smart) + ", 'off')" if smart else "false"
+    trial = "is_state_attr(" + json.dumps(request) + ", 'mode', 'shadow')" if request else "false"
     step = {"room": room, "time": _clock("w"), "target": _degrees(t, "g")}
+    # The step's time with its day when that is not the start's day: "at **00:30 tomorrow**".
+    later = {**step, "time": "wt"}
+    held = ""
+    if reason:
+        r = json.dumps(reason)
+        held = ("{% set why = states(" + r + ") %}{% if why == 'holiday' %}"
+                "{% set u = (state_attr(" + r + ", 'values') or {}).get('until') %}"
+                "{% set u = as_datetime(u, none) if u else none %}"
+                "{% if u is not none %}{% set u = as_local(u) %}{{ "
+                + _jinja_text(t["today_holiday"], room=room, date=_date(t, "u")) + " }}"
+                "{% else %}{{ " + _jinja_text(t["today_away"], room=room) + " }}{% endif %}"
+                + "".join("{% elif why == " + json.dumps(key) + " %}{{ " + _jinja_text(t[text], room=room) + " }}"
+                          for key, text in HELD_REASONS.items())
+                + "{% elif w is not none and g is number %}")
     # b: the planned start, w: the program step's time and g its temperature (local), d: days from today.
     line = ("{% set s = states(" + q + ") %}"
             "{% set b = as_datetime(s, none) if s not in ['unknown', 'unavailable'] else none %}"
             "{% if b is not none" + on + " %}{% set b = as_local(b) %}{% set at = state_attr(" + q + ", 'switch_at') %}"
             "{% set w = as_datetime(at, none) if at else none %}{% set w = as_local(w) if w is not none else none %}"
             "{% set g = state_attr(" + q + ", 'target_c') %}{% set d = (b.date() - now().date()).days %}"
-            + _icon("warm_up") + " {% if w is not none and g is number %}"
+            "{% if w is not none %}{% set wt = " + _clock("w") + " if w.date() == b.date() else ("
+            + _jinja_text(t["at_tomorrow"], time=_clock("w")) + " if (w.date() - now().date()).days == 1 else ("
+            + _jinja_text(t["at_date"], time=_clock("w"), date=_date(t, "w")) + ")) %}{% endif %}"
+            + _icon("warm_up") + " " + (held or "{% if w is not none and g is number %}")
             # Smart warm-up off: heating starts at the program time (the day of that time).
-            "{% if " + off + " %}{% set d = (w.date() - now().date()).days %}"
+            + "{% if " + off + " %}{% set d = (w.date() - now().date()).days %}"
             "{{ " + _jinja_text(t["warm_up_off"], when=_when(t, "d", "w"), **step) + " }}"
             # Warm enough already (no lead, or the start is the step's own minute): the E32 knows no cooling yet, so
             # the start moves earlier as the room cools; never "from 9:00 to be 20.5 °C at 9:00".
             "{% elif (state_attr(" + q + ", 'lead_minutes') == 0 or (w - b).total_seconds() < 60)"
             " and state_attr(" + q + ", 'start_now') != true %}"
             "{{ " + _jinja_text(t["warm_up_ready"], when=_when(t, "d", "b"), **step) + " }}"
-            # The start has come (or the E32 says it started): warming up now.
+            # The start has come (or the E32 says it started): warming up now; in the trial run it only would; not
+            # reachable in time: the target may come a little later; a start no morning judged yet: "(estimate)".
             "{% elif state_attr(" + q + ", 'start_now') == true or b <= now() %}"
-            "{{ " + _jinja_text(t["warm_up_now"], **step) + " }}"
+            "{% if " + trial + " %}{{ " + _jinja_text(t["warm_up_trial_now"], **step) + " }}"
+            "{% elif state_attr(" + q + ", 'reachable') == false %}{{ " + _jinja_text(t["warm_up_late"], **step) + " }}"
+            "{% elif state_attr(" + q + ", 'estimate') == true %}"
+            "{{ " + _jinja_text(t["warm_up_now_estimate"], **step) + " }}"
+            "{% else %}{{ " + _jinja_text(t["warm_up_now"], **step) + " }}{% endif %}"
+            "{% elif " + trial + " %}"
+            "{{ " + _jinja_text(t["warm_up_trial"], when=_when(t, "d", "b"), start=_clock("b"), **later) + " }}"
             # E32 rc.4: a start no morning has judged yet (the standard warm-up time), "estimate" as the Learning tab.
             "{% elif state_attr(" + q + ", 'estimate') == true %}"
-            "{{ " + _jinja_text(t["warm_up_estimate"], when=_when(t, "d", "b"), start=_clock("b"), **step) + " }}"
-            "{% else %}{{ " + _jinja_text(t["warm_up_at"], when=_when(t, "d", "b"), start=_clock("b"), **step) + " }}"
+            "{{ " + _jinja_text(t["warm_up_estimate"], when=_when(t, "d", "b"), start=_clock("b"), **later) + " }}"
+            "{% else %}{{ " + _jinja_text(t["warm_up_at"], when=_when(t, "d", "b"), start=_clock("b"), **later) + " }}"
             "{% endif %}"
             # An E32 before rc.2 names no program step: the start alone.
             "{% else %}{{ " + _jinja_text(t["warm_up_from"], when=_when(t, "d", "b"), room=room, start=_clock("b")) + " }}"
             "{% endif %}")
-    if warm:  # yesterday's warm-up: minutes late, early or on time
-        line += ("{% set m = states(" + json.dumps(warm) + ") %}"
-                 "{% if is_number(m) %}{% set m = m | float | round(0) | int %} "
-                 "{% if m > 1 %}{{ " + _jinja_text(t["arrived_late"], m="m") + " }}"
-                 "{% elif m == 1 %}" + t["arrived_late_one"]
-                 + "{% elif m < -1 %}{{ " + _jinja_text(t["arrived_early"], m="-m") + " }}"
-                 "{% elif m == -1 %}" + t["arrived_early_one"]
-                 + "{% else %}" + t["arrived_on_time"] + "{% endif %}{% endif %}")
+    if warm:  # the last judged warm-up: minutes late, early or on time
+        line += _arrived(t, warm)
     return line + "\n\n{% endif %}"
 
 
-def _weather_line(t, curve):
-    """The line of Today on weather compensation: "Outside 9 °C: weather compensation asks for 30 °C water, standard
+def _weather_line(t, curve, request=None):
+    """The line of Today on weather compensation: "Outdoor 9.2 °C: weather compensation asks for 30 °C water, standard
     line (the learned line follows after 6 steady periods)." From "Water temperature by weather compensation"
-    (e32_flow.py): its attributes flow_c (what it asks, °C) and outdoor_c (the outdoor temperature the E32 uses, °C),
-    state (applied, or advice while weather compensation is switched off), slope_source (design: the standard line,
-    house: worked out from the house, learned) and windows (the steady periods seen so far; the E32 uses the learned
-    line from 6). There whenever the sensor has a value; without an outdoor temperature it starts with what it asks.
+    (e32_flow.py): its attributes flow_c (what it asks, °C, with the room correction), base_c (the line's own value),
+    the water temperature limits and outdoor_c (the outdoor temperature the E32 uses, °C), state (applied, or advice
+    while weather compensation is switched off), slope_source (design: the standard line, house: worked out from the
+    house, learned) and windows (the steady periods seen so far; the E32 uses the learned line from 6). When what it
+    asks differs from the line, it says what the line gives and, when it is sure, that the room correction adds the
+    rest; it never ascribes the room correction to the line. While no room asks for heat (the heat request is 0 °C)
+    nothing is sent: it says what it sends when a room asks. There whenever the sensor has a value; without an outdoor
+    temperature it starts with what it asks.
     """
     from .learned_overview import CURVE_STEPS
     q, steps = json.dumps(curve), str(CURVE_STEPS)
-    outside = _jinja_text(t["weather_outside"], outdoor="o | round(0) | int")
-    main = ("(" + _jinja_text(t["weather_off"], flow="f") + ") if advice else ("
-            + _jinja_text(t["weather_asks"], flow="f") + ")")
+    # One decimal as the House row, a true minus sign: "Outdoor −3.6 °C".
+    outside = _jinja_text(t["weather_outside"], outdoor="('%.1f' % ((o | round(1)) + 0)) | replace('-', '−') | replace('.', "
+                          + json.dumps(t["decimal"]) + ")")
+    main = ("(" + _jinja_text(t["weather_off"], flow="f") + ") if advice else (" + _jinja_text(t["weather_idle"], flow="f")
+            + ") if idle else (" + _jinja_text(t["weather_asks"], flow="f") + ")")
     lines = json.dumps({"design": t["line_standard"], "house": t["line_house"], "learned": t["line_learned"]},
                        ensure_ascii=False)
     follows = ("(" + _jinja_text(t["line_follows_n"], m=steps, n="[n, " + steps + "] | min") + ")"
-               " if n is number and n > 0 else (" + _jinja_text(t["line_follows"], m=steps) + ")")
+               " if n is number and 0 < n < " + steps + " else (" + _jinja_text(t["line_follows"], m=steps) + ")")
+    corrected = ("(" + _jinja_text(t["correction_up"], base="lb", extra="f - lb") + ") if f > lb and (lo is not number"
+                 " or f > lo) and (hi is not number or f < hi) else (" + _jinja_text(t["line_gives"], base="lb") + ")")
+    idle = ("not (states(" + json.dumps(request) + ") | float(0) > 0)") if request else "false"
     return ("{% set f = state_attr(" + q + ", 'flow_c') %}{% if f is number %}{% set f = f | round(0) | int %}"
             "{% set o = state_attr(" + q + ", 'outdoor_c') %}{% set n = state_attr(" + q + ", 'windows') %}"
             "{% set src = state_attr(" + q + ", 'slope_source') %}"
-            "{% set advice = state_attr(" + q + ", 'state') == 'advice' %}"
+            "{% set advice = state_attr(" + q + ", 'state') == 'advice' %}{% set idle = " + idle + " %}"
+            "{% set lb = state_attr(" + q + ", 'base_c') %}{% set lo = state_attr(" + q + ", 'minimum_flow_c') %}"
+            "{% set hi = state_attr(" + q + ", 'maximum_flow_c') %}"
+            "{% set notes = [] %}"
+            "{% if not advice and src in " + json.dumps(["design", "house"]) + " %}"
+            "{% set notes = notes + [" + follows + "] %}{% endif %}"
+            # What it asks differs from the line (E32 rc.5 sends the line's own value): say what the line gives.
+            "{% if not advice and not idle and lb is number %}{% set lb = lb | round(0, 'ceil') | int %}"
+            "{% if lb != f %}{% set notes = notes + [" + corrected + "] %}{% endif %}{% endif %}"
             "{% set main = " + main + " %}" + _icon("weather") + " "
             # Without an outdoor temperature the sentence starts with what it asks, from a capital.
             "{% if o is number %}{{ " + outside + " }}: {{ main }}{% else %}{{ main[:1] | upper }}{{ main[1:] }}{% endif %}"
             "{% if not advice and src in " + json.dumps(["design", "house", "learned"]) + " %}, {{ " + lines + "[src] }}"
-            "{% if src != 'learned' %} ({{ " + follows + " }}){% endif %}{% endif %}.{% endif %}")
+            "{% endif %}{% if notes %} ({{ notes | join('; ') }}){% endif %}.{% endif %}")
 
 
-def _today_section(t, rooms, curve=None, smart=None):
+def _today_section(t, rooms, curve=None, smart=None, request=None):
     """Today (rc.5, the owner's sketch), on the Overview: per room that is switched on, when it warms up and how
-    yesterday went (_warm_up_line), then what weather compensation asks now (_weather_line), in one card.
+    its last warm-up went (_warm_up_line), then what weather compensation asks now (_weather_line), in one card.
 
-    rooms: [(name, "Heating starts" sensor, the room's on/off select or None, "Warm on time" or None)]; curve: "Water
-    temperature by weather compensation" or None; smart: the Smart warm-up switch or None. The card and its section
-    show while one of its lines has its value (the start known and the room on, or the curve known), so a heading
-    never stands over nothing; the text follows the sensors without a rebuild. None without any of them.
+    rooms: [(name, "Smart warm-up start" sensor, the room's on/off select or None, "Warm on time" or None, its Reason
+    or None)]; curve: "Water temperature by weather compensation" or None; smart: the Smart warm-up switch or None;
+    request: the heat request (its mode: the trial run; its value: whether a room asks for heat) or None. The card
+    and its section show while one of its lines has its value (the start known and the room on, or the curve known),
+    so a heading never stands over nothing; the text follows the sensors without a rebuild. None without any of them.
     """
     shown, content = [], ""
-    for name, start, state, warm in rooms:
-        content += _warm_up_line(t, name, start, state, warm, smart)
+    for name, start, state, warm, *reason in rooms:
+        content += _warm_up_line(t, name, start, state, warm, smart, reason[0] if reason else None, request)
         on = [{"condition": "state", "entity": state, "state_not": "inactive"}] if state else []
         shown.append({"condition": "and", "conditions": _known(start) + on})
     if curve:
-        content += _weather_line(t, curve)
+        content += _weather_line(t, curve, request)
         shown.append({"condition": "and", "conditions": _known(curve)})
     if not shown:
         return None
@@ -2161,6 +2385,7 @@ class RoomDashboard:
     def _signature(hub):
         if hub is None or not hub.fresh:
             return None
+        from .heating_link import learned_inputs
         plan = hub.plan.plan if hub.plan is not None else None
         # The E32 counts every plan save in its revision: no need to compare the whole plan (R4-11).
         # A room's state too: switched on or off, it moves into or out of the Overview's house card (rc.5).
@@ -2168,7 +2393,9 @@ class RoomDashboard:
                 tuple((key, room.get("name"), room.get("source"), room.get("state"))
                       for key, room in hub.rooms.items()),
                 tuple((key, sensor.get("name")) for key, sensor in hub.ble.items()),
-                plan.get("revision") if plan else None)
+                plan.get("revision") if plan else None,
+                # The outdoor temperature the E32 uses (the House row shows the same one, rc7).
+                learned_inputs(getattr(hub, "learned_header", None)).get("outdoor"))
 
     @callback
     def _schedule_refresh(self) -> None:
@@ -2463,18 +2690,25 @@ class RoomDashboard:
                 room_cards.append(_wide(_tile(room.get("temperature") or room.get("setpoint"), names[room_id],
                                               "mdi:home-thermometer-outline")))
         # Today: when each room that is on warms up next, and what weather compensation asks now.
-        today = _today_section(t, [(names[room_id], room["heating_start"], room.get("state"), room.get("warm_on_time"))
+        today = _today_section(t, [(names[room_id], room["heating_start"], room.get("state"), room.get("warm_on_time"),
+                                    room.get("reason"))
                                    for room_id, room in e32_room_entities.items() if room.get("heating_start")],
-                               flow.get("curve"), flow.get("apply_learned"))
-        # House: home or away, the holiday planner and the outdoor temperature (the one set under Energy and outdoor
-        # temperature, else the boiler's own), with the next holiday under it while one is planned (rc.4).
+                               flow.get("curve"), flow.get("apply_learned"), request)
+        # House: home or away, the holiday planner and the outdoor temperature: the one the E32 uses (its learner's
+        # input, as Today and the curve: rc7), else the one set under Energy and outdoor temperature, else the
+        # boiler's own; with the next holiday under it while one is planned (rc.4) and where to plan one.
         from .energy_input import CONF_OUTDOOR, energy_options
         outdoor = energy_options(entry).get(CONF_OUTDOOR) if entry is not None else None
-        if type(outdoor) is not str or outdoor.split(".")[0] not in ("sensor", "weather"):
-            outdoor = fields.get("outdoor_temperature") or hub.get("outdoor_temperature")
+        boiler_outdoor = fields.get("outdoor_temperature") or hub.get("outdoor_temperature")
+        from .heating_link import learned_inputs
+        used = learned_inputs(heating_hub.learned_header).get("outdoor") if heating_hub is not None else None
+        if (type(outdoor) is not str or outdoor.split(".")[0] not in ("sensor", "weather")
+                or (used == "boiler" and boiler_outdoor)):
+            outdoor = boiler_outdoor
         house = _section(_heading(t["house"], ICONS["house"]),  # one icon per concept (dashboard-spec §1)
                          _house_rows(t, house_mode, outdoor, "/config/integrations/integration/" + DOMAIN),
-                         _holiday_card(t, house_mode))
+                         _holiday_card(t, house_mode),
+                         _note(t, t["holiday_hint"], _known(house_mode)) if house_mode else None)
         house = _shown_while_one_is(house, house["cards"][1:])
         rooms_section = _section(_heading(t["rooms"], "mdi:thermostat"), *room_cards) if any(room_cards) else None
         if rooms_section is not None and today and house:
@@ -2487,7 +2721,7 @@ class RoomDashboard:
         # -- Rooms ---------------------------------------------------------------------------------
         learned_overview = hub.get("learned_overview")
         rooms = [self._room_section(t, room_id, room, heating_hub, names[room_id], ble, in_room, entry, learned_overview,
-                                    (room_contacts, room_persons))
+                                    (room_contacts, room_persons), flow.get("apply_learned"))
                  for room_id, room in e32_room_entities.items()]
         # Older HA rooms (one climate per MQTT room) and their settings.
         legacy_cards = []
@@ -2529,7 +2763,7 @@ class RoomDashboard:
                 for room_id, room in e32_room_entities.items() if room.get("warm_on_time") or room.get("overshoot")},
             names, {key: hub[key] for key in SCOREBOARD_HOUSE if key in hub}, hub.get("daily_summary"),
             hub.get("daily_missed_comfort"), gas_state.attributes.get("unit_of_measurement") if gas_state else None,
-            lead)
+            lead, gas_state is not None and gas_state.attributes.get("estimate") is False)
         if yesterday:
             learning.append(yesterday)
         learning += [section for section in (
@@ -2560,7 +2794,7 @@ class RoomDashboard:
             _heading(t["who_controls"], ICONS["boiler"]),
             self._explain_card(t, request) if request or e32_room_entities else None,
             # Short cycling is information, not a fault: the E32 deals with it by itself.
-            self._cycling_card(t, hub.get("burner_short_cycling")),
+            self._cycling_card(t, hub.get("burner_short_cycling"), request),
             # Ready to take over? Leads to the Comparison subview, which opens with the check.
             # The whole width: its state ("Waiting for more data") was cut short on a phone.
             _wide(_tile(readiness, t["readiness"], "mdi:clipboard-check-outline",
@@ -2635,14 +2869,19 @@ class RoomDashboard:
             + "\n\n<details><summary>" + t["more"] + "</summary>\n\n" + rest + " " + t["how"] + "\n\n</details>")}
 
     @staticmethod
-    def _cycling_card(t, entity_id):
-        """Short cycling as information (the E32 lengthens the burner's rest step by step), never as a fault."""
+    def _cycling_card(t, entity_id, request=None):
+        """Short cycling as information (the E32 lengthens the burner's rest step by step), never as a fault. In the
+        trial run (the heat request's mode ``shadow``) the E32 sends nothing yet: the thermostat in charge cycles it."""
         if not entity_id:
             return None
         quoted = json.dumps(entity_id)
+        info = t["cycling_info"]
+        if request:
+            info = ("{% if is_state_attr(" + json.dumps(request) + ", 'mode', 'shadow') %}" + t["cycling_info_shadow"]
+                    + "{% else %}" + info + "{% endif %}")
         return {"type": "markdown", "visibility": _known(entity_id), "content": (
             "{% if is_state(" + quoted + ", 'on') %}<ha-icon icon=\"mdi:sync\"></ha-icon> **" + t["short_cycling"]
-            + "**\n\n" + t["cycling_info"] + "{% else %}<ha-icon icon=\"mdi:check-circle-outline\"></ha-icon> "
+            + "**\n\n" + info + "{% else %}<ha-icon icon=\"mdi:check-circle-outline\"></ha-icon> "
             + t["cycling_ok"] + "{% endif %}")}
 
     @staticmethod
@@ -2655,7 +2894,7 @@ class RoomDashboard:
         return self._device_name((DOMAIN, f"{self.prefix}_e32_room_{room_id}"),
                                  label(reported) if reported else room_id)
 
-    def _room_section(self, t, room_id, room, heating_hub, name, ble, in_room, entry, learned, comfort):
+    def _room_section(self, t, room_id, room, heating_hub, name, ble, in_room, entry, learned, comfort, smart=None):
         """One E32 room: its thermostat, the last 24 hours, its sensors, windows and people, and what it learned.
 
         Every card is as wide as the section, or a tidy pair of tiles that appear together. An inactive room
@@ -2726,7 +2965,7 @@ class RoomDashboard:
             if inactive and room.get("inactive_until") else None,
             _heading(t["sensors_presence"], "mdi:window-open-variant", style="subtitle") if rows else None,
             {"type": "entities", "entities": rows} if rows else None,
-            *_learning_cards(t, room, active, learned, [name]),
+            *_learning_cards(t, room, active, learned, room_id, smart),
         ]
         if inactive and working:
             cards += [{"type": "markdown", "content": t["room_off"], "visibility": inactive},

@@ -655,16 +655,16 @@ def test_free_heat_needs_five_windows_and_a_real_rise():
 
 @pytest.mark.parametrize("language, status, figure", [
     ("en", "Weather compensation: estimated from your house for now, learning more (2 of 6 steady periods).",
-     "Weather compensation, estimated from your house: the water gets about 0.71 °C warmer for every degree colder outside."),
+     "The water gets about 0.71 °C warmer for every degree colder outside."),
     ("nl", "Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog bij (2 van 6 rustige periodes).",
-     "Weerafhankelijke regeling, geschat uit je huis: het water wordt ongeveer 0,71 °C warmer voor elke graad kouder buiten."),
+     "Het water wordt ongeveer 0,71 °C warmer voor elke graad kouder buiten."),
     ("pl", "Kompensacja pogodowa: na razie oszacowana na podstawie Twojego domu, wciąż się uczy (2 z 6 stabilnych okresów).",
-     "Kompensacja pogodowa oszacowana na podstawie Twojego domu: woda jest cieplejsza o około 0,71 °C na każdy stopień "
-     "zimniej na zewnątrz.")])
+     "Woda jest cieplejsza o około 0,71 °C na każdy stopień zimniej na zewnątrz.")])
 def test_a_curve_worked_out_from_the_house_says_so(language, status, figure):
     summary = {**SUMMARY, "flow": FLOW["flow"]}
     texts = [line["text"] for line in lo.house_overview(summary, language)]
-    assert texts[0] == status and figure in texts
+    # Weather compensation once (rc7): what it uses and how steep its line is, in one line.
+    assert texts[0] == status + " " + figure
     # "held": the boiler's own ceiling binds; the boiler sentence says that, not "Coolest water".
     assert not any("Coolest water" in text or "Koelste water" in text for text in texts)
     plain = {"state": "applied", "slope": 0.71, "slope_source": "house"}

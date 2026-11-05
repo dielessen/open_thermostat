@@ -94,3 +94,16 @@ test('Polish: the program text keeps the options flow format (English days, a de
  assert.equal(W.format(week,'pl'),'mon-fri: 06:30 20.5; 22:30 18\nsat-sun: 08:00 20.5; 23:00 18');
  assert.deepEqual(plain(W.parse(W.format(week,'pl'),500,3000)),week);
 });
+// rc7 (R3-16): the HA card's warm-up hint names Smart warm-up, as the E32 page says it. The editor takes a host's table
+// over English, so the card's Dutch is the editor's whole Dutch table but for that one sentence.
+test('the HA card names Smart warm-up in the planner hint, its Dutch table otherwise the editor\'s own',()=>{
+ const editor=table('data/html/week-editor.js','const T = {','}};\n');
+ const dutch=table(CARD,'const PLANNER_NL = {','};\n'),english=table(CARD,'const PLANNER_EN = {','};\n'),polish=table(CARD,'const PLANNER_PL = {','};\n');
+ assert.deepEqual(plain({...dutch,warmUp:editor.nl.warmUp}),plain(editor.nl));
+ assert.deepEqual(Object.keys(english),['warmUp']);
+ assert.equal(english.warmUp,'Smart warm-up is on: the room starts heating early by itself, so it is warm at the time you set.');
+ assert.equal(dutch.warmUp,'Slim opwarmen staat aan: de ruimte begint vanzelf eerder, zodat het warm is op de tijd die je instelt.');
+ assert.equal(polish.warmUp,'Inteligentne nagrzewanie jest włączone: pomieszczenie samo zaczyna grzać wcześniej, aby było ciepło o ustawionej godzinie.');
+ // R3-15: Reload asks before it drops unsaved changes, in every language.
+ for(const lang of ['en','nl','pl'])assert(cardText()[lang].reloadConfirm.trim(),lang);
+});

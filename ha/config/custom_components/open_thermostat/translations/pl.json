@@ -2364,7 +2364,7 @@
               "off": "Kompensacja pogodowa jest wyłączona; linie pokazują, czego by żądała.",
               "waiting": "E32 jeszcze nie przekazał danych kompensacji pogodowej.",
               "house": "Oszacowana na podstawie Twojego domu",
-              "asks": "E32 zadaje {flow} °C"
+              "asks": "E32 żąda {flow} °C"
             }
           },
           "design_flow_c": {

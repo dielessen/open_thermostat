@@ -342,8 +342,21 @@ def insight_lines(summary, names, lang):
             for _, text, meaning in (insight_text(item, names, lang) for item in insight_items(summary))]
 
 
-def room_names(hub):
-    return {room_id: label(room) for room_id, room in hub.rooms.items()}
+def room_names(hub, hass=None, entry_id=None):
+    """{room id: name}: the name the dashboard shows (the room device's name in Home Assistant, renamed there or
+    not; dashboard.RoomDashboard._device_name), else the E32's own; without ``hass`` and the entry the E32's."""
+    names = {room_id: label(room) for room_id, room in hub.rooms.items()}
+    from homeassistant.core import HomeAssistant
+    if not isinstance(hass, HomeAssistant) or not entry_id:
+        return names
+    from homeassistant.helpers import device_registry as dr
+    from .heating_link import room_device_identifier
+    registry = dr.async_get(hass)
+    for room_id in names:
+        device = registry.async_get_device_by_identifier(room_device_identifier(hub.prefix, room_id), entry_id)
+        if device is not None and (device.name_by_user or device.name):
+            names[room_id] = device.name_by_user or device.name
+    return names
 
 
 # -- the sensors ------------------------------------------------------------------------------------------------
@@ -388,7 +401,9 @@ class KnowledgeSensor(_InsightSensor):
         part = knowledge(self.summary)
         if part is None:
             return None
-        missing, more = missing_sentences(part, room_names(self.hub), self._lang())
+        entry = getattr(getattr(self, "platform", None), "config_entry", None)
+        missing, more = missing_sentences(part, room_names(self.hub, getattr(self, "hass", None),
+                                                           getattr(entry, "entry_id", None)), self._lang())
         return {"missing": missing, "more": more}
 
 
@@ -482,7 +497,7 @@ class InsightNotifier:
     @callback
     def sync(self, items):
         from homeassistant.components import persistent_notification
-        lang, names = language(self.hass), room_names(self.hub)
+        lang, names = language(self.hass), room_names(self.hub, self.hass, self.entry_id)
         wanted = {self.notification_id(item): item for item in items}
         for key, item in wanted.items():
             if self.dismissed.get(key) == _signature(item):

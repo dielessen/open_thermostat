@@ -298,6 +298,11 @@ async def test_the_overview_names_the_next_holiday(hass):
     assert render("en") == "Holiday from 20 Dec to 3 Jan"
     assert render("nl") == "Vakantie vanaf 20 dec t/m 3 jan"
     assert render("pl") == "Urlop od 20 gru do 3 sty"
+    # A one-day holiday (rc7, A2's leftovers): "Holiday on 20 Dec", not "from 20 Dec to 20 Dec".
+    one = (first[0], first[0] + 6 * 3600)
+    hass.states.async_set(select, "auto", {"holidays": [{"from": dt_util.utc_from_timestamp(one[0]).isoformat(),
+                                                         "until": dt_util.utc_from_timestamp(one[1]).isoformat()}]})
+    assert (render("en"), render("nl"), render("pl")) == ("Holiday on 20 Dec", "Vakantie op 20 dec", "Urlop 20 gru")
     now = dt_util.utcnow()
     hass.states.async_set(select, "holiday", {"holidays": [{"from": (now - dt_util.dt.timedelta(days=1)).isoformat(),
                                                             "until": dt_util.as_local(now + dt_util.dt.timedelta(days=2)).isoformat()}]})

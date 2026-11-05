@@ -73,7 +73,8 @@ async def test_the_overview_is_short_and_what_it_learned_is_its_own_view(hass):
     # What it learned per room is in that room's section, not in the learning view.
     living = next(s["cards"] for s in view(config, "rooms")["sections"] if s["cards"][0]["heading"] == "Woonkamer")
     lines = next(c for c in living if c["type"] == "markdown" and "mine[0].lines" in c["content"])
-    assert '"Woonkamer"' in lines["content"] and hub["learned_overview"] in lines["content"]
+    # Found by the room's ID, so a room renamed in Home Assistant keeps its lines (rc7, R1-13).
+    assert "selectattr('room_id', 'eq', \"woonkamer\")" in lines["content"] and hub["learned_overview"] in lines["content"]
     # How the learning works is with what it learned, not on the Comparison page.
     assert "learns how fast each room warms up" not in json.dumps(view(config, "comparison"))
     # Dutch.

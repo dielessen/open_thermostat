@@ -855,16 +855,25 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
 
     def _smart_warm_up(self):
         """What Smart warm-up does for the next program step (E32 rc.3) and how the last step up turned out
-        (E32 rc.4: "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier."), in the Home Assistant
+        (E32 rc.4: "Yesterday warm at 09:12 (12 min late); next time it starts a little earlier."), in the Home Assistant
         language, or None."""
         if self.hass is None:
             return None
         from .e32_flow import smart_warm_up
-        from .learned_overview import arrival_line, language, local_clock, local_day, smart_warm_up_line
+        from .learned_overview import (HELD_MODES, arrival_line, free_heat_later, language, local_clock, local_day,
+                                       smart_warm_up_line)
         plan = self.hub.warmup.get(self.room_id) if type(getattr(self.hub, "warmup", None)) is dict else None
         plan = plan if type(plan) is dict else {}
         lang, clock = language(self.hass), local_clock(self.hass)
-        line = smart_warm_up_line(plan.get("optimum_start"), smart_warm_up(self.hass, self.entry.entry_id), lang, clock)
+        # As the learned overview (rc7): nothing while away or a window holds the program, "would" in the trial run,
+        # the later start the free heat gives.
+        comfort = (self.hub.rooms.get(self.room_id) or {}).get("comfort")
+        comfort = comfort if type(comfort) is dict else {}
+        held = comfort.get("mode") in HELD_MODES or comfort.get("window") == "open"
+        trial = (self.hub.status or {}).get("mode") == "shadow"
+        later = free_heat_later((getattr(self.hub, "learned", None) or {}).get(self.room_id), plan)
+        line = None if held else smart_warm_up_line(plan.get("optimum_start"),
+                                                    smart_warm_up(self.hass, self.entry.entry_id), lang, clock, trial, later)
         arrived = arrival_line(plan.get("arrival"), lang, clock, *local_day(self.hass))
         return " ".join(item[0] for item in (line, arrived) if item) or None
 

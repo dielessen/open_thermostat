@@ -358,7 +358,9 @@ def telemetry(tl, mode="active", uptime_s=86000, heat_today_s=None):
                                            "heating_starts_per_h": 2.5, "short_cycle_h": 0,
                                            "heating_kwh": 15.8, "degree_days": 13.6}}}
     insight = {"schema": 1,
-               "knowledge": {"pct": 78, "missing": ["arrival:woonkamer", "boiler_minimum"], "more": 0},
+               # The E32 drives the boiler, so its minimum counts as known (Knowledge.h: none found means the plan's
+               # lowest works); only the morning check of the living room is still missing (rc.7).
+               "knowledge": {"pct": 88, "missing": ["arrival:woonkamer"], "more": 0},
                "house": {"ua_kw_per_k": 0.21, "kw_per_flow_k": 0.42, "slope": SLOPE, "state": "learned"},
                "boiler": {"held": 0, "rest_s": 600, "ceiling_c": 45, "absorbed_kw": 6.8, "kw_per_k": 0.42,
                           "state": "learned", "return": True},

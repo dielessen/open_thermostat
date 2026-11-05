@@ -933,9 +933,9 @@ TEXT = {
         "dhw_target_short": "Cel ciepłej wody",
         "knowledge": "Co wie E32", "your_boiler": "Twój kocioł",
         "boiler_ceiling": "Najwyższa temperatura wody: {when} Twój kocioł sam nie podnosi wody powyżej około {held} °C, "
-                          "więc blisko temperatury docelowej E32 zadaje najwyżej {asks} °C.",
+                          "więc blisko temperatury docelowej E32 żąda najwyżej {asks} °C.",
         "boiler_ceiling_off": "Najwyższa temperatura wody: {when} Twój kocioł sam nie podnosi wody powyżej około {held} "
-                              "°C; z włączonym Inteligentnym nagrzewaniem E32 zadawałby blisko temperatury docelowej "
+                              "°C; z włączonym Inteligentnym nagrzewaniem E32 żądałby blisko temperatury docelowej "
                               "najwyżej {asks} °C.",
         "band_low": "przy temperaturze zewnętrznej poniżej {high} °C",
         "band": "przy temperaturze zewnętrznej od {low} do {high} °C",
@@ -945,11 +945,11 @@ TEXT = {
         "boiler_rest_long": "Przerwa: Twój kocioł odpoczywa {rest} za każdym razem, gdy osiągnie swoją temperaturę; E32 "
                             "czeka 15 minut, zanim znów zażąda ciepła, chyba że któreś pomieszczenie jest zimne.",
         "boiler_lowest": "Najniższa temperatura wody: Twój kocioł zaczyna grzać dopiero od około {flow} °C, więc E32 "
-                         "zadaje co najmniej tyle.",
-        "boiler_lowest_plan": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jaką "
-                              "zadaje E32 ({flow} °C).",
-        "boiler_lowest_plan_plain": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jaką "
-                                    "zadaje E32.",
+                         "żąda co najmniej tyle.",
+        "boiler_lowest_plan": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jakiej "
+                              "żąda E32 ({flow} °C).",
+        "boiler_lowest_plan_plain": "Najniższa temperatura wody: Twój kocioł grzeje już przy najniższej temperaturze, jakiej "
+                                    "żąda E32.",
         "boiler_learning": "W trakcie nauki: {items}.", "learning_ceiling": "najwyższa temperatura wody",
         "learning_rest": "przerwa", "learning_and": " i ",
         "minute_one": "{n} minutę", "minute_few": "{n} minuty", "minute_other": "{n} minut",

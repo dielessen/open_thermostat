@@ -403,7 +403,7 @@ TEXT = {
         "burner_starts": "Wczoraj palnik uruchomił się {n} razy do ogrzewania.",
         "burner_often": "To często. Rzadsza, dłuższa praca oszczędza kocioł; termostat nad tym pracuje.",
         "burner_mean": "Rzadsza, dłuższa praca oszczędza kocioł i zużywa gaz wydajniej.",
-        "boiler_minimum": "Twój kocioł zaczyna grzać dopiero od wody o temperaturze około {flow} °C; termostat zadaje co najmniej tyle.",
+        "boiler_minimum": "Twój kocioł zaczyna grzać dopiero od wody o temperaturze około {flow} °C; termostat żąda co najmniej tyle.",
         "boiler_minimum_mean": "Nauczył się tego, gdy kocioł nie uruchamiał się przy chłodniejszej wodzie.",
         "house_none": "Jeszcze nic: pojawi się po pierwszych dniach ogrzewania.",
         "unavailable": "E32 jeszcze nie przekazał, czego się nauczył.",

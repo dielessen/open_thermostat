@@ -238,10 +238,10 @@ BOILER_LINES = {
            LOWEST + "Laagste watertemperatuur: je ketel begint pas te verwarmen vanaf ongeveer 34 °C, dus vraagt de E32 "
            "minstens zoveel."],
     "pl": [CEILING + "Najwyższa temperatura wody: przy temperaturze zewnętrznej od 5 do 10 °C Twój kocioł sam nie "
-           "podnosi wody powyżej około 47 °C, więc blisko temperatury docelowej E32 zadaje najwyżej 45 °C.",
+           "podnosi wody powyżej około 47 °C, więc blisko temperatury docelowej E32 żąda najwyżej 45 °C.",
            REST + "Przerwa: Twój kocioł odpoczywa 10 minut za każdym razem, gdy osiągnie swoją temperaturę; E32 czeka "
            "tyle samo, zanim znów zażąda ciepła, chyba że któreś pomieszczenie jest zimne.",
-           LOWEST + "Najniższa temperatura wody: Twój kocioł zaczyna grzać dopiero od około 34 °C, więc E32 zadaje co "
+           LOWEST + "Najniższa temperatura wody: Twój kocioł zaczyna grzać dopiero od około 34 °C, więc E32 żąda co "
            "najmniej tyle."]}
 
 

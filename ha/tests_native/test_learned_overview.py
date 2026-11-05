@@ -232,7 +232,7 @@ BOILER_MINIMUM = {
            "It learned this when the boiler did not start for cooler water."),
     "nl": ("Je ketel begint pas te verwarmen vanaf water van ongeveer 40 °C; de thermostaat vraagt minstens zoveel.",
            "Dat leerde hij toen de ketel voor koeler water niet aansloeg."),
-    "pl": ("Twój kocioł zaczyna grzać dopiero od wody o temperaturze około 40 °C; termostat zadaje co najmniej tyle.",
+    "pl": ("Twój kocioł zaczyna grzać dopiero od wody o temperaturze około 40 °C; termostat żąda co najmniej tyle.",
            "Nauczył się tego, gdy kocioł nie uruchamiał się przy chłodniejszej wodzie."),
 }
 

@@ -148,14 +148,14 @@ TEXT = {
         "missing.boiler_response": "Wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "missing.house": "Wciąż oblicza, jak szybko Twój dom traci ciepło.",
         "boiler.learned_both": "Twój kocioł utrzymuje około {flow} °C i odpoczywa {rest}; blisko temperatury docelowej E32 "
-                               "zadaje najwyżej {ceiling} °C.",
-        "boiler.learned_ceiling": "Twój kocioł utrzymuje około {flow} °C; blisko temperatury docelowej E32 zadaje najwyżej "
+                               "żąda najwyżej {ceiling} °C.",
+        "boiler.learned_ceiling": "Twój kocioł utrzymuje około {flow} °C; blisko temperatury docelowej E32 żąda najwyżej "
                                   "{ceiling} °C.",
         "boiler.learned_held_rest": "Twój kocioł utrzymuje około {flow} °C i odpoczywa {rest}.",
         "boiler.learned_held": "Twój kocioł utrzymuje około {flow} °C.",
         "boiler.learned_rest": "Twój kocioł odpoczywa {rest} za każdym razem, gdy osiągnie swoją temperaturę.",
         "boiler.learned": "E32 nauczył się, jak Twój kocioł utrzymuje swoją temperaturę.",
-        "boiler.ceiling_off": "Z włączonym Inteligentnym nagrzewaniem E32 zadawałby blisko temperatury docelowej "
+        "boiler.ceiling_off": "Z włączonym Inteligentnym nagrzewaniem E32 żądałby blisko temperatury docelowej "
                               "najwyżej {ceiling} °C.",
         "boiler.collecting": "E32 wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "boiler.collecting_output": "Twój kocioł jeszcze sam nie utrzymał temperatury wody; każdy stopień, o który woda "

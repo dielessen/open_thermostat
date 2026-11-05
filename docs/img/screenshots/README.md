@@ -18,6 +18,24 @@ Images used on the GitHub project page and on the front page of the HACS reposit
     yesterday in figures and missed comfort per day.
   - `ha-dashboard-phone-dark-rc5.png`: the Overview at phone width (390 px, 2x) in the dark
     theme, full length.
+- **E32 pages rc.5 (5 November 2026):** the E32 web interface of `release-1.0` (004dadc1, E32
+  1.0.0-rc.5), rendered by `tools/dev/e32-shots` in headless Chromium from one fictitious demo
+  house (a living room with floor heating and a tado-style thermostat, two radiator rooms off, a
+  Nefit EcomLine-type boiler, knowledge 78 %, a learned curve): mocked HTTP responses for the E32
+  pages and a synthetic `hass` object for the card. No device, broker or Home Assistant instance
+  was contacted; no data from a real installation. Saved as 256-colour PNGs.
+  - `e32-overview-rc5.png`: Overview with the rooms and their last 24 hours, the boiler and its
+    history, cropped above How this works; `e32-overview-phone-dark-rc5.png` shows the top at
+    phone width (390 px, 2x) in the dark theme, cropped after the first room.
+  - `e32-rooms-rc5.png`: Rooms page with editing unlocked and the living room's week program in
+    the visual planner, cropped after the week preview.
+  - `e32-boiler-rc5.png`: Boiler page, the Now panel with current values and hot water today.
+  - `e32-home-learned-rc5.png`: Home page: the water temperature chart (standard and learned line,
+    now) and "What the thermostat has learned" with what the E32 knows (78 %), what it still
+    learns, yesterday compared with usual, the room's free heat and the house.
+  - `ha-week-card-rc5.png`: the Home Assistant week planner card (`e32-week-card.js` with
+    `week-editor.js`), rooms as tabs and the Comfort, Eco and Night levels, rendered outside Home
+    Assistant with only its default light card style standing in for `ha-card`.
 - **1.0 rc.2 (2 November 2026):** the interface of `release-1.0` (92a9d03, rc.2 in
   preparation), rendered locally in headless Chromium with fictitious demonstration data:
   mocked HTTP responses for the E32 pages, a synthetic `hass` object for the Home Assistant

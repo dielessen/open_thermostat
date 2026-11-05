@@ -145,28 +145,28 @@ temperature, what stood out and yesterday in figures.
 
 The week planner card in Home Assistant:
 
-![The week planner card in Home Assistant](docs/img/screenshots/ha-week-card-rc2.png)
+![The week planner card in Home Assistant](docs/img/screenshots/ha-week-card-rc5.png)
 
-The E32's own pages: what the thermostat has learned, per room:
+The E32's own pages: the water temperature curve and what the E32 has learned about your house:
 
-![What the thermostat has learned, per room](docs/img/screenshots/e32-home-learned-rc2.png)
+![The water temperature curve and what the E32 knows and has learned](docs/img/screenshots/e32-home-learned-rc5.png)
 
 The E32 Overview with the rooms, their last 24 hours and the boiler:
 
-![The E32 Overview page with rooms, their last 24 hours and the boiler](docs/img/screenshots/e32-overview-rc2.png)
+![The E32 Overview page with rooms, their last 24 hours and the boiler](docs/img/screenshots/e32-overview-rc5.png)
 
 A room with its week program on the E32:
 
-![The E32 Rooms page with a room's week program](docs/img/screenshots/e32-rooms-rc2.png)
+![The E32 Rooms page with a room's week program](docs/img/screenshots/e32-rooms-rc5.png)
 
 The E32 boiler page:
 
-![The E32 Boiler page with current values and hot water today](docs/img/screenshots/e32-boiler-rc2.png)
+![The E32 Boiler page with current values and hot water today](docs/img/screenshots/e32-boiler-rc5.png)
 
 On a phone, in the dark theme: the dashboard and the E32 Overview.
 
 <img src="docs/img/screenshots/ha-dashboard-phone-dark-rc5.png" alt="The dashboard Overview on a phone in the dark theme" width="320">
-<img src="docs/img/screenshots/e32-overview-phone-dark-rc2.png" alt="The E32 Overview on a phone in the dark theme" width="320">
+<img src="docs/img/screenshots/e32-overview-phone-dark-rc5.png" alt="The E32 Overview on a phone in the dark theme" width="320">
 
 </details>
 

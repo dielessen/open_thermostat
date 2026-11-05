@@ -190,6 +190,66 @@
       "bytes": 72561,
       "sha256": "0698248370484be118aff74cd7b933996cda430d7c0ce942206c985807ba3b5e",
       "scope": "Generated Home Assistant dashboard of HA 1.0.0rc6 (release-1.0 e10bdee1) in a real Home Assistant Core 2026.10.4 started by tools/dev/ha-demo with a fake E32 and fictitious demonstration data in an isolated namespace; no real E32, broker or Home Assistant instance; demo user, no private dashboards; the Overview at 390 px phone width at 2x, dark theme, full length"
+    },
+    {
+      "file": "e32-overview-rc5.png",
+      "version": "E32 1.0.0-rc.5 (release-1.0 004dadc1)",
+      "date": "2026-11-05",
+      "width": 1280,
+      "height": 2274,
+      "bytes": 84062,
+      "sha256": "7ece0a1d1d2497ec4562d032e9bfa0f40ff4db66caf4eb941ee3077eb758228e",
+      "scope": "E32 web interface (data/html) rendered locally in headless Chromium by tools/dev/e32-shots with fictitious demonstration data (mocked HTTP responses); not a live device; cropped above How this works"
+    },
+    {
+      "file": "e32-rooms-rc5.png",
+      "version": "E32 1.0.0-rc.5 (release-1.0 004dadc1)",
+      "date": "2026-11-05",
+      "width": 1280,
+      "height": 2427,
+      "bytes": 113777,
+      "sha256": "39b9af4b4ee96ef47a30c09bbb6691279bf8acc1a49d8cd1b44ea53658887a53",
+      "scope": "E32 web interface (data/html) rendered locally in headless Chromium by tools/dev/e32-shots with fictitious demonstration data (mocked HTTP responses); not a live device; editing unlocked, whole page"
+    },
+    {
+      "file": "e32-boiler-rc5.png",
+      "version": "E32 1.0.0-rc.5 (release-1.0 004dadc1)",
+      "date": "2026-11-05",
+      "width": 1280,
+      "height": 903,
+      "bytes": 43008,
+      "sha256": "d6caa4016ae5cb2769a50ebedc213bd250856f131c1f72ab861e2ac5ad7236cb",
+      "scope": "E32 web interface (data/html) rendered locally in headless Chromium by tools/dev/e32-shots with fictitious demonstration data (mocked HTTP responses); not a live device; cropped to the Now panel"
+    },
+    {
+      "file": "e32-home-learned-rc5.png",
+      "version": "E32 1.0.0-rc.5 (release-1.0 004dadc1)",
+      "date": "2026-11-05",
+      "width": 1280,
+      "height": 2522,
+      "bytes": 117751,
+      "sha256": "6876f494e57c38dfe375f747f0faad74e4cf460b3a9ccf9ed5961ec96c09c9ce",
+      "scope": "E32 web interface (data/html) rendered locally in headless Chromium by tools/dev/e32-shots with fictitious demonstration data (mocked HTTP responses); not a live device; cropped to the What the E32 knows and learned panel"
+    },
+    {
+      "file": "e32-overview-phone-dark-rc5.png",
+      "version": "E32 1.0.0-rc.5 (release-1.0 004dadc1)",
+      "date": "2026-11-05",
+      "width": 780,
+      "height": 2428,
+      "bytes": 67038,
+      "sha256": "b990cd2c2488924015a2164da1fb955057ecd4305a07fbc74e12b859e59a0077",
+      "scope": "E32 web interface (data/html) rendered locally in headless Chromium by tools/dev/e32-shots with fictitious demonstration data (mocked HTTP responses); not a live device; 390 px phone width at 2x, dark theme, cropped after the first room"
+    },
+    {
+      "file": "ha-week-card-rc5.png",
+      "version": "E32 1.0.0-rc.5 (release-1.0 004dadc1)",
+      "date": "2026-11-05",
+      "width": 1000,
+      "height": 1234,
+      "bytes": 43250,
+      "sha256": "7834af5d58b2be08742d910bd6e683c195f52cbf425376982ffa7ca6b6c9bd10",
+      "scope": "Home Assistant week planner card (e32-week-card.js and week-editor.js) with a synthetic hass object; ha-card stand-in with the default light card style; no Home Assistant instance; rendered in headless Chromium with fictitious demonstration data; not a live capture"
     }
   ],
   "privacy_review": "Product panels only; no tokens, server addresses, user profile/sidebar or unrelated dashboards. Screenshots visually inspected before publication.",

@@ -4012,7 +4012,7 @@
     },
     "valve_single_source": {
       "title": "{room} ma tylko jedno źródło temperatury",
-      "description": "E32 steruje zaworami w pomieszczeniu {room}, ale pomieszczenie ma tylko jedno źródło temperatury. Gdy ono przestanie działać, E32 po 30 minutach przestaje żądać ciepła dla tego pomieszczenia zamiast grzać na ślepo. Dodaj drugie źródło, np. osobny czujnik Bluetooth, w ustawieniach pomieszczenia."
+      "description": "E32 steruje zaworami w pomieszczeniu {room}, które ma tylko jedno źródło temperatury. Gdy ono przestanie działać, E32 po 30 minutach przestaje żądać ciepła dla tego pomieszczenia zamiast grzać na ślepo. Dodaj drugie źródło, np. osobny czujnik Bluetooth, w ustawieniach pomieszczenia."
     },
     "heating_problem": {
       "title": "Ogrzewanie wymaga uwagi",

@@ -6,6 +6,7 @@ const TEXT = {
  en: {title: 'Week program', loading: 'Loading…', reading: 'Reading the week programs from the E32…', intro: 'The E32 follows this program on its own, also when Home Assistant is offline.',
   follows: 'This room follows {entity} while Home Assistant gives a target temperature; the week program applies when it gives none.',
   save: 'Save to E32', saving: 'Saving…', discard: 'Discard changes', remove: 'Remove week program', reload: 'Reload', unsaved: 'Unsaved changes',
+  reloadConfirm: 'Reload and lose the unsaved changes?',
   waiting: 'Waiting for the E32…', retrying: 'Trying again…',
   outdated: 'OpenThermostat was updated. Reload the page (Ctrl+F5) to use the new version of this card.',
   saved: 'Saved on the E32.', removedNote: 'Without a week program the room keeps its fixed temperature of {value}.', rooms: 'Rooms',
@@ -28,6 +29,7 @@ const TEXT = {
  nl: {title: 'Weekprogramma', loading: 'Laden…', reading: 'Weekprogramma’s lezen van de E32…', intro: 'De E32 volgt dit programma zelf, ook als Home Assistant offline is.',
   follows: 'Deze ruimte volgt {entity} zolang Home Assistant een gewenste temperatuur geeft; het weekprogramma geldt als die er niet is.',
   save: 'Opslaan op E32', saving: 'Opslaan…', discard: 'Wijzigingen weggooien', remove: 'Weekprogramma verwijderen', reload: 'Opnieuw laden', unsaved: 'Niet opgeslagen wijzigingen',
+  reloadConfirm: 'Opnieuw laden en de niet opgeslagen wijzigingen weggooien?',
   waiting: 'Wachten op de E32…', retrying: 'Opnieuw proberen…',
   outdated: 'OpenThermostat is bijgewerkt. Laad de pagina opnieuw (Ctrl+F5) om de nieuwe versie van deze kaart te gebruiken.',
   saved: 'Opgeslagen op de E32.', removedNote: 'Zonder weekprogramma houdt de ruimte de vaste temperatuur van {value} aan.', rooms: 'Ruimtes',
@@ -50,6 +52,7 @@ const TEXT = {
  pl: {title: 'Program tygodniowy', loading: 'Ładowanie…', reading: 'Odczyt programów tygodniowych z E32…', intro: 'E32 sam realizuje ten program, także gdy Home Assistant jest offline.',
   follows: 'To pomieszczenie stosuje {entity}, gdy Home Assistant podaje temperaturę docelową; gdy jej nie podaje, obowiązuje program tygodniowy.',
   save: 'Zapisz w E32', saving: 'Zapisywanie…', discard: 'Odrzuć zmiany', remove: 'Usuń program tygodniowy', reload: 'Wczytaj ponownie', unsaved: 'Niezapisane zmiany',
+  reloadConfirm: 'Wczytać ponownie i odrzucić niezapisane zmiany?',
   waiting: 'Czekanie na E32…', retrying: 'Ponowna próba…',
   outdated: 'OpenThermostat został zaktualizowany. Wczytaj stronę ponownie (Ctrl+F5), aby użyć nowej wersji tej karty.',
   saved: 'Zapisano w E32.', removedNote: 'Bez programu tygodniowego pomieszczenie utrzymuje stałą temperaturę {value}.', rooms: 'Pomieszczenia',
@@ -85,8 +88,29 @@ const PLANNER_PL = {days: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Pi�
   advanced: 'Zaawansowane: edytuj jako tekst', textHelp: 'Jedna linia na grupę dni, na przykład: mon-fri: 06:30 20.5; 22:30 18', apply: 'Zastosuj tekst',
   bad: 'Nie można odczytać linii {line}: {text}', outside: 'Linia {line}: temperatury muszą mieścić się między {min} a {max}.', many: 'Linia {line}: najwyżej 6 punktów przełączenia na dzień.',
   textApplied: 'Zastosowano tekst.', inF: 'Temperatury w °F.',
-  warmUp: 'Termostat sam zaczyna grzać wcześniej, aby było ciepło o ustawionej godzinie.',
+  warmUp: 'Inteligentne nagrzewanie jest włączone: pomieszczenie samo zaczyna grzać wcześniej, aby było ciepło o ustawionej godzinie.',
   warmUpOff: 'Inteligentne nagrzewanie jest wyłączone: grzanie zaczyna się dopiero o ustawionej godzinie.'};
+// The planner's Dutch (week-editor.js T.nl, verbatim but for the warm-up hint: the editor takes a host's table over
+// English, so a table it gets must be whole; test/week-editor.test.cjs keeps it equal to the editor's).
+const PLANNER_NL = {days: ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'], short: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'],
+  text: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'], names: {comfort: 'Comfort', eco: 'Eco', night: 'Nacht'}, levels: 'Temperatuurniveaus',
+  warmer: '{level} warmer', cooler: '{level} kouder', custom: 'Eigen temperatuur', template: 'Begin met een sjabloon', choose: 'Kies…',
+  templates: {work: 'Werkdagen en weekend', home: 'Thuiswerken', daily: 'Elke dag hetzelfde'}, undo: 'Ongedaan maken',
+  applied: '{name} toegepast. Ongedaan maken zet het vorige programma terug.', hint: 'Tik op een blok om het te wijzigen, sleep een scheidingslijn om een tijd te verschuiven, gebruik Kopieer… om een dag te kopiëren.',
+  empty: 'Nog geen programma: kies een sjabloon om te beginnen.', copyDay: '{day} kopiëren', copyTo: '{day} kopiëren naar', workdays: 'Werkdagen', weekend: 'Weekend', all: 'Alle dagen',
+  copy: 'Kopiëren', cancel: 'Annuleren', pickDay: 'Kies minstens één dag.', copied: '{day} gekopieerd.', block: '{day} {from}–{to}', inherited: 'loopt door van de dag ervoor',
+  level: 'Niveau', starts: 'Begint om', earlier: '15 minuten eerder', later: '15 minuten later', split: 'Blok splitsen', remove: 'Schakeltijd verwijderen',
+  prev: 'Vorig blok', next: 'Volgend blok', close: 'Klaar', full: 'Maximaal 6 schakeltijden per dag.', short15: 'Dit blok is te kort om te splitsen.',
+  warmerNight: 'Nacht is nu warmer dan Comfort. Dat mag; controleer of het is wat je wilt.', copyShort: 'Kopieer…',
+  blocks: 'Blokken op {day}', limits: 'Houd temperaturen tussen {min} en {max}.', preview: 'Voorbeeld van de week',
+  advanced: 'Geavanceerd: als tekst bewerken', textHelp: 'Eén regel per groep dagen, bijvoorbeeld: ma-vr: 06:30 20,5; 22:30 18', apply: 'Tekst toepassen',
+  bad: 'Regel {line} is niet te lezen: {text}', outside: 'Regel {line}: temperaturen moeten tussen {min} en {max} liggen.', many: 'Regel {line}: maximaal 6 schakeltijden per dag.',
+  textApplied: 'Tekst toegepast.', inF: 'Temperaturen in °F.',
+  warmUp: 'Slim opwarmen staat aan: de ruimte begint vanzelf eerder, zodat het warm is op de tijd die je instelt.',
+  warmUpOff: 'Slim opwarmen staat uit: verwarmen begint pas op de tijd die je instelt.'};
+// English: the editor's own, but for the warm-up hint, which names Smart warm-up as the E32 page does.
+const PLANNER_EN = {warmUp: 'Smart warm-up is on: the room starts heating early by itself, so it is warm at the time you set.'};
+const PLANNER = {en: PLANNER_EN, nl: PLANNER_NL, pl: PLANNER_PL};
 const STYLE = `:host{display:block}ha-card{display:block;padding:16px;max-width:1100px;margin:auto;color:var(--primary-text-color)}h2{margin:0 0 4px;font-size:1.3rem}
 p{margin:0 0 12px;line-height:1.45}.muted{color:var(--secondary-text-color);font-size:.9rem}.tabs,.actions,.more{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.actions{position:sticky;bottom:0;z-index:3;align-items:center;padding:8px 0;background:var(--card-background-color,var(--ha-card-background,#fff))}
 button{font:inherit;font-weight:600;color:inherit;background:transparent;border:1px solid var(--divider-color,#ccd);border-radius:10px;min-height:44px;min-width:44px;padding:6px 14px;cursor:pointer}
@@ -172,12 +196,22 @@ class OpenThermostatE32Week extends HTMLElement {
  }
  get room() { return this._rooms?.find(r => r.id === this._room); }
  // Changed: another program, or (E32 with stored levels) other levels or marks, also without a program change.
- get dirty() {
-  const r = this.room, st = r && this._levels[r.id];
+ changed(r) {
+  const st = r && this._levels[r.id];
   if (!r) return false;
-  if (this._room in this._drafts && !same(program(this._drafts[this._room]), r.schedule)) return true;
+  if (r.id in this._drafts && !same(program(this._drafts[r.id]), r.schedule)) return true;
   const base = this._base[r.id];
   return !!st && !!base && this._levelsSupported && (!same(st.levels, base.levels) || st.schedule_levels !== base.schedule_levels);
+ }
+ get dirty() { return this.changed(this.room); }
+ // Any room with unsaved changes (its tab says so; Reload asks before it drops them).
+ get anyDirty() { return (this._rooms || []).some(r => this.changed(r)); }
+ _tabs() {
+  for (const tab of this.shadowRoot.querySelectorAll('[data-tab]')) {
+   const r = this._rooms?.find(x => x.id === tab.dataset.tab), changed = this.changed(r);
+   tab.textContent = r ? r.name + (changed ? ' •' : '') : tab.textContent;
+   if (changed) tab.setAttribute('aria-label', r.name + ', ' + this.t.unsaved); else tab.removeAttribute('aria-label');
+  }
  }
  async save() {
   const r = this.room;
@@ -206,6 +240,7 @@ class OpenThermostatE32Week extends HTMLElement {
   if (discard) discard.disabled = !dirty || this._busy;
   const remove = root.querySelector('[data-remove]');
   if (remove && r) remove.disabled = this._busy || !program(this._room in this._drafts ? this._drafts[this._room] : r.schedule);
+  this._tabs();
  }
  render() {
   const t = this.t, root = this.shadowRoot, card = document.createElement('ha-card'), el = (tag, text, attrs = {}) => {
@@ -229,7 +264,7 @@ class OpenThermostatE32Week extends HTMLElement {
   if (this._rooms.length > 1) {
    const tabs = el('div', null, {class: 'tabs', role: 'tablist', 'aria-label': t.rooms});
    for (const r of this._rooms) {
-    const tab = el('button', r.name, {type: 'button', role: 'tab', 'aria-selected': String(r.id === this._room)});
+    const tab = el('button', r.name, {type: 'button', role: 'tab', 'aria-selected': String(r.id === this._room), 'data-tab': r.id});
     tab.onclick = () => { this._room = r.id; this._message = ''; this.render(); };
     tabs.append(tab);
    }
@@ -243,7 +278,7 @@ class OpenThermostatE32Week extends HTMLElement {
   const week = this._room in this._drafts ? this._drafts[this._room] : r.schedule, st = this._levels[r.id];
   // The room's stored levels (or, before its first program, the former house settings); none: inferred.
   this._planner = window.OTWeekEditor.mount(host, {week: week || Array.from({length: 7}, () => []), min: r.minimum_centi_c, max: r.maximum_centi_c,
-   lang: language(this._hass), text: language(this._hass) === 'pl' ? PLANNER_PL : undefined, fahrenheit: fahrenheit(this._hass), theme: this._hass?.themes?.darkMode ? 'dark' : 'light',
+   lang: language(this._hass), text: PLANNER[language(this._hass)], fahrenheit: fahrenheit(this._hass), theme: this._hass?.themes?.darkMode ? 'dark' : 'light',
    levels: st ? st.levels : r.levels, scheduleLevels: st ? st.schedule_levels : r.schedule_levels, smartWarmUp: this._smartWarmUp !== false,
    onChange: (w, state) => { this._drafts[r.id] = w; if (state) this._levels[r.id] = state; this._message = ''; this.refresh(); },
    onLevels: () => { this._levels[r.id] = this._planner.state(); this._message = ''; this.refresh(); }});
@@ -255,7 +290,11 @@ class OpenThermostatE32Week extends HTMLElement {
   save.onclick = () => this.save();
   discard.onclick = () => { delete this._drafts[r.id]; delete this._levels[r.id]; delete this._base[r.id]; this._message = ''; this.render(); };
   remove.onclick = () => { this._drafts[r.id] = Array.from({length: 7}, () => []); this._message = ''; this.render(); };
-  reload.onclick = () => { this._waitSince = null; this.load(true); };
+  reload.onclick = () => {
+   // Reloading reads the E32's programs again and drops every draft: never without asking.
+   if (this.anyDirty && !window.confirm(t.reloadConfirm)) return;
+   this._waitSince = null; this.load(true);
+  };
   // Only saving and discarding stay in view at the bottom (four wrapped buttons covered a quarter of a phone
   // screen); removing the program and reading the E32 again are below it, away from Save.
   actions.append(save, discard, el('span', null, {class: 'dirty', role: 'status'}));

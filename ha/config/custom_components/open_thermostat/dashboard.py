@@ -227,11 +227,12 @@ TEXT = {
                            "them in here. The Boiler tab and the E32's Home page estimate the gas per day from "
                            "the burner power and the boiler's power.",
         "older_rooms": "Rooms (older setup)",
-        "legacy_boiler_note": "What the boiler reports over its bus (EMS), not proof of an E32 command. Unknown or old values are not zero.",
+        "legacy_boiler_note": "What the boiler reports over its bus (EMS), not proof of an E32 command. Unknown or old values are not zero. "
+                              "Burner power is a percentage of the boiler's maximum, not kW.",
         "flow_graph": "Water temperatures: target, to heating and back", "flow_selection": "Target (boiler)",
         "measured_flow": "To heating (flow)", "measured_return": "Back (return)",
         "current_flow": "To heating, as the boiler reports it",
-        "modulation_graph": "Burner power (%) — not kW", "modulation_series": "Burner power (%)",
+        "modulation_graph": "Burner power (%)", "modulation_series": "Burner power (%)",
         "dhw_graph": "Hot water temperatures", "dhw_selected": "Reported selected hot water",
         "dhw_measured": "Measured hot water", "dhw_target": "Reported hot water target",
         "states_graph": "Reported heating / hot water / flame / pump", "state_heating": "Reported heating",
@@ -273,7 +274,7 @@ TEXT = {
         "day_gas": "Gas: heating {heating}, hot water {hot_water}.",
         "day_room": "{room}: asked for heat {h} h; warm after {ttt} min on average; missed comfort {missed} min.",
         "day_room_no_step": "{room}: asked for heat {h} h; missed comfort {missed} min.",
-        "day_outdoor": "Outdoor {low} to {high} °C.",
+        "day_outdoor": "Outdoor {low} to {high} °C.", "day_outdoor_one": "Outdoor {low} °C.",
         "day_partial": "Partial day: the E32 was not heard all day, so the figures are incomplete.",
         "scoreboard_on_time": "warm on time",
         "scoreboard_late": "warm {m} min late",
@@ -349,6 +350,9 @@ TEXT = {
         "today": "Today", "home_or_away": "Home or away", "holiday": "Holiday", "plan": "Plan",
         "when_today": "Today", "when_tomorrow": "Tomorrow", "when_date": "On {date}",
         "warm_up_at": "{when} {room} warms up from **{start}** to be {target} °C at **{time}**.",
+        "warm_up_estimate": "{when} {room} warms up from **{start}** (estimate) to be {target} °C at **{time}**.",
+        "warm_up_ready": "{when} {room} is warm enough for {target} °C at **{time}**; if it cools down before then, the "
+                         "warm-up starts earlier.",
         "warm_up_now": "{room} is warming up now to be {target} °C at **{time}**.",
         "warm_up_from": "{when} {room} starts warming up at **{start}**.",
         "warm_up_off": "{when} {room} starts heating at **{time}** for {target} °C (Smart warm-up is off).",
@@ -414,11 +418,11 @@ TEXT = {
                            "gas per dag uit het brandervermogen en het vermogen van de ketel.",
         "older_rooms": "Ruimtes (oudere opzet)",
         "legacy_boiler_note": "Wat de ketel via zijn bus (EMS) meldt, geen bewijs van een E32-opdracht. Onbekende of "
-                              "oude waarden zijn geen nul.",
+                              "oude waarden zijn geen nul. Brandervermogen is een percentage van het maximum van de ketel, geen kW.",
         "flow_graph": "Watertemperaturen: doel, naar verwarming en terug", "flow_selection": "Doel (ketel)",
         "measured_flow": "Naar verwarming (aanvoer)", "measured_return": "Terug (retour)",
         "current_flow": "Naar verwarming, zoals de ketel meldt",
-        "modulation_graph": "Brandervermogen (%) — geen kW", "modulation_series": "Brandervermogen (%)",
+        "modulation_graph": "Brandervermogen (%)", "modulation_series": "Brandervermogen (%)",
         "dhw_graph": "Warmwatertemperaturen", "dhw_selected": "Gemeld gekozen warm water",
         "dhw_measured": "Gemeten warm water", "dhw_target": "Gemeld warmwaterdoel",
         "states_graph": "Gemeld verwarmen / warm water / vlam / pomp", "state_heating": "Gemeld verwarmen",
@@ -461,7 +465,7 @@ TEXT = {
         "day_gas": "Gas: verwarmen {heating}, warm water {hot_water}.",
         "day_room": "{room}: vroeg {h} uur warmte; gemiddeld na {ttt} min op temperatuur; gemiste comfort {missed} min.",
         "day_room_no_step": "{room}: vroeg {h} uur warmte; gemiste comfort {missed} min.",
-        "day_outdoor": "Buiten {low} tot {high} °C.",
+        "day_outdoor": "Buiten {low} tot {high} °C.", "day_outdoor_one": "Buiten {low} °C.",
         "day_partial": "Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig.",
         "scoreboard_on_time": "op tijd warm",
         "scoreboard_late": "{m} min te laat warm",
@@ -533,6 +537,9 @@ TEXT = {
         "today": "Vandaag", "home_or_away": "Thuis of weg", "holiday": "Vakantie", "plan": "Plannen",
         "when_today": "Vandaag", "when_tomorrow": "Morgen", "when_date": "Op {date}",
         "warm_up_at": "{when} warmt {room} vanaf **{start}** op om **{time}** op {target} °C te zijn.",
+        "warm_up_estimate": "{when} warmt {room} vanaf **{start}** (schatting) op om **{time}** op {target} °C te zijn.",
+        "warm_up_ready": "{when} is {room} warm genoeg voor {target} °C om **{time}**; koelt de ruimte voor die tijd "
+                         "af, dan begint het opwarmen eerder.",
         "warm_up_now": "{room} warmt nu op om **{time}** op {target} °C te zijn.",
         "warm_up_from": "{when} begint {room} om **{start}** met opwarmen.",
         "warm_up_off": "{when} begint {room} om **{time}** met verwarmen naar {target} °C (Slim opwarmen staat uit).",
@@ -599,11 +606,11 @@ TEXT = {
                            "z mocy palnika i mocy kotła.",
         "older_rooms": "Pomieszczenia (starsza konfiguracja)",
         "legacy_boiler_note": "To, co kocioł zgłasza przez swoją magistralę (EMS), a nie dowód polecenia E32. "
-                              "Nieznane lub stare wartości to nie zero.",
+                              "Nieznane lub stare wartości to nie zero. Moc palnika to procent maksimum kotła, a nie kW.",
         "flow_graph": "Temperatury wody: docelowa, do ogrzewania i powrotna", "flow_selection": "Docelowa (kocioł)",
         "measured_flow": "Do ogrzewania (zasilanie)", "measured_return": "Powrotna (powrót)",
         "current_flow": "Do ogrzewania, według kotła",
-        "modulation_graph": "Moc palnika (%) — nie kW", "modulation_series": "Moc palnika (%)",
+        "modulation_graph": "Moc palnika (%)", "modulation_series": "Moc palnika (%)",
         "dhw_graph": "Temperatury ciepłej wody", "dhw_selected": "Zgłoszona wybrana ciepła woda",
         "dhw_measured": "Zmierzona ciepła woda", "dhw_target": "Zgłoszona docelowa ciepła woda",
         "states_graph": "Zgłoszone ogrzewanie / ciepła woda / płomień / pompa", "state_heating": "Zgłoszone ogrzewanie",
@@ -647,7 +654,7 @@ TEXT = {
         "day_gas": "Gaz: ogrzewanie {heating}, ciepła woda {hot_water}.",
         "day_room": "{room}: żądanie ciepła przez {h} godz.; ciepło średnio po {ttt} min; utracony komfort {missed} min.",
         "day_room_no_step": "{room}: żądanie ciepła przez {h} godz.; utracony komfort {missed} min.",
-        "day_outdoor": "Na zewnątrz od {low} do {high} °C.",
+        "day_outdoor": "Na zewnątrz od {low} do {high} °C.", "day_outdoor_one": "Na zewnątrz {low} °C.",
         "day_partial": "Niepełny dzień: E32 nie był słyszalny przez cały dzień, więc dane są niekompletne.",
         "scoreboard_on_time": "ciepło na czas",
         "scoreboard_late": "ciepło {m} min za późno",
@@ -721,6 +728,9 @@ TEXT = {
         "today": "Dziś", "home_or_away": "W domu czy poza domem", "holiday": "Urlop", "plan": "Zaplanuj",
         "when_today": "dziś", "when_tomorrow": "jutro", "when_date": "{date}",
         "warm_up_at": "{room}: {when} nagrzewanie od **{start}**, aby o **{time}** było {target} °C.",
+        "warm_up_estimate": "{room}: {when} nagrzewanie od **{start}** (szacunek), aby o **{time}** było {target} °C.",
+        "warm_up_ready": "{room}: {when} jest dość ciepło na {target} °C o **{time}**; jeśli pomieszczenie wcześniej "
+                         "się wychłodzi, nagrzewanie zacznie się wcześniej.",
         "warm_up_now": "{room}: nagrzewanie trwa, aby o **{time}** było {target} °C.",
         "warm_up_from": "{room}: {when} nagrzewanie od **{start}**.",
         "warm_up_off": "{room}: {when} grzanie od **{time}** do {target} °C (Inteligentne nagrzewanie wyłączone).",
@@ -1127,7 +1137,10 @@ def _summary_lines(t, summary, gas_unit, scoreboard_gas=None):
         + fill(t["day_gas"], heating=number("d.gas.heating") + " ~ '" + unit + "'",
                hot_water=number("d.gas.hot_water") + " ~ '" + unit + "'")
         + "{% endif %}{% if d.outdoor %} "
-        + fill(t["day_outdoor"], low=number("d.outdoor.min"), high=number("d.outdoor.max"))
+        # One outdoor temperature all day (a sensor that did not change): not "Outdoor 5 to 5 °C".
+        + "{% if d.outdoor.min == d.outdoor.max %}" + fill(t["day_outdoor_one"], low=number("d.outdoor.min"))
+        + "{% else %}" + fill(t["day_outdoor"], low=number("d.outdoor.min"), high=number("d.outdoor.max"))
+        + "{% endif %}"
         + "{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}"
         # Whole minutes ("25 min", not "25.0 min": the summary keeps the median as a float).
         + fill(t["day_room"], room="r.name", h=number("r.heat_hours"), ttt="r.time_to_target_minutes | round | int",
@@ -1394,9 +1407,12 @@ def _warm_up_line(t, name, start, state=None, warm=None, smart=None):
     early.").
 
     From the room's "Heating starts" sensor (heating_link.RoomHeatingStartSensor: its state the start the E32 plans,
-    its attributes the program step it plans for, switch_at and target_c, and start_now) and its "Warm on time"
-    (scoreboard.py: yesterday, minutes after the switch time; negative: early). With Smart warm-up switched off the
-    heating starts at the program time, so the line says that. Nothing while the start is unknown (no step up within
+    its attributes the program step it plans for, switch_at and target_c, start_now, lead_minutes and estimate) and
+    its "Warm on time" (scoreboard.py: yesterday, minutes after the switch time; negative: early). With Smart warm-up
+    switched off the heating starts at the program time, so the line says that. With no lead (lead_minutes 0) the
+    room is warm enough already; the E32 has no cooling model yet and plans from the room's temperature now, so the
+    start moves earlier as it cools, and the line says so. A start no morning has judged yet (estimate) says
+    "(estimate)", as the Learning tab does. Nothing while the start is unknown (no step up within
     24 hours) or the room is off (``state``, its on/off select); _today_section shows the card on the same terms.
     """
     q, room = json.dumps(start), json.dumps(name, ensure_ascii=False)
@@ -1413,9 +1429,17 @@ def _warm_up_line(t, name, start, state=None, warm=None, smart=None):
             # Smart warm-up off: heating starts at the program time (the day of that time).
             "{% if " + off + " %}{% set d = (w.date() - now().date()).days %}"
             "{{ " + _jinja_text(t["warm_up_off"], when=_when(t, "d", "w"), **step) + " }}"
+            # Warm enough already (no lead, or the start is the step's own minute): the E32 knows no cooling yet, so
+            # the start moves earlier as the room cools; never "from 9:00 to be 20.5 °C at 9:00".
+            "{% elif (state_attr(" + q + ", 'lead_minutes') == 0 or (w - b).total_seconds() < 60)"
+            " and state_attr(" + q + ", 'start_now') != true %}"
+            "{{ " + _jinja_text(t["warm_up_ready"], when=_when(t, "d", "b"), **step) + " }}"
             # The start has come (or the E32 says it started): warming up now.
             "{% elif state_attr(" + q + ", 'start_now') == true or b <= now() %}"
             "{{ " + _jinja_text(t["warm_up_now"], **step) + " }}"
+            # E32 rc.4: a start no morning has judged yet (the standard warm-up time), "estimate" as the Learning tab.
+            "{% elif state_attr(" + q + ", 'estimate') == true %}"
+            "{{ " + _jinja_text(t["warm_up_estimate"], when=_when(t, "d", "b"), start=_clock("b"), **step) + " }}"
             "{% else %}{{ " + _jinja_text(t["warm_up_at"], when=_when(t, "d", "b"), start=_clock("b"), **step) + " }}"
             "{% endif %}"
             # An E32 before rc.2 names no program step: the start alone.

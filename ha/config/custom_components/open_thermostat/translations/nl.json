@@ -2726,7 +2726,7 @@
         "state": {
           "collecting": "Gegevens verzamelen",
           "learning": "Aan het leren",
-          "ready": "Klaar"
+          "ready": "Geleerd"
         }
       },
       "room_flow_advice": {

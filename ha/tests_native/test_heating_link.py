@@ -800,14 +800,18 @@ async def test_todays_hot_water_becomes_product_sensors_once_reported(hass, monk
 def test_learning_states_and_icons_in_both_languages():
     icons = json.loads((COMPONENT / "icons.json").read_text(encoding="utf-8"))["entity"]["sensor"]
     states = {}
-    for name in ("strings.json", "translations/en.json", "translations/nl.json"):
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
         sensor = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]["sensor"]
         states[name] = sensor["room_learning"]["state"]
         assert list(states[name]) == ["collecting", "learning", "ready"], name
     assert states["strings.json"] == states["translations/en.json"] == {
-        "collecting": "Collecting data", "learning": "Learning", "ready": "Ready"}
+        "collecting": "Collecting data", "learning": "Learning", "ready": "Learned"}
     assert states["translations/nl.json"] == {"collecting": "Gegevens verzamelen", "learning": "Aan het leren",
-                                              "ready": "Klaar"}
+                                              "ready": "Geleerd"}
+    # rc7: "Learned" as the Learning tab and the E32's page say it (learned_overview.py "learned"), not "Ready".
+    from custom_components.open_thermostat.learned_overview import TEXT
+    assert [states[f"translations/{lang}.json"]["ready"] for lang in ("en", "nl", "pl")] == [
+        TEXT[lang]["learned"] for lang in ("en", "nl", "pl")]
     assert set(icons["room_learning"]["state"]) == set(states["strings.json"])
     from custom_components.open_thermostat.heating_link import LEARNING_STATES
     assert LEARNING_STATES == list(states["strings.json"])

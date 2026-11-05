@@ -45,7 +45,8 @@ async def test_native_dashboard_three_views_reported_vs_estimated_no_legacy_coun
     boiler=legacy["cards"]
     assert [c["type"] for c in boiler]==["heading","markdown","history-graph","history-graph","history-graph"]
     assert [x["name"] for x in boiler[2]["entities"]]==["Target (boiler)","To heating, as the boiler reports it"]
-    assert boiler[3]["title"]=="Burner power (%) — not kW"
+    # The title names the unit; that it is not kW is said in the note above the graphs.
+    assert boiler[3]["title"]=="Burner power (%)" and "not kW" in boiler[1]["content"]
     assert len(boiler[4]["entities"])==4
     raw=str(config)
     assert "statistics-graph" not in raw and "not proof of an E32 command" in raw

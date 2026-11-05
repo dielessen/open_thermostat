@@ -1689,7 +1689,7 @@
         "state": {
           "collecting": "Zbieranie danych",
           "learning": "Uczenie się",
-          "ready": "Gotowe"
+          "ready": "Wyuczone"
         }
       },
       "room_flow_advice": {

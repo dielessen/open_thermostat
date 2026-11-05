@@ -395,6 +395,37 @@ def test_the_warm_up_time_can_be_learned_before_the_coolest_water():
     assert "warm-up time is learned" not in str(ready["lines"])
 
 
+# rc7: the owner's card said "Learning: 6 of 6 warm-ups seen", which reads as finished; the E32 also needs warm-ups
+# in 3 heating periods and at 2 water temperatures (FlowLearner readiness). Then the progress says what is missing.
+@pytest.mark.parametrize("language,seen,timing,fine", [
+    ("en", "Learning: 14 warm-ups seen; it still needs warm-ups on other days or at another water temperature",
+     "Warm-up time learned; the coolest water is still being learned", "Learning: 5 of 6 warm-ups seen"),
+    ("nl", "Aan het leren: 14 keer opwarmen gezien; hij moet nog opwarmen zien op andere dagen of bij een andere "
+           "watertemperatuur",
+     "Opwarmtijd geleerd; het koelste water leert hij nog", "Aan het leren: 5 van 6 keer opwarmen gezien"),
+    ("pl", "Uczy się: widziano 14 nagrzewań; potrzebuje jeszcze nagrzewań w inne dni lub przy innej temperaturze wody",
+     "Czas nagrzewania wyuczony; najchłodniejszej wody wciąż się uczy", "Uczy się: widziano 5 z 6 nagrzewań"),
+])
+def test_the_progress_never_reads_as_finished_before_the_room_is_learned(language, seen, timing, fine):
+    progress = lambda **learned: lo.room_overview(  # noqa: E731
+        "Woonkamer", {"emitter": "floor", "readiness": "learning", **learned}, None, language, CLOCK.get)["progress"]
+    # Six or more warm-ups but not learned: the count goes on and it says what is still missing, never "6 of 6".
+    assert progress(segments=14, periods=2) == seen
+    assert progress(segments=6, periods=2) == seen.replace("14", "6")
+    assert "6 " + {"en": "of", "nl": "van", "pl": "z"}[language] + " 6" not in progress(segments=6)
+    # The warm-up time learned from one water temperature (E32 rc.4): that is what it says, whatever the count.
+    assert progress(segments=3, readiness_timing="ready") == timing
+    assert progress(segments=9, readiness_timing="ready") == timing
+    # Fewer than six: the count as before; learned: "Learned" (the Rooms tab's badge says the same, strings.json).
+    assert progress(segments=5) == fine
+    assert progress(segments=0) == fine.replace("5", "0", 1)
+    assert lo.room_overview("Woonkamer", {**LEARNED, "readiness_timing": "ready"}, None, language, CLOCK.get)[
+        "progress"] == lo.TEXT[language]["learned"]
+    # The line under the room says the same thing in a whole sentence.
+    lines = lo.room_overview("Woonkamer", {"readiness": "learning", "segments": 14}, None, language, CLOCK.get)["lines"]
+    assert lines[0]["text"] == lo.TEXT[language]["learning_more"]
+
+
 # The firmware (ArrivalLearner::resolve) sends the program's switch time as last_at_utc and the minutes the
 # room was late as last_error_min: the room was warm at last_at_utc + last_error_min (09:12 in every case
 # here, the only moment the clock below knows), as the E32's Home page shows it.

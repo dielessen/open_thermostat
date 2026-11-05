@@ -1606,9 +1606,7 @@
               "eco": "Eco",
               "night": "Night",
               "holiday": "Holiday",
-              "step": "{level} until {time}, then {next}",
-              "level_target": "{level} {target} °C",
-              "target": "{target} °C"
+              "step": "{level} until {time}, then {next}"
             }
           }
         }
@@ -1679,7 +1677,7 @@
               "legend_heating": "Heating",
               "legend_hot_water": "Hot water",
               "legend_keep_warm": "Keeping warm",
-              "waiting": "The E32 has not reported yet.",
+              "waiting": "The E32 is not reporting.",
               "now": "now",
               "warm": "{room} was warm",
               "early": "{m} min early",
@@ -1687,12 +1685,20 @@
               "on_time": "on time",
               "degree_days": "Degree-days",
               "target": "target {t} °C",
-              "per_day": "{n} days: {value} a day",
+              "per_day": "On average {value} a day (last {n} days)",
               "today_since": "Today since midnight",
               "burner": "burner {n} %",
               "code": "code {code}",
               "water": "water {t} °C",
-              "last_hour": "{n} in the last hour"
+              "last_hour": "{n} in the last hour",
+              "would_ask": "E32 would ask {flow} °C",
+              "no_wish": "The E32 would not ask for heat",
+              "tap_open": "Hot water: tap open",
+              "keeping_warm": "Keeping hot water warm",
+              "gas_estimate": "Gas today (estimate)",
+              "no_warmup": "no warm-up yesterday",
+              "late_hours": "{h} h {m} min late",
+              "early_hours": "{h} h {m} min early"
             }
           }
         }
@@ -2562,7 +2568,9 @@
               "starts": "Starts in the last hour",
               "calm": "calm",
               "often": "switching on and off too often",
-              "today": "today {n}"
+              "today": "today {n}",
+              "no_e32": "No data from the E32",
+              "resting": "Resting"
             }
           }
         }

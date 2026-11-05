@@ -137,6 +137,13 @@ class OpenThermostatE32Week extends HTMLElement {
  }
  get t() { return TEXT[language(this._hass)]; }
  _theme() { const box = this.shadowRoot.querySelector('.wpe'); if (box) box.dataset.theme = this._hass?.themes?.darkMode ? 'dark' : 'light'; }
+ // When it was saved: the house's clock (Home Assistant's time zone) and the viewer's 12/24-hour choice, as the other cards.
+ savedAt() {
+  const hass = this._hass, hour12 = ({'12': true, '24': false})[hass?.locale?.time_format], lang = hass?.locale?.language || 'en';
+  const options = {hour: hour12 ? 'numeric' : '2-digit', minute: '2-digit', ...(hour12 === undefined ? {} : {hour12})};
+  try { return new Date().toLocaleTimeString(lang, {...options, timeZone: hass?.config?.time_zone || undefined}); }
+  catch (e) { return new Date().toLocaleTimeString(lang, options); }
+ }
  _fail(err) {
   const code = typeof err?.code === 'string' && err.code ? err.code : 'rejected';
   this._message = this.t.errors[code] || this.t.errors.rejected; this._error = true;
@@ -188,7 +195,7 @@ class OpenThermostatE32Week extends HTMLElement {
    const result = await this._hass.callWS({type: 'open_thermostat/e32_week/save', entry_id: this._config.entry_id, room_id: r.id,
     schedule, expected: r.schedule, ...(this._levelsSupported && st ? {levels: st.levels, schedule_levels: st.schedule_levels} : {})});
    this._rooms = result.rooms; delete this._drafts[r.id]; delete this._levels[r.id]; delete this._base[r.id];
-   this._message = this.t.saved + ' ✓ ' + new Date().toLocaleTimeString(this._hass?.locale?.language || 'en', {hour: '2-digit', minute: '2-digit'}); this._error = false;
+   this._message = this.t.saved + ' ✓ ' + this.savedAt(); this._error = false;
    if (!program(this.room?.schedule)) this._message += ' ' + fill(this.t.removedNote, {value: degrees(this._hass, r.fallback_centi_c)});
    this._busy = false; this.render();
   } catch (err) { this._fail(err); this._busy = false; this.refresh(); }

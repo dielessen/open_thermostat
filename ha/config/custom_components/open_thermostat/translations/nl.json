@@ -2643,9 +2643,7 @@
               "eco": "Eco",
               "night": "Nacht",
               "holiday": "Vakantie",
-              "step": "{level} tot {time}, daarna {next}",
-              "level_target": "{level} {target} °C",
-              "target": "{target} °C"
+              "step": "{level} tot {time}, daarna {next}"
             }
           }
         }
@@ -2716,7 +2714,7 @@
               "legend_heating": "Verwarmen",
               "legend_hot_water": "Warm water",
               "legend_keep_warm": "Warmhouden",
-              "waiting": "De E32 heeft nog niets gemeld.",
+              "waiting": "De E32 meldt zich niet.",
               "now": "nu",
               "warm": "{room} warm",
               "early": "{m} min te vroeg",
@@ -2724,12 +2722,20 @@
               "on_time": "op tijd",
               "degree_days": "Graaddagen",
               "target": "doel {t} °C",
-              "per_day": "{n} dagen: {value} per dag",
+              "per_day": "Gemiddeld {value} per dag (afgelopen {n} dagen)",
               "today_since": "Vandaag sinds middernacht",
               "burner": "brander {n} %",
               "code": "code {code}",
               "water": "boiler {t} °C",
-              "last_hour": "{n} in het laatste uur"
+              "last_hour": "{n} in het laatste uur",
+              "would_ask": "E32 zou {flow} °C vragen",
+              "no_wish": "De E32 zou geen warmte vragen",
+              "tap_open": "Warm water: kraan open",
+              "keeping_warm": "Warm water warmhouden",
+              "gas_estimate": "Gas vandaag (schatting)",
+              "no_warmup": "gisteren niet opgewarmd",
+              "late_hours": "{h} u {m} min te laat",
+              "early_hours": "{h} u {m} min te vroeg"
             }
           }
         }
@@ -3599,7 +3605,9 @@
               "starts": "Starts afgelopen uur",
               "calm": "rustig",
               "often": "slaat te vaak aan en uit",
-              "today": "vandaag {n}"
+              "today": "vandaag {n}",
+              "no_e32": "Geen gegevens van de E32",
+              "resting": "In rust"
             }
           }
         }

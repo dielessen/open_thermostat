@@ -40,17 +40,19 @@ const TEXT = {title: 'Your house', heating: 'Heating', status_heating: 'Heating 
  taps: '{n} taps today', taps_one: '1 tap today', taps_none: 'no taps yet today', running: 'running now', gas_today: 'Gas today',
  week: 'Last 7 days: {values}', starts_today: 'Burner starts today', idle: 'Boiler resting', attention: 'Attention: {reason}',
  all_reasons: 'All reasons', mode: 'House mode: {mode}', today: 'Today', legend_heating: 'Heating', legend_hot_water: 'Hot water',
- legend_keep_warm: 'Keeping warm', waiting: 'The E32 has not reported yet.', now: 'now', warm: '{room} was warm', early: '{m} min early',
- late: '{m} min late', on_time: 'on time', degree_days: 'Degree-days', target: 'target {t} °C', per_day: '{n} days: {value} a day',
+ legend_keep_warm: 'Keeping warm', waiting: 'The E32 is not reporting.', now: 'now', warm: '{room} was warm', early: '{m} min early',
+ late: '{m} min late', on_time: 'on time', degree_days: 'Degree-days', target: 'target {t} °C', per_day: 'On average {value} a day (last {n} days)',
  today_since: 'Today since midnight', burner: 'burner {n} %', code: 'code {code}', water: 'water {t} °C',
- last_hour: '{n} in the last hour'};
+ last_hour: '{n} in the last hour', would_ask: 'E32 would ask {flow} °C', no_wish: 'The E32 would not ask for heat',
+ tap_open: 'Hot water: tap open', keeping_warm: 'Keeping hot water warm', gas_estimate: 'Gas today (estimate)',
+ no_warmup: 'no warm-up yesterday', late_hours: '{h} h {m} min late', early_hours: '{h} h {m} min early'};
 // The scoreboard sensors' own names (strings.json entity.sensor.<key>.name), English as the last resort.
 const NAMES = {burner_starts_per_heating_hour: 'Burner starts per heating hour', heating_gas_yesterday: 'Gas for heating (estimate)'};
 const DASH = '—';  // a figure not known yet: the same in every language
 const NBSP = '\u00a0';
 // What the boiler does (boiler_activity, heating_link.BOILER_ACTIVITIES): the kind in the strip and the status tone.
 const KIND = {heating: 'heat', tapping: 'water', hot_water: 'water', keep_warm: 'keep', charging: 'keep', idle: 'rest'};
-const RUNNING = new Set(['tapping', 'charging', 'hot_water']);
+const RUNNING = new Set(['tapping', 'hot_water']);  // a tap runs (not "charging": the tank is heated)
 const ICON = {heat: 'mdi:fire', water: 'mdi:faucet', keep: 'mdi:water-thermometer', rest: 'mdi:water-boiler',
  error: 'mdi:alert-circle-outline', wait: 'mdi:timer-sand'};
 const LEGEND = [['heat', 'legend_heating'], ['water', 'legend_hot_water'], ['keep', 'legend_keep_warm']];
@@ -62,6 +64,9 @@ const ROOM_TONE = {warm_up: 'heat', heating: 'heat', wants_heat: 'heat', boost: 
  room_away: 'away', house_away: 'away', warm_enough: 'ok', off: 'off'};
 // Sentences that only repeat the figure above them ("Heating: 20.4 → 21 °C"): the reason's short word instead.
 const RESTATED = new Set(['heating', 'wants_heat', 'warm_enough']);
+// Sentences with a target of their own (room_overview.LINES with "target"): no "target X °C" in front of them, which
+// would say a figure twice, or two different ones during a warm-up.
+const OWN_TARGET = new Set(['warm_up', 'holiday', 'away', 'room_away', 'house_away', 'temporary', 'temporary_until']);
 const PRESENCE = {room_home: 'mdi:account-check', room_away: 'mdi:account-off-outline', house_home: 'mdi:home-account',
  house_away: 'mdi:home-export-outline'};
 const HISTORY_MS = 5 * 60000, STATS_MS = 10 * 60000, TICK_MS = 60000, DAY_MS = 86400000, PENDING_MS = 2 * 60000;
@@ -168,6 +173,51 @@ const hour12 = hass => {
  if (chosen !== undefined) return chosen;
  try { return /h1[12]/.test(new Intl.DateTimeFormat(locale(hass), {hour: 'numeric'}).resolvedOptions().hourCycle); } catch (e) { return false; }
 };
+/* clock: begin. One clock for the OpenThermostat cards (the same text in house-card.js and room-status-card.js, checked
+   by test_room_overview.py): Home Assistant's time zone (the house's, where the E32 and its program live), the viewer's
+   12/24-hour choice (a 12-hour clock without a leading zero: "5:00 PM"); a moment today as its time, the day before or
+   after as "yesterday 14:05" / "tomorrow 14:30" in the viewer's language, further away with its date ("Sat 14 Nov,
+   14:30"): a weekday alone is ambiguous after six days, and a holiday can end months ahead. */
+const clockLocale = hass => hass?.locale?.language || hass?.language || 'en';
+const clockZone = hass => {
+ const zone = hass?.config?.time_zone;
+ if (typeof zone !== 'string' || !zone) return undefined;
+ try { new Intl.DateTimeFormat('en', {timeZone: zone}); return zone; } catch (e) { return undefined; }
+};
+const clockHour12 = hass => {
+ const chosen = ({'12': true, '24': false})[hass?.locale?.time_format];
+ if (chosen !== undefined) return chosen;
+ try { return /h1[12]/.test(new Intl.DateTimeFormat(clockLocale(hass), {hour: 'numeric'}).resolvedOptions().hourCycle); } catch (e) { return false; }
+};
+const clockOptions = hass => {
+ const hour12 = clockHour12(hass);
+ return {hour: hour12 ? 'numeric' : '2-digit', minute: '2-digit', hour12, timeZone: clockZone(hass)};
+};
+// The time of day of ms ("14:30", "2:30 PM").
+const clockTime = (hass, ms) => {
+ try { return new Date(ms).toLocaleTimeString(clockLocale(hass), clockOptions(hass)); } catch (e) { return new Date(ms).toISOString().slice(11, 16); }
+};
+// The day number of ms in the house's zone (days since 1970), to compare calendar days.
+const clockDay = (hass, ms) => {
+ try {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {timeZone: clockZone(hass), year: 'numeric', month: 'numeric', day: 'numeric'})
+   .formatToParts(new Date(ms)).map(({type, value}) => [type, Number(value)]));
+  return Math.round(Date.UTC(p.year, p.month - 1, p.day) / 86400000);
+ } catch (e) { return Math.floor(ms / 86400000); }
+};
+// A moment (an ISO text or ms) for a sentence: "14:30", "tomorrow 14:30", "Sat 14 Nov, 14:30"; '' when not a time.
+const clockMoment = (hass, value, now = Date.now()) => {
+ const ms = typeof value === 'number' ? value : typeof value === 'string' ? Date.parse(value) : NaN;
+ if (!Number.isFinite(ms)) return '';
+ const days = clockDay(hass, ms) - clockDay(hass, now), time = clockTime(hass, ms);
+ if (days === 0) return time;
+ if (Math.abs(days) === 1) {
+  try { return new Intl.RelativeTimeFormat(clockLocale(hass), {numeric: 'auto'}).format(days, 'day') + ' ' + time; } catch (e) { /* older browser */ }
+ }
+ try { return new Date(ms).toLocaleString(clockLocale(hass), {weekday: 'short', day: 'numeric', month: 'short', ...clockOptions(hass)}); }
+ catch (e) { return new Date(ms).toISOString().slice(0, 16).replace('T', ' '); }
+};
+/* clock: end */
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const numeric = value => { const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value; return finite(n) ? n : null; };
 // A figure and its unit stay on one line ("41 °C" is never cut into "41" and "°C" on a phone).
@@ -351,11 +401,16 @@ class OpenThermostatHouse extends OpenThermostatCard {
    c.modulation, c.code, c.dhw, c.starts_hour].filter(Boolean);
  }
  degrees(value) { return this.number(Math.round(value)); }
- time(ms) {
-  try {
-   return new Date(ms).toLocaleTimeString(locale(this._hass), {hour: '2-digit', minute: '2-digit', hour12: hour12(this._hass),
-    timeZone: houseZone(this._hass)});
-  } catch (e) { return new Date(ms).toISOString().slice(11, 16); }
+ time(ms) { return clockTime(this._hass, ms); }
+ // 10: a temperature line in the entity's own unit (Home Assistant converts a °C sensor for an imperial house).
+ inUnit(text, id) {
+  const unit = this.st(id)?.attributes?.unit_of_measurement;
+  return typeof unit === 'string' && unit && unit !== '°C' && typeof text === 'string' ? text.replace('°C', unit) : text;
+ }
+ // Whether the E32 drives the boiler: not in the trial run, nor before the takeover is confirmed (as the Now card).
+ driving() {
+  const a = this.st(this._config.request)?.attributes || {};
+  return a.mode !== 'shadow' && a.control !== 'awaiting_confirmation';
  }
 
  // -- data: Home Assistant's history and statistics, throttled; never the E32 --------------------------------------
@@ -405,12 +460,14 @@ class OpenThermostatHouse extends OpenThermostatCard {
   // The 7 whole days before today (the average day under the gas) and today; the line shows the last 7 of them.
   const days = Array.from({length: 8}, (_, i) => midnight(day, zone, i - 7));
   try {
+   // Each read on its own: a failing 7-day read keeps today's answers, and the other way round.
    const [week, ...today] = await Promise.all([
     hass.callWS({type: 'recorder/statistics_during_period', start_time: new Date(days[0]).toISOString(), period: 'day',
-     statistic_ids: ids, types: ['change']}),
+     statistic_ids: ids, types: ['change']}).catch(() => null),
     ...ids.map(id => hass.callWS({type: 'recorder/statistic_during_period', statistic_id: id, calendar: {period: 'day'},
      types: ['change']}).catch(() => null))]);
    if (gen !== this._gen) return;
+   if (week === null && today.every(answer => answer === null)) throw new Error('no statistics');
    const per = {};
    for (const id of ids) {
     const values = Array(8).fill(null);
@@ -444,13 +501,13 @@ class OpenThermostatHouse extends OpenThermostatCard {
   const c = this._config, activity = this.st(c.activity), heating = this.st(c.heating), request = this.st(c.request);
   if (known(activity)) return activity.state === 'heating';
   if (known(heating)) return heating.state === 'on';
-  return known(request) && numeric(request.state) !== null ? numeric(request.state) > 0 : null;
+  return known(request) && numeric(request.state) !== null && this.driving() ? numeric(request.state) > 0 : null;
  }
  flow() { const st = this.st(this._config.flow); return known(st) ? numeric(st.state) : null; }
  // The band's tone, icon and line: a problem wins; then what the boiler does; without it the boiler's bits or the request.
  status() {
   const c = this._config, problem = this.st(c.problem), activity = this.st(c.activity), flow = this.flow();
-  const heating = () => flow !== null ? this.t('status_heating', {flow: this.degrees(flow)}) : this.t('status_heating_plain');
+  const heating = () => flow !== null ? this.inUnit(this.t('status_heating', {flow: this.degrees(flow)}), c.flow) : this.t('status_heating_plain');
   if (problem?.state === 'on') {
    const reasons = Array.isArray(problem.attributes?.reasons) ? problem.attributes.reasons.filter(r => typeof r === 'string' && r) : [];
    const reason = typeof problem.attributes?.reason === 'string' && problem.attributes.reason ? problem.attributes.reason
@@ -461,15 +518,21 @@ class OpenThermostatHouse extends OpenThermostatCard {
    const kind = KIND[activity.state];
    if (kind === 'heat') return {tone: 'heat', icon: ICON.heat, line: heating()};
    if (kind === 'rest') return {tone: 'rest', icon: ICON.rest, line: this.t('idle')};
-   return {tone: kind, icon: ICON[kind], line: this.stateText(activity) || ACTIVITY_EN[activity.state]};
+   // The glossary's words for hot water: a tap open, keeping hot water warm; heating the tank in the activity's own.
+   const words = {tapping: 'tap_open', hot_water: 'hot_water', keep_warm: 'keeping_warm'}[activity.state];
+   return {tone: kind, icon: ICON[kind], line: words ? this.t(words) : this.stateText(activity) || ACTIVITY_EN[activity.state]};
   }
   const bit = this.st(c.heating), water = this.st(c.hot_water);
   if (bit?.state === 'on') return {tone: 'heat', icon: ICON.heat, line: heating()};
   if (water?.state === 'on') return {tone: 'water', icon: ICON.water, line: this.t('hot_water')};
   if (bit?.state === 'off' && (!water || water.state === 'off')) return {tone: 'rest', icon: ICON.rest, line: this.t('idle')};
-  const request = this.st(c.request), value = known(request) ? numeric(request.state) : null;
-  if (value !== null && value > 0) return {tone: 'heat', icon: ICON.heat, line: this.t('request', {flow: this.degrees(value)}), fromRequest: true};
-  if (value !== null) return {tone: 'rest', icon: ICON.rest, line: this.t('no_request'), fromRequest: true};
+  // Nothing from the boiler itself: the E32's request. In the trial run the old thermostat runs the boiler, so the band
+  // stays grey and says what the E32 would ask.
+  const request = this.st(c.request), value = known(request) ? numeric(request.state) : null, driving = this.driving();
+  const asked = key => this.inUnit(this.t(key, {flow: this.degrees(value)}), c.request);
+  if (value !== null && value > 0) return driving ? {tone: 'heat', icon: ICON.heat, line: asked('request'), fromRequest: true}
+   : {tone: 'rest', icon: ICON.rest, line: asked('would_ask'), fromRequest: true};
+  if (value !== null) return {tone: 'rest', icon: ICON.rest, line: this.t(driving ? 'no_request' : 'no_wish'), fromRequest: true};
   return {tone: 'wait', icon: ICON.wait, line: this.t('waiting')};
  }
  // A value of an entity in the config, or null (missing, unknown, not a number).
@@ -501,7 +564,8 @@ class OpenThermostatHouse extends OpenThermostatCard {
    .filter(room => room && room.demand === true && (inlined === undefined || room.id !== inlined));
   const value = numeric(request.state), out = [];
   if (rooms.length) out.push(rooms.length === 1 ? this.t('wants_one') : this.t('wants', {n: this.number(rooms.length)}));
-  if (value !== null && value > 0 && !status.fromRequest) out.push(this.t('request', {flow: this.degrees(value)}));
+  if (value !== null && value > 0 && !status.fromRequest)
+   out.push(this.inUnit(this.t(this.driving() ? 'request' : 'would_ask', {flow: this.degrees(value)}), this._config.request));
   return out.join(' · ');
  }
 
@@ -587,7 +651,7 @@ class OpenThermostatHouse extends OpenThermostatCard {
     running ? make('p', {class: 'note running', 'data-running': ''}, this.t('running')) : null);
    // As the sketch ("vandaag · boiler 65 °C"): the hot water's temperature under the taps.
    const hot = this.value(config.dhw);
-   if (hot !== null) box.append(make('p', {class: 'note', 'data-dhw': ''}, this.t('water', {t: this.degrees(hot)})));
+   if (hot !== null) box.append(make('p', {class: 'note', 'data-dhw': ''}, this.inUnit(this.t('water', {t: this.degrees(hot)}), config.dhw)));
    list.push(box);
   }
   const gas = config.gas.filter(id => this.st(id));
@@ -630,7 +694,7 @@ class OpenThermostatHouse extends OpenThermostatCard {
   const num = tone && now !== null ? now.toLocaleString(locale(hass), {minimumFractionDigits: 1, maximumFractionDigits: 1}) : null;
   box.append(valueOf(num === null ? null : num + NBSP + '°C', num));
   const why = [this.roomSentence(st)];
-  if (tone && st.state !== 'off' && target !== null) why.unshift(this.t('target', {t: target.toLocaleString(locale(hass), {maximumFractionDigits: 1})}));
+  if (tone && st.state !== 'off' && target !== null && !OWN_TARGET.has(a.line)) why.unshift(this.t('target', {t: target.toLocaleString(locale(hass), {maximumFractionDigits: 1})}));
   box.append(make('p', {class: 'note why', 'data-reason': st.state}, why.join(' · ')));
   box.addEventListener('click', () => this.moreInfo(room.entity));
   box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.moreInfo(room.entity); } });
@@ -640,15 +704,7 @@ class OpenThermostatHouse extends OpenThermostatCard {
  roomSentence(st) {
   const a = st.attributes || {}, v = a.values && typeof a.values === 'object' ? a.values : {}, hass = this._hass;
   if (RESTATED.has(st.state) || !ROOM_TONE[st.state]) return this.stateText(st);
-  const at = iso => {
-   const ms = typeof iso === 'string' ? Date.parse(iso) : NaN;
-   if (!Number.isFinite(ms)) return '';
-   const zone = houseZone(hass), same = midnight(ms, zone) === midnight(Date.now(), zone);
-   try {
-    return new Date(ms).toLocaleString(locale(hass), {hour: '2-digit', minute: '2-digit', hour12: hour12(hass), timeZone: zone,
-     ...(same ? {} : {weekday: 'short'})});
-   } catch (e) { return this.time(ms); }
-  };
+  const at = iso => clockMoment(hass, iso);
   const deg = (value, fixed) => finite(value) ? value.toLocaleString(locale(hass), {minimumFractionDigits: fixed ? 1 : 0, maximumFractionDigits: 1}) : '–';
   const values = {contact: typeof v.contact === 'string' ? v.contact : '', since: at(v.since), time: at(v.time), until: at(v.until),
    temperature: deg(v.temperature, true), target: deg(v.target)};
@@ -656,9 +712,17 @@ class OpenThermostatHouse extends OpenThermostatCard {
   return together(line || this.stateText(st));
  }
  gasFigure(ids) {
-  const total = this.today(ids), unit = this.st(ids[0])?.attributes?.unit_of_measurement;
+  const unit = this.st(ids[0])?.attributes?.unit_of_measurement;
+  // Without statistics (a recorder that keeps none of these sensors, or a failing read) the sensors' own figures:
+  // their attributes today and last_7_days (energy_use.py; today included in the 7 days).
+  const attribute = key => { const values = ids.map(id => numeric(this.st(id)?.attributes?.[key]));
+   return values.every(v => v !== null) ? values.reduce((a, b) => a + b, 0) : null; };
+  const stats = this.today(ids), total = stats !== null ? stats : attribute('today');
   const num = total === null ? null : this.number(total, 1);
-  const box = this.figure('gas', this.t('gas_today'), num === null ? null : num + (typeof unit === 'string' && unit ? NBSP + unit : ''), num);
+  // Without a gas meter the sensors estimate the gas from the burner (estimate: true): the label says so (glossary).
+  const estimate = ids.some(id => this.st(id)?.attributes?.estimate === true);
+  const box = this.figure('gas', this.t(estimate ? 'gas_estimate' : 'gas_today'), num === null ? null
+   : num + (typeof unit === 'string' && unit ? NBSP + unit : ''), num);
   // The last 7 days: the gas of every day that has statistics; no line before there are two days. Under it the
   // average whole day of the week before today, once there are two.
   const per = this._stats?.day === midnight(Date.now(), houseZone(this._hass)) ? this._stats.per : null;
@@ -675,10 +739,15 @@ class OpenThermostatHouse extends OpenThermostatCard {
    row.append(box.querySelector('.value'), sparkline(points, label));
    box.append(row);
   }
-  if (whole.length >= 2) {
-   const average = whole.reduce((a, b) => a + b, 0) / whole.length;
-   box.append(make('p', {class: 'note', 'data-average': ''}, this.t('per_day', {n: this.number(whole.length), value: this.number(average, 1) + unitText})));
+  let average = null, days = 0;
+  if (whole.length >= 2) { average = whole.reduce((a, b) => a + b, 0) / whole.length; days = whole.length; }
+  else if (!per || ids.every(id => (per[id] || []).every(v => v === null))) {
+   // No statistics at all: the 6 whole days before today from the sensors' last 7 days, once they hold some gas.
+   const week = attribute('last_7_days'), now = attribute('today');
+   if (week !== null && now !== null && week - now > 0) { average = (week - now) / 6; days = 6; }
   }
+  if (average !== null)
+   box.append(make('p', {class: 'note', 'data-average': ''}, this.t('per_day', {n: this.number(days), value: this.number(average, 1) + unitText})));
   return box;
  }
  // The day so far, as the sketch: a 10 px rounded track from midnight to midnight, what the boiler did on it up to now
@@ -771,9 +840,9 @@ class OpenThermostatYesterday extends OpenThermostatCard {
   const root = this.shadowRoot, focused = root.activeElement?.dataset?.focus, list = [];
   const value = (st, attribute) => known(st) ? numeric(attribute ? st.attributes?.[attribute] : st.state) : null;
   // As the sketch: the label small and muted, the value (its unit and words too) 22 px bold; "—" while not known.
-  const add = (key, entity, label, text) => {
+  const add = (key, entity, label, text, muted) => {
    const box = make('div', {class: 'figure', 'data-figure': key, 'data-focus': key, role: 'button', tabindex: '0'});
-   box.append(make('p', {class: 'label'}, label), make('p', {class: 'value' + (text === null ? ' unknown' : '')}, text === null ? DASH : text));
+   box.append(make('p', {class: 'label'}, label), make('p', {class: 'value' + (text === null || muted ? ' unknown' : '')}, text === null ? DASH : text));
    box.addEventListener('click', () => this.moreInfo(entity));
    box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.moreInfo(entity); } });
    list.push(box);
@@ -781,9 +850,14 @@ class OpenThermostatYesterday extends OpenThermostatCard {
   const room = c.room && this.st(c.room.entity);
   if (room) {
    // Minutes after the program's switch time that the room was warm (scoreboard.py): late, early or on time.
+   // An hour or more as hours and minutes ("1 h 12 min late"); no warm-up yesterday (the sensor unknown: the room off,
+   // away or on holiday) in words, muted, instead of "—" under a label that says it was warm.
    const minutes = value(room), m = minutes === null ? null : Math.round(minutes), num = m === null ? null : this.number(Math.abs(m));
+   const long = m !== null && Math.abs(m) >= 60 ? {h: this.number(Math.floor(Math.abs(m) / 60)), m: this.number(Math.abs(m) % 60)} : null;
+   const none = m === null && room.state === 'unknown';
    add('room', c.room.entity, this.t('warm', {room: c.room.name || room.attributes?.friendly_name || c.room.entity}),
-    m === null ? null : m > 0 ? this.t('late', {m: num}) : m < 0 ? this.t('early', {m: num}) : this.t('on_time'));
+    none ? this.t('no_warmup') : m === null ? null : m > 0 ? (long ? this.t('late_hours', long) : this.t('late', {m: num}))
+     : m < 0 ? (long ? this.t('early_hours', long) : this.t('early', {m: num})) : this.t('on_time'), none);
   }
   const plain = (key, entity, label, v, unit) => {
    const num = v === null ? null : this.number(v, 1);

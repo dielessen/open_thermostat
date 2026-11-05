@@ -19,7 +19,7 @@ function resources(lang){
  walk(translations(lang).entity,'component.open_thermostat.entity.');
  return flat;
 }
-const since=new Date(Date.now()-25*60000).toISOString(),until=new Date(Date.now()+3*86400000).toISOString();
+const since=new Date(Date.now()-25*60000).toISOString(),until=new Date(Date.now()+10*86400000).toISOString();  // a holiday ten days on: its date
 // The week program's next step: in two hours (today, or with its weekday after midnight), in three days.
 const soon=new Date(Date.now()+2*3600000).toISOString(),later=new Date(Date.now()+3*86400000).toISOString();
 const reason=(state,line,values,extra)=>({state,attributes:{room_id:'living',line,values,temperature:20.6,setpoint:22.5,presence:null,window:null,
@@ -44,17 +44,17 @@ const ROOMS=['living','kitchen','bedroom','study','hall','warm','even','attic','
 const NB=s=>s.replace(/ (°C|%)/g,'\u00a0$1');
 const WORDS={
  en:{living:NB('Heating: 20.6 → 22.5 °C'),kitchen:/^Paused: Back door open since (\S+ )?\d{1,2}:\d\d( [AP]M)?$/,bedroom:NB('Away: nobody of this room is home (18 °C)'),
-  study:'Frost protection only (room off)',hall:/^Holiday until \S+ \d{1,2}:\d\d( [AP]M)? \(15\s°C\)$/,now:'20.6',spoken:'Now 20.6 °C, Target 22.5 °C',
+  study:'Frost protection only (room off)',hall:/^Holiday until .+ \(15\s°C\)$/,now:'20.6',spoken:'Now 20.6 °C, Target 22.5 °C',
   valves:NB('Radiator valves open: 40 %'),home:'Someone of this room is home',
-  step:/^Comfort until (\S+\s)?\d{1,2}:\d\d(\s[AP]M)?, then Night 18\.0\u00a0°C$/,own:/^21\.5\u00a0°C until \S+\s\d{1,2}:\d\d(\s[AP]M)?, then Eco 19\.0\u00a0°C$/},
+  step:/^Comfort until (\S+\s)?\d{1,2}:\d\d(\s[AP]M)?, then Night 18\.0\u00a0°C$/,own:/^21\.5\u00a0°C until .+, then Eco 19\.0\u00a0°C$/},
  nl:{living:NB('Verwarmt: 20,6 → 22,5 °C'),kitchen:/^Gepauzeerd: Back door open sinds (\S+ )?\d\d:\d\d$/,bedroom:NB('Afwezig: niemand van deze ruimte is thuis (18 °C)'),
-  study:'Alleen vorstbeveiliging (ruimte uit)',hall:/^Vakantie tot \S+ \d\d:\d\d \(15\s°C\)$/,now:'20,6',spoken:'Nu 20,6 °C, Gewenst 22,5 °C',
+  study:'Alleen vorstbeveiliging (ruimte uit)',hall:/^Vakantie tot .+ \(15\s°C\)$/,now:'20,6',spoken:'Nu 20,6 °C, Gewenst 22,5 °C',
   valves:NB('Radiatorkranen open: 40 %'),home:'Iemand van deze ruimte is thuis',
-  step:/^Comfort tot (\S+\s)?\d\d:\d\d, daarna Nacht 18,0\u00a0°C$/,own:/^21,5\u00a0°C tot \S+\s\d\d:\d\d, daarna Eco 19,0\u00a0°C$/},
+  step:/^Comfort tot (\S+\s)?\d\d:\d\d, daarna Nacht 18,0\u00a0°C$/,own:/^21,5\u00a0°C tot .+, daarna Eco 19,0\u00a0°C$/},
  pl:{living:NB('Grzeje: 20,6 → 22,5 °C'),kitchen:/^Wstrzymane: Back door otwarte od (\S+ )?\d\d:\d\d$/,bedroom:NB('Nieobecność: nikogo z tego pomieszczenia nie ma w domu (18 °C)'),
-  study:'Tylko ochrona przed mrozem (pomieszczenie wyłączone)',hall:/^Urlop do \S+ \d\d:\d\d \(15\s°C\)$/,now:'20,6',spoken:'Teraz 20,6 °C, Cel 22,5 °C',
+  study:'Tylko ochrona przed mrozem (pomieszczenie wyłączone)',hall:/^Urlop do .+ \(15\s°C\)$/,now:'20,6',spoken:'Teraz 20,6 °C, Cel 22,5 °C',
   valves:NB('Otwarcie zaworów grzejnikowych: 40 %'),home:'Ktoś z tego pomieszczenia jest w domu',
-  step:/^Komfort do (\S+\s)?\d\d:\d\d, potem Noc 18,0\u00a0°C$/,own:/^21,5\u00a0°C do \S+\s\d\d:\d\d, potem Eko 19,0\u00a0°C$/},
+  step:/^Komfort do (\S+\s)?\d\d:\d\d, potem Noc 18,0\u00a0°C$/,own:/^21,5\u00a0°C do .+, potem Eko 19,0\u00a0°C$/},
 };
 // Home Assistant's default theme colours (light and dark) and its state colours.
 const THEMES={light:'--primary-text-color:#212121;--secondary-text-color:#727272;--card-background-color:#fff;--secondary-background-color:#f5f5f5;'+
@@ -111,6 +111,13 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   assert.match(await room('living').locator('[data-step]').innerText(),words.step);
   assert.equal(await room('living').locator('.why').innerText(),words.living+' · '+await room('living').locator('[data-step]').innerText());
   assert.match(await room('warm').locator('[data-step]').innerText(),words.own);
+  // Beyond tomorrow a moment has its date (a weekday alone is ambiguous after six days): the holiday ten days on, the
+  // program step three days on; the viewer's 12/24 hours as the language has them here.
+  const dated=await page.evaluate(([lang,...isos])=>{const h12=/h1[12]/.test(new Intl.DateTimeFormat(lang,{hour:'numeric'}).resolvedOptions().hourCycle);
+   return isos.map(iso=>new Date(iso).toLocaleString(lang,{weekday:'short',day:'numeric',month:'short',hour:h12?'numeric':'2-digit',minute:'2-digit',hour12:h12}));},
+   [lang,until,later]);
+  assert((await why('hall')).includes(dated[0]),`${await why('hall')} names ${dated[0]}`);
+  assert((await room('warm').locator('[data-step]').innerText()).includes(dated[1].replace(/\s/g,' ')),'the step three days on with its date');
   for(const name of ['kitchen','bedroom','study','hall','even'])assert.equal(await room(name).locator('[data-step]').count(),0,name);
   const stepLook=await room('living').evaluate(c=>{const s=c.shadowRoot,g=q=>getComputedStyle(s.querySelector(q));
    return [g('.step').color,g('.why').color,g('.step').fontSize];});

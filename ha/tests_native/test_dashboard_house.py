@@ -325,7 +325,13 @@ def test_the_card_texts_are_in_every_language_with_the_same_placeholders():
     assert nl["legend_keep_warm"] == "Warmhouden" and pl["legend_keep_warm"] == "Podtrzymanie"
     # The words of the owner's sketch (rc.5 design, Main and Leren).
     assert (nl["today_since"], nl["now"], nl["target"], nl["per_day"]) == (
-        "Vandaag sinds middernacht", "nu", "doel {t} °C", "{n} dagen: {value} per dag")
+        "Vandaag sinds middernacht", "nu", "doel {t} °C", "Gemiddeld {value} per dag (afgelopen {n} dagen)")
+    # R3 review: the E32 silent, the trial run, the glossary's hot water words, an estimate named, long minutes.
+    assert (english["waiting"], nl["waiting"], pl["waiting"]) == (
+        "The E32 is not reporting.", "De E32 meldt zich niet.", "E32 się nie odzywa.")
+    assert (nl["would_ask"], nl["tap_open"], nl["keeping_warm"], nl["gas_estimate"], nl["late_hours"]) == (
+        "E32 zou {flow} °C vragen", "Warm water: kraan open", "Warm water warmhouden", "Gas vandaag (schatting)",
+        "{h} u {m} min te laat")
     assert (nl["warm"], nl["early"], nl["late"], nl["degree_days"]) == (
         "{room} warm", "{m} min te vroeg", "{m} min te laat", "Graaddagen")
     # HA 1.0.0rc7, the desktop sketch: "brander 37 % · code -H", "boiler 65 °C", "1 in het laatste uur".

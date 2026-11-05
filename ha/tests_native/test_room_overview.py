@@ -201,9 +201,8 @@ def test_every_reason_and_sentence_has_its_words_with_the_same_values(name):
     assert set(attributes["card"]["state"]) == {"smart_on", "home", "away", "holiday"}, name
     # HA 1.0.0rc7: the week program's step ("Comfort until 22:30, then Night 18.0 °C"), its levels and its parts.
     program = attributes["program"]["state"]
-    assert set(program) == {*PROGRAM_LEVELS, "step", "level_target", "target"}, name
-    assert (placeholders(program["step"]), placeholders(program["level_target"]), placeholders(program["target"])) == (
-        ["level", "next", "time"], ["level", "target"], ["target"]), name
+    assert set(program) == {*PROGRAM_LEVELS, "step"}, name
+    assert placeholders(program["step"]) == ["level", "next", "time"], name
     assert (program["step"], program["night"]) == (
         ("{level} until {time}, then {next}", "Night") if name in english_files else
         ("{level} tot {time}, daarna {next}", "Nacht") if "nl" in name else ("{level} do {time}, potem {next}", "Noc"))
@@ -421,3 +420,15 @@ async def test_the_reason_sensor_carries_the_program_and_writes_again_at_its_nex
     hub.update(None)
     entity._plan_tick()
     assert entity._tick is None and entity.extra_state_attributes is None
+
+
+def test_the_room_and_house_cards_share_one_clock():
+    """R3 finding 11: one clock for both cards (the house's time zone, the viewer's 12/24 hours, a date beyond tomorrow)."""
+    house = (COMPONENT / "frontend/house-card.js").read_text(encoding="utf-8")
+
+    def block(text):
+        return text[text.index("/* clock: begin"):text.index("/* clock: end */")]
+    assert block(CARD) == block(house)
+    assert "weekday: 'short', day: 'numeric', month: 'short'" in block(CARD) and "RelativeTimeFormat" in block(CARD)
+    assert "hour: hour12 ? 'numeric' : '2-digit'" in block(CARD)
+    assert "const moment = (hass, iso) => clockMoment(hass, iso);" in CARD and "const at = iso => clockMoment(hass, iso);" in house

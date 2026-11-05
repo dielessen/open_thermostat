@@ -3612,7 +3612,7 @@
         "name": "Korte brandtijden (u)"
       },
       "heating_gas_yesterday": {
-        "name": "Gas voor verwarming (schatting)"
+        "name": "Gas voor verwarming (schatting van de ketel)"
       },
       "gas_per_degree_day": {
         "name": "Gas per graaddag"

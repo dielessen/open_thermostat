@@ -45,7 +45,10 @@ const TEXT = {title: 'Your house', heating: 'Heating', status_heating: 'Heating 
  today_since: 'Today since midnight', burner: 'burner {n} %', code: 'code {code}', water: 'water {t} °C',
  last_hour: '{n} in the last hour', would_ask: 'E32 would ask {flow} °C', no_wish: 'The E32 would not ask for heat',
  tap_open: 'Hot water: tap open', keeping_warm: 'Keeping hot water warm', gas_estimate: 'Gas today (estimate)',
- no_warmup: 'no warm-up yesterday', late_hours: '{h} h {m} min late', early_hours: '{h} h {m} min early'};
+ no_warmup: 'no warm-up yesterday', late_hours: '{h} h {m} min late', early_hours: '{h} h {m} min early',
+ not_warm: 'not warm within 3 h'};
+// The warm-on-time sensor's value for a room that did not get warm within 3 hours (the firmware's ArrivalLearner cap).
+const NOT_WARM_MIN = 180;
 // The scoreboard sensors' own names (strings.json entity.sensor.<key>.name), English as the last resort.
 const NAMES = {burner_starts_per_heating_hour: 'Burner starts per heating hour (yesterday)', heating_gas_yesterday: 'Heating energy yesterday (estimate)'};
 const DASH = '—';  // a figure not known yet: the same in every language
@@ -860,9 +863,12 @@ class OpenThermostatYesterday extends OpenThermostatCard {
    const minutes = value(room), m = minutes === null ? null : Math.round(minutes), num = m === null ? null : this.number(Math.abs(m));
    const long = m !== null && Math.abs(m) >= 60 ? {h: this.number(Math.floor(Math.abs(m) / 60)), m: this.number(Math.abs(m) % 60)} : null;
    const none = m === null && room.state === 'unknown';
+   // The firmware records a room that did not get warm within 3 hours after the switch as 180 min late (ArrivalLearner):
+   // that is no lateness to count, so it says so, muted as "no warm-up yesterday".
+   const never = minutes !== null && minutes >= NOT_WARM_MIN;
    add('room', c.room.entity, this.t('warm', {room: c.room.name || room.attributes?.friendly_name || c.room.entity}),
-    none ? this.t('no_warmup') : m === null ? null : m > 0 ? (long ? this.t('late_hours', long) : this.t('late', {m: num}))
-     : m < 0 ? (long ? this.t('early_hours', long) : this.t('early', {m: num})) : this.t('on_time'), none);
+    none ? this.t('no_warmup') : never ? this.t('not_warm') : m === null ? null : m > 0 ? (long ? this.t('late_hours', long) : this.t('late', {m: num}))
+     : m < 0 ? (long ? this.t('early_hours', long) : this.t('early', {m: num})) : this.t('on_time'), none || never);
   }
   const plain = (key, entity, label, v, unit) => {
    const num = v === null ? null : this.number(v, 1);

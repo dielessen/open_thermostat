@@ -2648,16 +2648,16 @@
         "name": "Batterij"
       },
       "shadow_e32_heating_time_today": {
-        "name": "E32-verwarmingstijd vandaag (proefperiode)"
+        "name": "E32-verwarmingstijd vandaag (proef)"
       },
       "shadow_tado_heating_time_today": {
-        "name": "Thermostaat-verwarmingstijd vandaag (proefperiode)"
+        "name": "Thermostaat-verwarmingstijd vandaag (proef)"
       },
       "shadow_e32_starts_today": {
-        "name": "E32-branderstarts vandaag (proefperiode)"
+        "name": "E32-branderstarts vandaag (proef)"
       },
       "shadow_tado_starts_today": {
-        "name": "Thermostaat-branderstarts vandaag (proefperiode)"
+        "name": "Thermostaat-branderstarts vandaag (proef)"
       },
       "shadow_agreement_today": {
         "name": "Overeenstemming met thermostaat vandaag"

@@ -58,7 +58,7 @@ const WORDS={
   tip:['Bij 6,5 °C buiten','34 °C','Geleerd voor je huis','38 °C','Standaard'],next:'Bij 7,5 °C buiten',values:'Toon de waarden',
   ring:'De E32 kent je huis: 70 %',knows:'De E32 kent je huis',more:'En nog 2.',missing:'Nog te leren',
   done:'Hij heeft alles geleerd wat hij nodig heeft; hij blijft het controleren als de seizoenen wisselen.',unknown:'De E32 heeft nog niet gemeld wat hij weet.'},
- pl:{title:'Temperatura wody a temperatura zewnętrzna',legend:['Standardowa','Wyuczona dla Twojego domu','Teraz'],now:['6,5 °C na zewnątrz → 34 °C','E32 zadaje 35 °C'],
+ pl:{title:'Temperatura wody a temperatura zewnętrzna',legend:['Standardowa','Wyuczona dla Twojego domu','Teraz'],now:['6,5 °C na zewnątrz → 34 °C','E32 żąda 35 °C'],
   house:'Oszacowana na podstawie Twojego domu',frost:['Przy −10 °C i 21 °C wewnątrz: 49 °C','o 8 °C chłodniej niż standardowo'],
   standardFrost:'Przy −10 °C i 21 °C wewnątrz: 57 °C',caption:/^Im zimniej na zewnątrz, tym cieplejsza woda\./,
   off:'Kompensacja pogodowa jest wyłączona; linie pokazują, czego by żądała.',waiting:'E32 jeszcze nie przekazał danych kompensacji pogodowej.',

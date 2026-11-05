@@ -157,7 +157,8 @@ async def test_the_reason_sensor_names_the_contact_and_carries_the_card_values(h
     assert entity.extra_state_attributes == {
         "room_id": "living", "line": "window_open_contact", "values": {"contact": "Back door", "since": since.isoformat()},
         "temperature": 20.6, "setpoint": 8.0, "presence": "room_away", "window": "open",
-        "valve_position": 40, "valve_problem": True, "program": None}
+        "valve_position": 40, "valve_problem": True, "program": None, "comfort_mode": "window_open",
+        "comfort_until": None}
     # The contact closed in HA while the E32 still pauses: the sentence without a name, never a wrong one.
     hass.states.async_set("binary_sensor.back_door", "off", {"friendly_name": "Back door", "device_class": "door"})
     assert entity.extra_state_attributes["line"] == "window_open" and entity.extra_state_attributes["values"] == {}

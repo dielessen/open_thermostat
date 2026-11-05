@@ -560,6 +560,11 @@ def test_the_trial_run_says_what_smart_warm_up_would_do(language):
     s.hub.update({**STATUS, "mode": "shadow"})
     texts = [line["text"] for line in s.extra_state_attributes["rooms"][0]["lines"]]
     assert planned in texts
+    # R4-13: before the takeover is confirmed the E32 heats nothing early either (the house card's driving()).
+    s.hub.update({**STATUS, "mode": "active", "active": {"state": "awaiting_confirmation"}})
+    texts = [line["text"] for line in s.extra_state_attributes["rooms"][0]["lines"]]
+    assert planned in texts
+    assert lo.trial_run({"mode": "active", "active": {"state": "active"}}) is False and lo.trial_run(None) is False
 
 
 FREE = {"rate": [None, 0.3, None, None, None, None], "n": [0, 6, 0, 0, 0, 0], "applied_min": 20}

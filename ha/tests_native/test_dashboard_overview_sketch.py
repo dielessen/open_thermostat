@@ -357,6 +357,34 @@ async def test_a_free_heat_morning_is_on_time_on_today(hass, clock, language):
         assert said != TODAY_CASES["late"][("en", "nl", "pl").index(language)]
 
 
+@pytest.mark.asyncio
+async def test_today_says_would_before_the_takeover_and_held_behind_hot_water(hass, clock):
+    """R4-13: before the takeover is confirmed (control awaiting_confirmation) the E32 heats nothing early, as in the
+    trial run: "would". A Reason that ranks above away or a holiday (hot water, a boiler pause, no measurement) still
+    holds the program: its comfort_mode says so, and Today says the away line, not a warm-up."""
+    config, rooms, hub, fields, flow, board = sketch(hass)
+    card = today_card(config)
+    living, start = rooms["woonkamer"], rooms["woonkamer"]["heating_start"]
+    hass.states.async_set(living["state"], "active", {})
+    hass.states.async_set(rooms["badkamer"]["state"], "inactive", {})
+    hass.states.async_set(flow["apply_learned"], "on", {})
+    hass.states.async_set(living["reason"], "warm_enough", {})
+    heating_start(hass, start, (5, 6, 10), (5, 7, 0))
+    first = lambda: render(hass, card).split("\n\n")[0].removeprefix(CLOCK)  # noqa: E731
+    hass.states.async_set(hub["heat_request"], "0", {"mode": "active", "control": "awaiting_confirmation"})
+    assert first() == TODAY_CASES["trial"][0]
+    hass.states.async_set(hub["heat_request"], "36", {"mode": "active", "control": "active"})
+    assert first() == "Tomorrow Woonkamer warms up from **06:10** to be 20.5 °C at **07:00**."
+    for comfort, until, said in (("away", local(9, 0, 0), TODAY_CASES["holiday"][0]), ("away", None, TODAY_CASES["away"][0]),
+                                 ("presence_away", None, TODAY_CASES["house_away"][0]),
+                                 ("window_open", None, TODAY_CASES["window_open"][0])):
+        for why in ("hot_water", "boiler_pause", "no_measurement"):
+            hass.states.async_set(living["reason"], why, {"values": {}, "comfort_mode": comfort, "comfort_until": until})
+            assert first() == said, (comfort, why)
+    hass.states.async_set(living["reason"], "hot_water", {"values": {}, "comfort_mode": "program", "comfort_until": None})
+    assert first() == "Tomorrow Woonkamer warms up from **06:10** to be 20.5 °C at **07:00**."
+
+
 LAST_WARM_UP = {
     # R1-6: 3 hours or more is the E32's "never warm" (it counts 3 hours).
     ("180", None, None): ("Yesterday it did not get warm within 3 hours.", "Gisteren werd het binnen 3 uur niet warm.",

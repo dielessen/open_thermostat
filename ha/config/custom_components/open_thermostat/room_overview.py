@@ -329,7 +329,7 @@ class RoomReasonSensor(RoomEntity, SensorEntity):
     _attr_icon = "mdi:comment-question-outline"
     # The card's live values; the history keeps the reason itself (the room's own sensors keep the rest).
     _unrecorded_attributes = frozenset({"values", "temperature", "setpoint", "presence", "window", "valve_position",
-                                        "valve_problem", "program"})
+                                        "valve_problem", "program", "comfort_mode", "comfort_until"})
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "reason")
@@ -417,4 +417,8 @@ class RoomReasonSensor(RoomEntity, SensorEntity):
                 "valve_position": round(sum(moved) / len(moved)) if moved else None,
                 "valve_problem": bool(problems(valves)) if valves else None,
                 # HA 1.0.0rc7: the week program now and its next step (program_step), for the room status card.
-                "program": self._program()}
+                "program": self._program(),
+                # The comfort mode itself (away, nobody home, open window) and a holiday's end: the Reason ranks no
+                # measurement, hot water and a boiler pause above them, while the E32 still holds the program (Today).
+                "comfort_mode": _dict(room.get("comfort")).get("mode"),
+                "comfort_until": _iso(_utc(_dict(room.get("comfort")).get("until")))}

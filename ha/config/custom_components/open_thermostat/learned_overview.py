@@ -684,6 +684,14 @@ def free_heat(learned, plan=None):
     return best[0], best[1], applied if type(applied) is int and 0 < applied <= 1440 else 0
 
 
+def trial_run(status):
+    """Whether the E32 heats nothing early: the trial run (mode ``shadow``) or, before the takeover is confirmed,
+    active control that waits (``active.state`` ``awaiting_confirmation``), as the house card's driving()."""
+    status = status if type(status) is dict else {}
+    active = status.get("active") if type(status.get("active")) is dict else {}
+    return status.get("mode") == "shadow" or active.get("state") == "awaiting_confirmation"
+
+
 def free_heat_later(learned, plan=None):
     """The minutes the free heat moves the room's next warm-up later (``free_heat.applied_min`` of the learned room,
     else of its plan; FreeHeat::shorten), 0 without."""
@@ -1003,7 +1011,7 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
         smart = smart_warm_up(self.hass, self.entry.entry_id) if getattr(self, "hass", None) is not None else None
         day, today = local_day(self.hass) if getattr(self, "hass", None) is not None and self._clock is None else (None, None)
         active = [(room_id, name) for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
-        trial = (self.hub.status or {}).get("mode") == "shadow"  # the trial run: the E32 heats nothing early
+        trial = trial_run(self.hub.status)  # the trial run or a takeover not confirmed yet: the E32 heats nothing early
         currency = getattr(getattr(getattr(self, "hass", None), "config", None), "currency", None)
         rooms = [room_overview(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id), lang, clock, smart,
                                day, today, room_id, self.hub.rooms[room_id].get("comfort"), trial, currency)

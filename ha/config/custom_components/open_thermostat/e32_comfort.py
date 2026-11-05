@@ -861,7 +861,7 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             return None
         from .e32_flow import smart_warm_up
         from .learned_overview import (HELD_MODES, arrival_line, free_heat_later, language, local_clock, local_day,
-                                       smart_warm_up_line)
+                                       smart_warm_up_line, trial_run)
         plan = self.hub.warmup.get(self.room_id) if type(getattr(self.hub, "warmup", None)) is dict else None
         plan = plan if type(plan) is dict else {}
         lang, clock = language(self.hass), local_clock(self.hass)
@@ -870,7 +870,7 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         comfort = (self.hub.rooms.get(self.room_id) or {}).get("comfort")
         comfort = comfort if type(comfort) is dict else {}
         held = comfort.get("mode") in HELD_MODES or comfort.get("window") == "open"
-        trial = (self.hub.status or {}).get("mode") == "shadow"
+        trial = trial_run(self.hub.status)
         later = free_heat_later((getattr(self.hub, "learned", None) or {}).get(self.room_id), plan)
         line = None if held else smart_warm_up_line(plan.get("optimum_start"),
                                                     smart_warm_up(self.hass, self.entry.entry_id), lang, clock, trial, later)

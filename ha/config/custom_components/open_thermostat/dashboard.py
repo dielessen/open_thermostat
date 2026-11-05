@@ -1884,6 +1884,9 @@ def _duration(t, minutes):
 # the E32 does not do. The E32's own telemetry plan still says "planned" then.
 HELD_REASONS = {"away": "today_away", "room_away": "today_nobody", "house_away": "today_nobody",
                 "away_return": "today_return", "window_open": "today_window"}
+# The room's comfort mode behind a Reason that ranks above it (no measurement, hot water, a boiler pause): the E32
+# holds the program all the same. Away is a holiday when it has an end.
+HELD_COMFORT = {"away": "holiday", "presence_away": "house_away", "window_open": "window_open"}
 NOT_WARM_MIN = 180  # ArrivalLearner: a room not warm within 3 hours counts as 3 hours late
 
 
@@ -1924,9 +1927,12 @@ def _warm_up_line(t, name, start, state=None, warm=None, smart=None, reason=None
     room is warm enough already; the E32 has no cooling model yet and plans from the room's temperature now, so the
     start moves earlier as it cools, and the line says so. A start no morning has judged yet (estimate) says
     "(estimate)", as the Learning tab does; a start that cannot reach the target in time says it may come a little
-    later. In the trial run (the heat request's mode ``shadow``) the E32 heats nothing early: "would warm up".
-    While the room's Reason (``reason``) is away, nobody home, an open window or warming up for the end of a holiday,
-    the E32 does no early start (RoomOverrides::holdsProgram), so the line says that instead. A program step on
+    later (with free heat the sensor leaves that flag out: it is for the start without it). In the trial run (the
+    heat request's mode ``shadow``) and before the takeover is confirmed (its ``control`` awaiting_confirmation) the
+    E32 heats nothing early: "would warm up". While the room's Reason (``reason``) is away, nobody home, an open
+    window or warming up for the end of a holiday, or its ``comfort_mode`` is one of them behind a Reason that ranks
+    higher (hot water, a boiler pause), the E32 does no early start (RoomOverrides::holdsProgram), so the line says
+    that instead. A program step on
     another day than the start says its day ("at 00:30 tomorrow"). Nothing while the start is unknown (no step up
     within 24 hours) or the room is off (``state``, its on/off select); _today_section shows the card on the same
     terms.
@@ -1934,15 +1940,23 @@ def _warm_up_line(t, name, start, state=None, warm=None, smart=None, reason=None
     q, room = json.dumps(start), json.dumps(name, ensure_ascii=False)
     on = " and not is_state(" + json.dumps(state) + ", 'inactive')" if state else ""
     off = "is_state(" + json.dumps(smart) + ", 'off')" if smart else "false"
-    trial = "is_state_attr(" + json.dumps(request) + ", 'mode', 'shadow')" if request else "false"
+    # The trial run, or active control before the takeover is confirmed: the E32 heats nothing early (house card).
+    trial = ("(is_state_attr(" + json.dumps(request) + ", 'mode', 'shadow') or is_state_attr(" + json.dumps(request)
+             + ", 'control', 'awaiting_confirmation'))") if request else "false"
     step = {"room": room, "time": _clock("w"), "target": _degrees(t, "g")}
     # The step's time with its day when that is not the start's day: "at **00:30 tomorrow**".
     later = {**step, "time": "wt"}
     held = ""
     if reason:
         r = json.dumps(reason)
-        held = ("{% set why = states(" + r + ") %}{% if why == 'holiday' %}"
-                "{% set u = (state_attr(" + r + ", 'values') or {}).get('until') %}"
+        # The Reason ranks no measurement, hot water and a boiler pause above away and holiday, while the E32 still
+        # holds the program: its comfort_mode says so then (a holiday is away with an end, comfort_until).
+        held = ("{% set why = states(" + r + ") %}{% set cm = state_attr(" + r + ", 'comfort_mode') %}"
+                "{% if why not in " + json.dumps(["holiday", *HELD_REASONS]) + " and cm in "
+                + json.dumps(list(HELD_COMFORT)) + " %}{% set why = " + json.dumps(HELD_COMFORT) + "[cm] %}{% endif %}"
+                "{% if why == 'holiday' %}"
+                "{% set u = (state_attr(" + r + ", 'values') or {}).get('until') or state_attr(" + r
+                + ", 'comfort_until') %}"
                 "{% set u = as_datetime(u, none) if u else none %}"
                 "{% if u is not none %}{% set u = as_local(u) %}{{ "
                 + _jinja_text(t["today_holiday"], room=room, date=_date(t, "u")) + " }}"

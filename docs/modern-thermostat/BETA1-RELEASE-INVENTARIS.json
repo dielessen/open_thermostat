@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "cf0e860072fa35edb0109e8702918903b5886a6a8fda21e426ffc2348b9d73e0"
+          "sha256": "0a1bf35c5f3d3285d130149cfa0ac35681b4c0c3458af75cafc824ad01121e79"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -647,7 +647,7 @@
         },
         {
           "path": "scripts/publish_hacs_repo.py",
-          "sha256": "27f0868104dcad2334207490477529428a159014a39c737cd2cbfeff7f7a61dd"
+          "sha256": "fdd37dfb918750151ee4b6d680d7a29324873321aa6557d4ea5aaaaa9bb391eb"
         },
         {
           "path": "src/LearnedStore.h",
@@ -759,7 +759,7 @@
         },
         {
           "path": "scripts/test_publish_hacs_repo.py",
-          "sha256": "f8b239f174c55813bee5daa5ea717b89d6f0a34f63dfeadc99abfbe24c8da50a"
+          "sha256": "444a36257c9a905ddad7899d0b1cffa2c3daa054d38ca9083cf1e127b88b2bcf"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/room-status-card.js",
@@ -779,7 +779,7 @@
         },
         {
           "path": "test/dashboard-views-browser.cjs",
-          "sha256": "5574cd702b12983aea292cb279ff8a8156e3308adcab949434537fd4e6dac25a"
+          "sha256": "7b89b027dcf1a27d3c189e06fb3c51e298d98b740bdbe94c9ec83641f1b39de9"
         },
         {
           "path": "test/ha-room-status-card-browser.cjs",
@@ -1934,6 +1934,22 @@
         {
           "path": "docs/img/screenshots/ha-week-card-rc2.png",
           "sha256": "3ad4a7e9982f6922e4f32f8bd0009017befc58fe4ee8dae684590801458e3299"
+        },
+        {
+          "path": "docs/img/screenshots/ha-dashboard-boiler-rc5.png",
+          "sha256": "88ec750410b5dbebbaddd5b86af8870217b1e64eeb8af8a0dc2f9fe05ed20b36"
+        },
+        {
+          "path": "docs/img/screenshots/ha-dashboard-learning-rc5.png",
+          "sha256": "4dd84dd778166510358dbb753576ec450277f258b9361757503d21693f85e2d7"
+        },
+        {
+          "path": "docs/img/screenshots/ha-dashboard-phone-dark-rc5.png",
+          "sha256": "0698248370484be118aff74cd7b933996cda430d7c0ce942206c985807ba3b5e"
+        },
+        {
+          "path": "docs/img/screenshots/ha-dashboard-rc5.png",
+          "sha256": "b434697190f1094fff555db9b2de829d518c45c878ee4e74a12a83784af9fdbb"
         }
       ],
       "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open. Voor volgende release:60 presentatiekeuzes uit31 EMS-ESP-productgroepen plus officiële keteldocumentatie; bronverwijzingen behouden, afbeelding buiten ESP. Nieuwe modellen niet als ondersteunde driver gekwalificeerd; modelafbeeldingen en functionele profielimport/opslag nog open. Vier oorspronkelijke modelafbeeldingen voor vijf keuzes met bronvermelding; modellen met onzekere afbeelding en Ecomline Classic HRC22H blijven zonder foto. Geen generieke vervanging of firmware-installatie. Beta6-ontwikkeling: build-time gzip/ETag, beperkte luie paginamodules en verborgen-tab-pollpauze gebouwd; HTTP-/browserfixtures en echte E32-build getoetst. Snellere werking op de echte E32 moet na afzonderlijke installatie nog opnieuw worden gemeten; niets geïnstalleerd."

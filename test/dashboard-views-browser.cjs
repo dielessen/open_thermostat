@@ -46,6 +46,12 @@ const html=(view,hidden,width)=>{
   .heading{background:none;box-shadow:none;padding:4px 0;font-size:15px}.tile,.statistic,.gauge{background:var(--tile)}.markdown{background:var(--note)}
   .thermostat,.history-graph,.statistics-graph{background:var(--chart)}</style><h1>${view.title}</h1><div class="view">${sections}</div>`;
 };
+// The screenshots are evidence for a look by eye, not the assertion. Chromium now and then answers
+// Page.captureScreenshot with "Unable to capture screenshot" while its compositor is still busy (GitHub's Ubuntu 26
+// runner, 5 Nov 2026, once in about forty runs of this test); try again after a pause, and give up on a third refusal.
+const shot=async(page,file)=>{for(let attempt=1;;attempt++){
+ try{return await page.screenshot({path:file,fullPage:true});}
+ catch(e){if(attempt>=3||!/capture screenshot/i.test(String(e&&e.message)))throw e;await page.waitForTimeout(400*attempt);}}};
 (async()=>{
  fs.mkdirSync(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[],problems=[];
  try{for(const lang of Object.keys(config))for(const view of config[lang].views)if(view.sections)for(const width of [390,1280])for(const hidden of [false,true]){
@@ -91,10 +97,10 @@ const html=(view,hidden,width)=>{
   }
   const file=`${lang}-${view.path}-${width}${hidden?'-conditional-hidden':''}.png`;
   if(!hidden){
-   await page.screenshot({path:path.join(out,file),fullPage:true});
+   await shot(page,path.join(out,file));
    // The same layout in the dark scheme (only the colours change), for a look by eye.
    await page.emulateMedia({colorScheme:'dark'});
-   await page.screenshot({path:path.join(out,file.replace('.png','-dark.png')),fullPage:true});
+   await shot(page,path.join(out,file.replace('.png','-dark.png')));
   }
   results.push({lang,view:view.path,width,hidden,problems:found});
   for(const message of found)problems.push(`${lang} ${view.path} ${width}${hidden?' (conditional cards hidden)':''}: ${message}`);

@@ -70,6 +70,8 @@ TEXT = {
         "state.active": "The thermostat adjusts its settings itself, at most one small step a day.",
         "state.none": "Nothing changed yet: the start values still fit, or there is not enough to go on.",
         "learned": "Learned", "learning": "Learning: {n} of {m} warm-ups seen",
+        "learning_seen": "Learning: {n} warm-ups seen; it still needs warm-ups on other days or at another water temperature",
+        "learning_timing": "Warm-up time learned; the coolest water is still being learned",
         "learning_more": "It needs a few more warm-ups, on other days or at other water temperatures.",
         "learning_first": "It learns from every warm-up while the heating runs.",
         "learning_mean": "Until then it uses safe standard times.",
@@ -169,6 +171,8 @@ TEXT = {
         "state.active": "De thermostaat past zijn instellingen zelf aan, hooguit één kleine stap per dag.",
         "state.none": "Nog niets aangepast: de beginwaarden passen nog, of er is nog te weinig om op af te gaan.",
         "learned": "Geleerd", "learning": "Aan het leren: {n} van {m} keer opwarmen gezien",
+        "learning_seen": "Aan het leren: {n} keer opwarmen gezien; hij moet nog opwarmen zien op andere dagen of bij een andere watertemperatuur",
+        "learning_timing": "Opwarmtijd geleerd; het koelste water leert hij nog",
         "learning_more": "Hij heeft nog een paar keer opwarmen nodig, op andere dagen of bij andere watertemperaturen.",
         "learning_first": "Hij leert van elke keer opwarmen terwijl de verwarming aan staat.",
         "learning_mean": "Tot dan gebruikt hij veilige standaardtijden.",
@@ -269,6 +273,8 @@ TEXT = {
         "state.active": "Termostat sam dostosowuje swoje ustawienia, najwyżej o jeden mały krok dziennie.",
         "state.none": "Jeszcze nic nie zmieniono: wartości początkowe nadal pasują albo jest za mało danych.",
         "learned": "Wyuczone", "learning": "Uczy się: widziano {n} z {m} nagrzewań",
+        "learning_seen": "Uczy się: widziano {n} nagrzewań; potrzebuje jeszcze nagrzewań w inne dni lub przy innej temperaturze wody",
+        "learning_timing": "Czas nagrzewania wyuczony; najchłodniejszej wody wciąż się uczy",
         "learning_more": "Potrzebuje jeszcze kilku nagrzewań, w inne dni lub przy innych temperaturach wody.",
         "learning_first": "Uczy się z każdego nagrzewania, gdy ogrzewanie pracuje.",
         "learning_mean": "Do tego czasu używa bezpiecznych czasów standardowych.",
@@ -587,7 +593,16 @@ def room_overview(name, learned, plan, lang, clock, smart=None, day=None, today=
                   if _ok(night.get("saving_eur")) and night["saving_eur"] > 0 else t["saving"].format(m3=m3))
         lines.append(_line(t["night_hold"].format(night=number(night["recommended_night_c"], lang), saving=saving) if hold
                            else t["night_program"], t["night_mean"]))
-    progress = t["learned"] if ready else t["learning"].format(n=seen, m=WARMUPS_TO_LEARN)
+    # "6 of 6" read as finished while the E32 still waits for other days or a second water temperature
+    # (FlowLearner readiness: 6 warm-ups in 3 heating periods and 2 water temperatures): then say what is missing.
+    if ready:
+        progress = t["learned"]
+    elif learned.get("readiness_timing") == "ready":
+        progress = t["learning_timing"]
+    elif seen >= WARMUPS_TO_LEARN:
+        progress = t["learning_seen"].format(n=learned["segments"])
+    else:
+        progress = t["learning"].format(n=seen, m=WARMUPS_TO_LEARN)
     return {"name": name, "progress": progress, "lines": lines}
 
 

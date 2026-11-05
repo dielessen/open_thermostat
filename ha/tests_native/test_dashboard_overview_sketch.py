@@ -98,9 +98,12 @@ def local(day, hour, minute):
     return datetime(2026, 11, day, hour, minute, tzinfo=ZONE).astimezone(ZoneInfo("UTC")).isoformat()
 
 
-def heating_start(hass, entity, start, switch=None, target=20.5, start_now=False):
-    """The room's "Heating starts" sensor: the planned start, the program step it is for (rc.2) and start_now."""
-    attributes = {"reason": "planned", "lead_minutes": 50, "start_now": start_now}
+def heating_start(hass, entity, start, switch=None, target=20.5, start_now=False, lead=50, estimate=None):
+    """The room's "Heating starts" sensor: the planned start, the program step it is for (rc.2), start_now, the lead
+    (minutes before the step) and, when given, estimate (E32 rc.4: a start no morning has judged yet)."""
+    attributes = {"reason": "planned", "lead_minutes": lead, "start_now": start_now}
+    if estimate is not None:
+        attributes["estimate"] = estimate
     if switch:
         attributes.update(switch_at=local(*switch), target_c=target)
     hass.states.async_set(entity, local(*start) if start else "unknown", attributes)
@@ -248,6 +251,57 @@ async def test_today_says_every_case_of_a_warm_up_in_plain_words(hass, clock):
     hass.states.async_set(flow["apply_learned"], "off", {})
     assert ("Woonkamer: 7 lis grzanie od **7:00** do 21 °C (Inteligentne nagrzewanie wyłączone). Wczoraj ciepło 3 min za "
             "późno.") in render(hass, polish)
+
+
+# rc7: the owner's card said "Tomorrow Woonkamer warms up from 9:00 to be 20.5 °C at 9:00.": the room was at the
+# step's target already, so the lead was 0. The E32 has no cooling model yet and plans from the temperature now, so
+# that start moves earlier as the room cools; the line says so. A start no morning has judged yet says "(estimate)",
+# as the Learning tab does (learned_overview.py warmup_ready and warmup_estimate).
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language, ready, estimate, plain", [
+    ("en", "Tomorrow Woonkamer is warm enough for 20.5 °C at **9:00**; if it cools down before then, the warm-up starts "
+           "earlier.",
+     "Tomorrow Woonkamer warms up from **6:10** (estimate) to be 20.5 °C at **7:00**.",
+     "Tomorrow Woonkamer warms up from **6:10** to be 20.5 °C at **7:00**."),
+    ("nl", "Morgen is Woonkamer warm genoeg voor 20,5 °C om **9:00**; koelt de ruimte voor die tijd af, dan begint het "
+           "opwarmen eerder.",
+     "Morgen warmt Woonkamer vanaf **6:10** (schatting) op om **7:00** op 20,5 °C te zijn.",
+     "Morgen warmt Woonkamer vanaf **6:10** op om **7:00** op 20,5 °C te zijn."),
+    ("pl", "Woonkamer: jutro jest dość ciepło na 20,5 °C o **9:00**; jeśli pomieszczenie wcześniej się wychłodzi, "
+           "nagrzewanie zacznie się wcześniej.",
+     "Woonkamer: jutro nagrzewanie od **6:10** (szacunek), aby o **7:00** było 20,5 °C.",
+     "Woonkamer: jutro nagrzewanie od **6:10**, aby o **7:00** było 20,5 °C."),
+])
+async def test_today_says_warm_enough_and_estimate_in_plain_words(hass, clock, language, ready, estimate, plain):
+    config, rooms, hub, fields, flow, board = sketch(hass, language)
+    card = today_card(config, language)
+    living, start = rooms["woonkamer"], rooms["woonkamer"]["heating_start"]
+    hass.states.async_set(living["state"], "active", {})
+    hass.states.async_set(rooms["badkamer"]["state"], "inactive", {})
+    hass.states.async_set(flow["apply_learned"], "on", {})
+    first = lambda: render(hass, card).split("\n\n")[0].removeprefix(CLOCK)  # noqa: E731
+    # No lead: the start is the step's own time; never "from 9:00 to be ... at 9:00".
+    heating_start(hass, start, (5, 9, 0), (5, 9, 0), lead=0)
+    assert first() == ready
+    heating_start(hass, start, (5, 9, 0), (5, 9, 0), lead=0, estimate=True)
+    assert first() == ready
+    heating_start(hass, start, (5, 9, 0), (5, 9, 0), lead=None)  # the start alone says it as well
+    assert first() == ready
+    # No lead but the E32 heats now anyway: warming up now, as before.
+    heating_start(hass, start, (4, 14, 40), (4, 15, 0), 21, start_now=True, lead=0)
+    assert first() == TEXT[language]["warm_up_now"].replace("{room}", "Woonkamer").replace(
+        "{target}", "21").replace("{time}", "15:00")
+    # A start no morning has judged yet; one that has (or firmware without "estimate"): the plain line.
+    heating_start(hass, start, (5, 6, 10), (5, 7, 0), estimate=True)
+    assert first() == estimate
+    for judged in (False, None):
+        heating_start(hass, start, (5, 6, 10), (5, 7, 0), estimate=judged)
+        assert first() == plain, judged
+    # Smart warm-up off says so whatever the lead.
+    hass.states.async_set(flow["apply_learned"], "off", {})
+    heating_start(hass, start, (5, 9, 0), (5, 9, 0), lead=0)
+    off = {"en": "(Smart warm-up is off)", "nl": "(Slim opwarmen staat uit)", "pl": "(Inteligentne nagrzewanie wyłączone)"}
+    assert first().endswith(off[language] + ".") and "**9:00**" in first()
 
 
 @pytest.mark.asyncio
@@ -410,7 +464,7 @@ async def test_without_a_house_card_what_it_replaces_heads_the_overview(hass):
 
 def test_every_new_word_is_in_english_dutch_and_polish():
     keys = ("today", "home_or_away", "holiday", "plan", "when_today", "when_tomorrow", "when_date", "warm_up_at",
-            "warm_up_now", "warm_up_from", "warm_up_off", "arrived_late", "arrived_late_one", "arrived_early",
+            "warm_up_estimate", "warm_up_ready", "warm_up_now", "warm_up_from", "warm_up_off", "arrived_late", "arrived_late_one", "arrived_early",
             "arrived_early_one", "arrived_on_time", "weather_outside", "weather_asks", "weather_off", "line_standard",
             "line_house", "line_learned", "line_follows", "line_follows_n")
     for language in ("en", "nl", "pl"):
@@ -421,7 +475,11 @@ def test_every_new_word_is_in_english_dutch_and_polish():
     assert "weather compensation" in TEXT["en"]["weather_asks"] and "weerafhankelijke regeling" in TEXT["nl"]["weather_asks"]
     assert "kompensacja pogodowa" in TEXT["pl"]["weather_asks"]
     # Polish puts the room's name before a colon, so the sentence fits any name.
-    assert all(TEXT["pl"][key].startswith("{room}: ") for key in ("warm_up_at", "warm_up_now", "warm_up_from", "warm_up_off"))
+    assert all(TEXT["pl"][key].startswith("{room}: ") for key in ("warm_up_at", "warm_up_estimate", "warm_up_ready",
+                                                                   "warm_up_now", "warm_up_from", "warm_up_off"))
+    # "estimate" in the glossary's words, as the Learning tab says it.
+    assert [TEXT[lang]["warm_up_estimate"].count(word) for lang, word in
+            (("en", "(estimate)"), ("nl", "(schatting)"), ("pl", "(szacunek)"))] == [1, 1, 1]
     for words in (TEXT["en"], TEXT["nl"], TEXT["pl"]):
         assert not any(term in words[key].lower() for key in keys for term in ("shadow", "setpoint", "flow temperature"))
     assert UNKNOWN == ("unavailable", "unknown")

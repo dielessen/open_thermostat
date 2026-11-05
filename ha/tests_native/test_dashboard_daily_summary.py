@@ -82,6 +82,9 @@ async def test_yesterday_in_figures_renders_the_summary_as_list_lines(hass):
                     "Outdoor 3.1 to 9.4 °C.\n"
                     "- Woonkamer: asked for heat 6.0 h; warm after 25 min on average; missed comfort 0 min.\n"
                     "- Badkamer: asked for heat 0.0 h; missed comfort 0 min.")
+    # rc7: one outdoor temperature all day is that temperature, not "Outdoor 5.0 to 5.0 °C".
+    hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "outdoor": {"min": 5.0, "max": 5.0}}})
+    assert "Outdoor 5.0 °C.\n" in Template(card["content"], hass).async_render(parse_result=False)
     hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "complete": False, "rooms": []}})
     assert Template(card["content"], hass).async_render(parse_result=False).endswith(
         "\n\n_Partial day: the E32 was not heard all day, so the figures are incomplete._")
@@ -204,6 +207,8 @@ async def test_yesterday_in_figures_in_dutch(hass):
         "- Brander 7,4 uur, 21 starts (0 korter dan 10 minuten). Gas: verwarmen 1,25 m³, warm water 0,5 m³. "
         "Buiten 4,5 tot 10,0 °C.\n"
         "- Woonkamer: vroeg 7,0 uur warmte; gemiddeld na 25 min op temperatuur; gemiste comfort 4 min.")
+    hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "outdoor": {"min": 4.5, "max": 4.5}}})
+    assert " Buiten 4,5 °C." in Template(cards[1]["content"], hass).async_render(parse_result=False)
     assert [c["title"] for c in cards if c.get("type") == "statistics-graph"] == ["Gemiste comfort per dag (minuten)"]
     today = heading_section(view(config, "boiler"), "Vandaag en deze week")
     assert "Branderuren per dag" in [c.get("title") for c in today]

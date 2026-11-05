@@ -437,8 +437,8 @@ def test_shadow_sensor_names_are_translated():
     assert names["strings.json"] == ["E32 heating time today (trial run)", "Thermostat heating time today (trial run)",
                                      "E32 burner starts today (trial run)", "Thermostat burner starts today (trial run)",
                                      "Agreement with thermostat today"]
-    assert names["translations/nl.json"] == ["E32-verwarmingstijd vandaag (proef)",
-                                             "Thermostaat-verwarmingstijd vandaag (proef)",
+    assert names["translations/nl.json"] == ["E32-stooktijd vandaag (proef)",
+                                             "Thermostaat-stooktijd vandaag (proef)",
                                              "E32-branderstarts vandaag (proef)",
                                              "Thermostaat-branderstarts vandaag (proef)",
                                              "Overeenstemming met thermostaat vandaag"]

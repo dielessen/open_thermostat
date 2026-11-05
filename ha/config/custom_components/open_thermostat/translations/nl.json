@@ -2658,10 +2658,10 @@
         "name": "Batterij"
       },
       "shadow_e32_heating_time_today": {
-        "name": "E32-verwarmingstijd vandaag (proef)"
+        "name": "E32-stooktijd vandaag (proef)"
       },
       "shadow_tado_heating_time_today": {
-        "name": "Thermostaat-verwarmingstijd vandaag (proef)"
+        "name": "Thermostaat-stooktijd vandaag (proef)"
       },
       "shadow_e32_starts_today": {
         "name": "E32-branderstarts vandaag (proef)"

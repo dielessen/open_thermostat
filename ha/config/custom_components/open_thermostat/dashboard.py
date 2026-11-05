@@ -2413,7 +2413,11 @@ class RoomDashboard:
                  "gas": [hub[key] for key in ("heating_gas", "hot_water_gas") if key in hub],
                  "starts": hub.get("daily_burner_starts"), "mode": house_mode, "problem": problem,
                  "rooms": [{"entity": e32_room_entities[inline]["reason"],
-                            "name": self._room_name(inline, heating_hub, label)}] if inline else None}
+                            "name": self._room_name(inline, heating_hub, label)}] if inline else None,
+                 # HA 1.0.0rc7, the rest of the desktop sketch: the band's burner power and display code ("burner 37 %
+                 # · code -H"), the hot water's temperature and the burner starts in the last hour (the Boiler tab's).
+                 "modulation": essential("modulation"), "code": essential("code"), "dhw": essential("dhw"),
+                 "starts_hour": hub.get("burner_starts_last_hour")}
         # Across the whole view on a wide screen too, as the sketch (the section spans both columns).
         house_card = (_full({"type": HOUSE_CARD_TYPE, **{key: value for key, value in reads.items() if value}})
                       if request or activity else None)

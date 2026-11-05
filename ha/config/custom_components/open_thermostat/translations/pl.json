@@ -1598,6 +1598,16 @@
               "away": "Nieobecność",
               "holiday": "Urlop"
             }
+          },
+          "program": {
+            "name": "Program tygodniowy",
+            "state": {
+              "comfort": "Komfort",
+              "eco": "Eko",
+              "night": "Noc",
+              "holiday": "Urlop",
+              "step": "{level} do {time}, potem {next}"
+            }
           }
         }
       },
@@ -1667,7 +1677,7 @@
               "legend_heating": "Ogrzewanie",
               "legend_hot_water": "Ciepła woda",
               "legend_keep_warm": "Podtrzymanie",
-              "waiting": "E32 jeszcze niczego nie przekazał.",
+              "waiting": "E32 się nie odzywa.",
               "now": "teraz",
               "warm": "{room}: ciepło",
               "early": "{m} min za wcześnie",
@@ -1675,8 +1685,20 @@
               "on_time": "na czas",
               "degree_days": "Stopniodni",
               "target": "cel {t} °C",
-              "per_day": "{n} dni: {value} dziennie",
-              "today_since": "Dziś od północy"
+              "per_day": "Średnio {value} dziennie (z ostatnich {n} dni)",
+              "today_since": "Dziś od północy",
+              "burner": "palnik {n} %",
+              "code": "kod {code}",
+              "water": "woda {t} °C",
+              "last_hour": "{n} w ostatniej godzinie",
+              "would_ask": "E32 zażądałby {flow} °C",
+              "no_wish": "E32 nie żądałby ciepła",
+              "tap_open": "Ciepła woda: pobór",
+              "keeping_warm": "Podtrzymanie ciepłej wody",
+              "gas_estimate": "Gaz dziś (szacunek)",
+              "no_warmup": "wczoraj bez nagrzewania",
+              "late_hours": "{h} godz. {m} min za późno",
+              "early_hours": "{h} godz. {m} min za wcześnie"
             }
           }
         }
@@ -2546,7 +2568,9 @@
               "starts": "Starty w ostatniej godzinie",
               "calm": "spokojnie",
               "often": "włącza się zbyt często",
-              "today": "dziś {n}"
+              "today": "dziś {n}",
+              "no_e32": "Brak danych z E32",
+              "resting": "Spoczynek"
             }
           }
         }

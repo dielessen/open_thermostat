@@ -3,8 +3,9 @@
 The card stands alone on top of the Overview, without a heading (the owner's sketch, P18: the House section with the
 house mode is further down, test_dashboard_overview_sketch.py), and reads only Home Assistant: the heat request, what
 the boiler does, the boiler's heating and hot-water bits, the water temperature to heating, today's taps, the gas
-sensors, today's burner starts, the house mode and the heating problem; a key is in its config only when its entity is
-in the registry. It takes the place of the rooms-that-want-heat card and the problem tile with its reasons, which stay
+sensors, today's burner starts, the house mode and the heating problem, and (HA 1.0.0rc7, the rest of the desktop
+sketch) the burner power, the display code, the hot water's temperature and the starts in the last hour; a key is in its
+config only when its entity is in the registry. It takes the place of the rooms-that-want-heat card and the problem tile with its reasons, which stay
 only for a house card that cannot be built (no heat request and no boiler activity). A house with exactly one room
 switched on shows that room in the card as a summary; as the sketch, every room keeps its status card under Rooms too,
 the rooms that are on first. What the card draws from these entities is checked in a browser by
@@ -103,7 +104,11 @@ async def test_the_house_card_heads_the_overview_and_reads_every_entity_it_needs
         "activity": hub["boiler_activity"], "heating": fields["heating_active"],
         "flow": fields["measured_flow_temperature"], "hot_water": fields["dhw_active"], "taps": hub["dhw_taps_today"],
         "gas": [hub["heating_gas"], hub["hot_water_gas"]], "starts": hub["daily_burner_starts"],
-        "mode": hub["house_mode"], "problem": hub["heating_problem"]}
+        "mode": hub["house_mode"], "problem": hub["heating_problem"],
+        # HA 1.0.0rc7, the rest of the desktop sketch: the burner power and display code on the band, the hot water's
+        # temperature and the starts in the last hour under their figures (the Boiler tab's own entities).
+        "modulation": fields["reported_burner_modulation"], "code": fields["display_code"],
+        "dhw": fields["measured_dhw_temperature"], "starts_hour": hub["burner_starts_last_hour"]}
     assert "visibility" not in card(config)  # always there: it says itself when the E32 has not reported yet
     assert overview(config)["sections"][0]["column_span"] == 3 and "visibility" not in overview(config)["sections"][0]
     house_section = overview(config)["sections"][-1]["cards"]
@@ -124,7 +129,8 @@ async def test_the_house_card_heads_the_overview_and_reads_every_entity_it_needs
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("case", ["no gas", "no boiler activity", "no boiler fields", "older firmware", "no request"])
+@pytest.mark.parametrize("case", ["no gas", "no boiler activity", "no boiler fields", "older firmware", "no request",
+                                  "no starts per hour"])
 async def test_the_card_reads_only_what_the_registry_has(hass, case):
     """Each key is there only with its entity: another boiler, another E32 or a disabled sensor draws less."""
     hub_keys, missing, extra = HUB, set(), {}
@@ -133,14 +139,17 @@ async def test_the_card_reads_only_what_the_registry_has(hass, case):
     elif case == "no boiler activity":
         hub_keys, missing = tuple(item for item in HUB if item[1] != "boiler_activity"), {"activity"}
     elif case == "no boiler fields":
-        extra, missing = {"no_fields": True, "fields_keys": ()}, {"heating", "hot_water", "flow"}
+        extra, missing = {"no_fields": True, "fields_keys": ()}, {"heating", "hot_water", "flow", "modulation", "code", "dhw"}
     elif case == "older firmware":  # no hot water today and no daily figures (before beta.23 and 1.0)
         hub_keys = tuple(item for item in HUB if item[1] not in ("dhw_taps_today", "daily_burner_starts"))
         missing = {"taps", "starts"}
+    elif case == "no starts per hour":
+        extra, missing = {"remove": ("burner_starts_last_hour",)}, {"starts_hour"}
     else:
         extra, missing = {"remove": ("heat_request",)}, {"request"}
     config, rooms, hub, fields, board, _ = house(hass, hub_keys=hub_keys, **extra)
-    keys = {"request", "activity", "heating", "flow", "hot_water", "taps", "gas", "starts", "mode", "problem"}
+    keys = {"request", "activity", "heating", "flow", "hot_water", "taps", "gas", "starts", "mode", "problem",
+            "modulation", "code", "dhw", "starts_hour"}
     assert set(card(config)) - {"type", "grid_options"} == keys - missing
 
 
@@ -316,9 +325,20 @@ def test_the_card_texts_are_in_every_language_with_the_same_placeholders():
     assert nl["legend_keep_warm"] == "Warmhouden" and pl["legend_keep_warm"] == "Podtrzymanie"
     # The words of the owner's sketch (rc.5 design, Main and Leren).
     assert (nl["today_since"], nl["now"], nl["target"], nl["per_day"]) == (
-        "Vandaag sinds middernacht", "nu", "doel {t} °C", "{n} dagen: {value} per dag")
+        "Vandaag sinds middernacht", "nu", "doel {t} °C", "Gemiddeld {value} per dag (afgelopen {n} dagen)")
+    # R3 review: the E32 silent, the trial run, the glossary's hot water words, an estimate named, long minutes.
+    assert (english["waiting"], nl["waiting"], pl["waiting"]) == (
+        "The E32 is not reporting.", "De E32 meldt zich niet.", "E32 się nie odzywa.")
+    assert (nl["would_ask"], nl["tap_open"], nl["keeping_warm"], nl["gas_estimate"], nl["late_hours"]) == (
+        "E32 zou {flow} °C vragen", "Warm water: kraan open", "Warm water warmhouden", "Gas vandaag (schatting)",
+        "{h} u {m} min te laat")
     assert (nl["warm"], nl["early"], nl["late"], nl["degree_days"]) == (
         "{room} warm", "{m} min te vroeg", "{m} min te laat", "Graaddagen")
+    # HA 1.0.0rc7, the desktop sketch: "brander 37 % · code -H", "boiler 65 °C", "1 in het laatste uur".
+    assert (nl["burner"], nl["code"], nl["water"], nl["last_hour"]) == (
+        "brander {n} %", "code {code}", "boiler {t} °C", "{n} in het laatste uur")
+    assert (english["burner"], english["water"], pl["burner"], pl["code"]) == (
+        "burner {n} %", "water {t} °C", "palnik {n} %", "kod {code}")
     # The Yesterday figures are labelled by their sensors' own names; the card's English last resort is the same.
     names = dict(re.findall(r"(\w+): '([^']*)'", re.search(r"const NAMES = \{(.*?)\};", CARD, re.S)[1]))
     sensors = json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))["entity"]["sensor"]

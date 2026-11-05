@@ -85,16 +85,21 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
       letters: orange while heating (with the water temperature), blue for
       hot water, grey for "Boiler resting". The house mode is on the right of
       the band; tap it to open the house mode control. While rooms want heat,
-      a second line says how many and what the boiler request is. A problem
-      comes first: the band turns red and says "Attention" with the first
-      reason. Tap it to open Repairs; **All reasons** lists every reason.
+      a second line says how many and what the boiler request is. The band
+      also says how hard the burner works and the boiler's display code
+      ("burner 37 % · code -H"; point at it for what the code means): on a
+      wide screen on its right, before the house mode, on a phone under the
+      words. A problem comes first: the band turns red and says "Attention"
+      with the first reason. Tap it to open Repairs; **All reasons** lists
+      every reason.
     - Today's figures, large. The first is the room that is on, with its
       temperature, its target and why it heats or not (every room also keeps
       its own card under **Rooms**, the rooms that are on first).
-      Then **Hot water** (the taps so far today, or "running now"), **Gas
-      today** (heating and hot water together) with a small line of the last
-      7 days beside it and the average day of the week before under it, and
-      **Burner starts today**. While the band shows a problem, **Heating**
+      Then **Hot water** (the taps so far today, or "running now", and the
+      hot water's temperature), **Gas today** (heating and hot water
+      together) with a small line of the last 7 days beside it and the
+      average day of the week before under it, and **Burner starts today**
+      (with how many came in the last hour). While the band shows a problem, **Heating**
       (on, with the water temperature, or off) is added, because the band
       then cannot say it. A figure that your boiler or the E32 does not
       report is left out. The gas and the burner starts are read from Home
@@ -107,6 +112,15 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
     room does, its name, its temperature, large, and, in one line, why it
     heats or not: window open, away, warm enough, Smart warm-up heating
     early, and so on. The same line is the **Reason** sensor of the room.
+    While the room follows its week program, the line goes on with the
+    program: the level now and the next step ("Comfort until 22:30, then
+    Night 18.0 °C"; a level the planner does not name shows its
+    temperature). A holiday planned before that step is the next step
+    ("then Holiday 12.0 °C"). It is left out while something else holds the
+    room (a temporary change, away, a holiday, an open window) or when the
+    program changes nothing in the coming week. The times are the E32's
+    clock (its time zone as Home Assistant last saw it in the E32's
+    settings, else Home Assistant's own).
     Chips under it say in a word what the room does, whether Smart warm-up is
     on, whether the house is at home, away or on holiday, and how far the
     radiator valves are open.

@@ -237,6 +237,34 @@ def test_todays_figures_have_names_a_phone_shows_in_full():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("language,lines,names", [
+    ("en", ["Heating time today", "Burner starts today"], ["E32", "Thermostat"]),
+    ("nl", ["Stooktijd vandaag", "Branderstarts vandaag"], ["E32", "Thermostaat"]),
+    ("pl", ["Czas grzania dziś", "Starty palnika dziś"], ["E32", "Termostat"])])
+async def test_the_comparison_tiles_have_names_a_phone_shows_in_full(hass, language, lines, names):
+    """The trial run's Comparison subview (P21): its half-width tiles cut "Heating time thermostat", "Stooktijd
+    thermostaat" and "Czas grzania termostatu" (136-154 px) at 390 px, where a half tile shows about 116 px of name
+    ("Starts thermostaat", 118 px, was cut). Each pair now stands under a line that says what it counts (the whole
+    width), so the tiles need only say whose figure it is. Tile names are Roboto Medium at 14 px."""
+    config, hub, fields = setup(hass, language)
+    cards = view(config, "comparison")["sections"][0]["cards"]
+    pairs = [(c["heading"], c["heading_style"]) for c in cards[2:] if c["type"] == "heading"]
+    assert pairs == [(line, "subtitle") for line in lines]
+    tiles = [c for c in cards[2:] if c["type"] == "tile"]
+    assert [(c["entity"], c["name"]) for c in tiles] == [
+        (hub["shadow_e32_heating_time_today"], names[0]), (hub["shadow_tado_heating_time_today"], names[1]),
+        (hub["shadow_e32_starts_today"], names[0]), (hub["shadow_tado_starts_today"], names[1])]
+    assert all("grid_options" not in c for c in tiles)  # side by side in pairs
+    budget = 116
+    width = lambda text: name_width(text) * 14 / 16
+    assert width("Starts thermostaat") > budget >= width("Thermostaat")
+    assert all(width(c["name"]) <= budget for c in tiles), [(c["name"], width(c["name"])) for c in tiles]
+    # Every card shows only while a thermostat is heard to compare with, the lines with their tiles.
+    agreement = [{"condition": "state", "entity": hub["shadow_agreement_today"], "state_not": ["unavailable", "unknown"]}]
+    assert all(c["visibility"] == agreement for c in cards[1:])
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("language,heading,note", [
     ("en", "Boiler settings", "Settings the boiler reports only when asked are read at start-up and every six hours; "
                               "the time of the last reading is on the sensor."),

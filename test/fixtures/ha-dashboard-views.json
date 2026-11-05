@@ -4417,9 +4417,24 @@
         ]
        },
        {
+        "heading": "Heating time today",
+        "heading_style": "subtitle",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
         "entity": "sensor.fixture_hub_shadow_e32_heating_time_today",
         "icon": "mdi:timer-outline",
-        "name": "Heating time E32",
+        "name": "E32",
         "type": "tile",
         "visibility": [
          {
@@ -4435,8 +4450,23 @@
        {
         "entity": "sensor.fixture_hub_shadow_tado_heating_time_today",
         "icon": "mdi:timer-outline",
-        "name": "Heating time thermostat",
+        "name": "Thermostat",
         "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "heading": "Burner starts today",
+        "heading_style": "subtitle",
+        "type": "heading",
         "visibility": [
          {
           "condition": "state",
@@ -4451,7 +4481,7 @@
        {
         "entity": "sensor.fixture_hub_shadow_e32_starts_today",
         "icon": "mdi:counter",
-        "name": "Starts E32",
+        "name": "E32",
         "type": "tile",
         "visibility": [
          {
@@ -4467,7 +4497,7 @@
        {
         "entity": "sensor.fixture_hub_shadow_tado_starts_today",
         "icon": "mdi:counter",
-        "name": "Starts thermostat",
+        "name": "Thermostat",
         "type": "tile",
         "visibility": [
          {
@@ -8986,9 +9016,24 @@
         ]
        },
        {
+        "heading": "Stooktijd vandaag",
+        "heading_style": "subtitle",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
         "entity": "sensor.fixture_hub_shadow_e32_heating_time_today",
         "icon": "mdi:timer-outline",
-        "name": "Stooktijd E32",
+        "name": "E32",
         "type": "tile",
         "visibility": [
          {
@@ -9004,8 +9049,23 @@
        {
         "entity": "sensor.fixture_hub_shadow_tado_heating_time_today",
         "icon": "mdi:timer-outline",
-        "name": "Stooktijd thermostaat",
+        "name": "Thermostaat",
         "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "heading": "Branderstarts vandaag",
+        "heading_style": "subtitle",
+        "type": "heading",
         "visibility": [
          {
           "condition": "state",
@@ -9020,7 +9080,7 @@
        {
         "entity": "sensor.fixture_hub_shadow_e32_starts_today",
         "icon": "mdi:counter",
-        "name": "Starts E32",
+        "name": "E32",
         "type": "tile",
         "visibility": [
          {
@@ -9036,7 +9096,7 @@
        {
         "entity": "sensor.fixture_hub_shadow_tado_starts_today",
         "icon": "mdi:counter",
-        "name": "Starts thermostaat",
+        "name": "Thermostaat",
         "type": "tile",
         "visibility": [
          {

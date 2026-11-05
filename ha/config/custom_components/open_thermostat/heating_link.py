@@ -1884,13 +1884,20 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
     def available(self):
         return self.hub.fresh and self.room is not None and self.warmup is not None
 
+    def _free_heat_min(self):
+        """The minutes the free heat moves this start later (FreeHeat::shorten in FlowPolicy; the telemetry's
+        predicted_start_utc is the start without it), 0 without (learned_overview.free_heat_later)."""
+        from .learned_overview import free_heat_later
+        return free_heat_later(self.hub.learned.get(self.room_id), self.warmup)
+
     @property
     def native_value(self):
         start = _dict(self.warmup, "optimum_start")
         if start.get("reason") != "planned":
             return None
         if (exact := _utc(start.get("predicted_start_utc"))) is not None:
-            return exact
+            # The start the E32 really uses: later by what the free heat gives (rc7, sentences review R1-2).
+            return exact + timedelta(minutes=self._free_heat_min())
         at, lead = _utc(_dict(start, "next_switch").get("utc")), _whole(start.get("lead_minutes"), 0, 1440)
         return at - timedelta(minutes=lead) if at is not None and lead is not None else None
 
@@ -1914,6 +1921,12 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
             result["night_confidence"] = _text(night, "confidence")
         if "estimate" in start:  # E32 rc.4: a start from the standard warm-up time (it learns from every morning)
             result["estimate"] = _flag(start, "estimate")
+        if (later := self._free_heat_min()) and (begin := self.native_value) is not None:
+            # E32 rc.5: the free heat moves the start later (the state is that later start); the E32's start_now is for
+            # the start without it, so it heats now only once the later start has come.
+            result["free_heat_min"] = later
+            if result["start_now"] is True and begin > datetime.now(timezone.utc):
+                result["start_now"] = False
         if type(start.get("next_switch")) is dict:
             switch = start["next_switch"]
             at = _utc(switch.get("utc"))

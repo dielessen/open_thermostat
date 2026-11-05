@@ -2604,6 +2604,37 @@
           },
           "valve_position": {
             "name": "Radiatorkranen open"
+          },
+          "chip": {
+            "name": "Statuswoord",
+            "state": {
+              "off": "Uit",
+              "window_open": "Gepauzeerd",
+              "window_pending": "Pauzeert zo",
+              "no_measurement": "Geen meting",
+              "hot_water": "Wacht",
+              "boiler_pause": "Wacht",
+              "warm_up": "Warmt op",
+              "away_return": "Warmt op",
+              "holiday": "Vakantie",
+              "away": "Afwezig",
+              "room_away": "Afwezig",
+              "house_away": "Afwezig",
+              "boost": "Boost actief",
+              "temporary": "Tijdelijk",
+              "heating": "Verwarmt",
+              "wants_heat": "Vraagt warmte",
+              "warm_enough": "Op temperatuur"
+            }
+          },
+          "card": {
+            "name": "Kaart",
+            "state": {
+              "smart_on": "Slim opwarmen aan",
+              "home": "Thuis",
+              "away": "Afwezig",
+              "holiday": "Vakantie"
+            }
           }
         }
       },
@@ -2641,7 +2672,51 @@
         }
       },
       "heat_request": {
-        "name": "Ketelvraag (E32)"
+        "name": "Ketelvraag (E32)",
+        "state_attributes": {
+          "card": {
+            "name": "Kaart",
+            "state": {
+              "title": "Je huis",
+              "heating": "Verwarming",
+              "status_heating": "Verwarmt · water {flow} °C",
+              "status_heating_plain": "Verwarmt",
+              "heating_on": "aan · water {flow} °C",
+              "heating_on_plain": "aan",
+              "heating_off": "uit",
+              "request": "Ketelvraag {flow} °C",
+              "no_request": "Geen ketelvraag",
+              "wants": "{n} ruimtes vragen warmte",
+              "wants_one": "1 ruimte vraagt warmte",
+              "hot_water": "Warm water",
+              "taps": "{n}× getapt vandaag",
+              "taps_one": "1× getapt vandaag",
+              "taps_none": "vandaag nog niet getapt",
+              "running": "loopt nu",
+              "gas_today": "Gas vandaag",
+              "week": "Afgelopen 7 dagen: {values}",
+              "starts_today": "Branderstarts vandaag",
+              "idle": "Ketel in rust",
+              "attention": "Let op: {reason}",
+              "all_reasons": "Alle redenen",
+              "mode": "Huismodus: {mode}",
+              "today": "Vandaag",
+              "legend_heating": "Verwarmen",
+              "legend_hot_water": "Warm water",
+              "legend_keep_warm": "Warmhouden",
+              "waiting": "De E32 heeft nog niets gemeld.",
+              "now": "nu",
+              "warm": "{room} warm",
+              "early": "{m} min te vroeg",
+              "late": "{m} min te laat",
+              "on_time": "op tijd",
+              "degree_days": "Graaddagen",
+              "target": "doel {t} °C",
+              "per_day": "{n} dagen: {value} per dag",
+              "today_since": "Vandaag sinds middernacht"
+            }
+          }
+        }
       },
       "burner_starts_last_hour": {
         "name": "Branderstarts afgelopen uur"
@@ -3205,6 +3280,61 @@
       "learned_overview": {
         "name": "Wat de thermostaat geleerd heeft"
       },
+      "knowledge": {
+        "name": "Kennis",
+        "state_attributes": {
+          "missing": {
+            "name": "Nog te leren"
+          },
+          "more": {
+            "name": "En nog meer"
+          },
+          "card": {
+            "name": "Kaart",
+            "state": {
+              "title": "De E32 kent je huis",
+              "ring": "De E32 kent je huis: {pct} %",
+              "hint": "Hij leert vanzelf terwijl de verwarming draait.",
+              "missing": "Nog te leren",
+              "more": "En nog {n}.",
+              "done": "Hij heeft alles geleerd wat hij nodig heeft; hij blijft het controleren als de seizoenen wisselen.",
+              "waiting": "De E32 heeft nog niet gemeld wat hij weet."
+            }
+          }
+        }
+      },
+      "boiler_response": {
+        "name": "Reactie van de ketel",
+        "state": {
+          "collecting": "Luistert nog",
+          "learned": "Geleerd",
+          "no_return": "Geen retourtemperatuur",
+          "not_driving": "E32 regelt de ketel niet"
+        },
+        "state_attributes": {
+          "held_today": {
+            "name": "Temperatuur vastgehouden vandaag"
+          },
+          "rest_min": {
+            "name": "Rust na vasthouden (min)"
+          },
+          "ceiling_c": {
+            "name": "Dicht bij de doeltemperatuur vraagt de E32 hoogstens (°C)"
+          },
+          "absorbed_kw": {
+            "name": "Warmte die het huis opneemt (kW)"
+          },
+          "kw_per_k": {
+            "name": "kW per °C watertemperatuur"
+          },
+          "return_reported": {
+            "name": "Retourtemperatuur gemeld"
+          },
+          "sentence": {
+            "name": "In woorden"
+          }
+        }
+      },
       "heating_gas": {
         "name": "Gas voor verwarmen"
       },
@@ -3227,7 +3357,56 @@
         }
       },
       "flow_curve": {
-        "name": "Watertemperatuur (weerafhankelijke regeling)"
+        "name": "Watertemperatuur (weerafhankelijke regeling)",
+        "state_attributes": {
+          "chart": {
+            "name": "Grafiek",
+            "state": {
+              "title": "Watertemperatuur bij buitentemperatuur",
+              "standard": "Standaard",
+              "learned": "Geleerd voor je huis",
+              "now": "Nu",
+              "frost": "Bij −10 °C en {room} °C binnen: {flow} °C",
+              "now_point": "{outdoor} °C buiten → {flow} °C",
+              "at": "Bij {outdoor} °C buiten",
+              "lower": "{n} °C koeler dan standaard",
+              "higher": "{n} °C warmer dan standaard",
+              "outdoor": "Buitentemperatuur (°C)",
+              "water": "Water naar verwarming (°C)",
+              "caption": "Hoe kouder het buiten is, hoe warmer het water. De E32 leert de lijn voor je huis en houdt die zo laag als hij kan.",
+              "values": "Toon de waarden",
+              "outside": "Buiten",
+              "off": "De weerafhankelijke regeling staat uit; de lijnen tonen wat hij zou vragen.",
+              "waiting": "De E32 heeft zijn weerafhankelijke regeling nog niet gemeld.",
+              "house": "Geschat uit je huis",
+              "asks": "E32 vraagt {flow} °C"
+            }
+          },
+          "design_flow_c": {
+            "name": "Watertemperatuur bij strenge vorst (°C)"
+          },
+          "standard_slope": {
+            "name": "Standaard steilheid"
+          },
+          "room_c": {
+            "name": "Ruimtetemperatuur (°C)"
+          },
+          "outdoor_c": {
+            "name": "Buitentemperatuur nu (°C)"
+          },
+          "minimum_flow_c": {
+            "name": "Laagste watertemperatuur (°C)"
+          },
+          "maximum_flow_c": {
+            "name": "Hoogste watertemperatuur (°C)"
+          },
+          "base_c": {
+            "name": "Watertemperatuur op de lijn nu (°C)"
+          },
+          "flow_c": {
+            "name": "Weerafhankelijke regeling vraagt (°C)"
+          }
+        }
       },
       "flow_learned": {
         "name": "Geleerde watertemperatuur"
@@ -3373,6 +3552,40 @@
           "keep_warm": "Warmhouden",
           "charging": "Warmwatervoorraad opwarmen",
           "hot_water": "Warm water"
+        },
+        "state_attributes": {
+          "card": {
+            "state": {
+              "title": "De ketel nu",
+              "no_data": "Geen gegevens van de ketel",
+              "boiler": "Ketel",
+              "code": "Code {code}: {meaning}",
+              "code_bare": "Code {code}",
+              "code_fault": "{severity} · code {code}",
+              "link": "verbinding met de ketel: {state}",
+              "link_good": "goed",
+              "link_none": "geen",
+              "dhw": "warm water: {state}",
+              "yes": "ja",
+              "no": "nee",
+              "flow": "Water naar de verwarming",
+              "asked": "gevraagd {flow} °C",
+              "would_ask": "E32 zou {flow} °C vragen",
+              "no_request": "geen vraag",
+              "ceiling": "hoogstens {flow} °C",
+              "back": "Water terug",
+              "difference": "verschil {n} °C",
+              "power": "Brandervermogen",
+              "power_off": "brander uit",
+              "power_low": "laag vuur, rustig",
+              "power_mid": "half vuur",
+              "power_full": "vol vuur",
+              "starts": "Starts afgelopen uur",
+              "calm": "rustig",
+              "often": "slaat te vaak aan en uit",
+              "today": "vandaag {n}"
+            }
+          }
         }
       },
       "e32_last_backup": {
@@ -3783,6 +3996,10 @@
     "e32_backup_failing": {
       "title": "Geen recente back-up van de E32-instellingen",
       "description": "{name}: Home Assistant kon al meer dan 3 dagen geen back-up van de E32-instellingen maken (laatste back-up: {last}). Zonder recente back-up krijgt een vervangende E32 je huidige instellingen niet terug. Controleer of de E32 aan staat en zijn webpagina opent, en of zijn wachtwoord in Home Assistant nog klopt; druk daarna op Nu een back-up van de E32 maken op het E32-apparaat. Deze melding verdwijnt na de volgende geslaagde back-up."
+    },
+    "heating_input_lost": {
+      "title": "De E32 ontvangt de kamerwaarden van Home Assistant niet",
+      "description": "De E32 heeft al {minutes} minuten geen kamerwaarden van Home Assistant aangenomen en regelt de kamers daarom met zijn eigen sensoren en weekprogramma. Home Assistant stuurde de laatste waarde om {last_sent} (laatste verzendfout: {error}). OpenThermostat is opnieuw begonnen met verzenden. Blijft deze melding staan, herstart dan Home Assistant: de integratie herladen is niet altijd genoeg. Deze melding verdwijnt vanzelf zodra de E32 de waarden weer aanneemt."
     },
     "e32_time_zone": {
       "title": "De E32 gebruikt een andere tijdzone",

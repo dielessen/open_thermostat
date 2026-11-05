@@ -1567,6 +1567,37 @@
           },
           "valve_position": {
             "name": "Otwarcie zaworów grzejnikowych"
+          },
+          "chip": {
+            "name": "Stan jednym słowem",
+            "state": {
+              "off": "Wyłączone",
+              "window_open": "Wstrzymane",
+              "window_pending": "Wkrótce wstrzymanie",
+              "no_measurement": "Brak pomiaru",
+              "hot_water": "Czeka",
+              "boiler_pause": "Czeka",
+              "warm_up": "Nagrzewanie",
+              "away_return": "Nagrzewanie",
+              "holiday": "Urlop",
+              "away": "Nieobecność",
+              "room_away": "Nieobecność",
+              "house_away": "Nieobecność",
+              "boost": "Szybkie grzanie",
+              "temporary": "Tymczasowo",
+              "heating": "Grzeje",
+              "wants_heat": "Potrzebuje ciepła",
+              "warm_enough": "Temperatura osiągnięta"
+            }
+          },
+          "card": {
+            "name": "Karta",
+            "state": {
+              "smart_on": "Inteligentne nagrzewanie włączone",
+              "home": "W domu",
+              "away": "Nieobecność",
+              "holiday": "Urlop"
+            }
           }
         }
       },
@@ -1604,7 +1635,51 @@
         }
       },
       "heat_request": {
-        "name": "Żądanie do kotła (E32)"
+        "name": "Żądanie do kotła (E32)",
+        "state_attributes": {
+          "card": {
+            "name": "Karta",
+            "state": {
+              "title": "Twój dom",
+              "heating": "Ogrzewanie",
+              "status_heating": "Grzeje · woda {flow} °C",
+              "status_heating_plain": "Grzeje",
+              "heating_on": "grzeje · woda {flow} °C",
+              "heating_on_plain": "grzeje",
+              "heating_off": "nie grzeje",
+              "request": "Żądanie do kotła {flow} °C",
+              "no_request": "Brak żądania do kotła",
+              "wants": "Pomieszczenia potrzebujące ciepła: {n}",
+              "wants_one": "1 pomieszczenie potrzebuje ciepła",
+              "hot_water": "Ciepła woda",
+              "taps": "Pobory dziś: {n}",
+              "taps_one": "1 pobór dziś",
+              "taps_none": "dziś jeszcze bez poboru",
+              "running": "teraz w użyciu",
+              "gas_today": "Gaz dziś",
+              "week": "Ostatnie 7 dni: {values}",
+              "starts_today": "Starty palnika dziś",
+              "idle": "Kocioł w spoczynku",
+              "attention": "Uwaga: {reason}",
+              "all_reasons": "Wszystkie powody",
+              "mode": "Tryb domu: {mode}",
+              "today": "Dziś",
+              "legend_heating": "Ogrzewanie",
+              "legend_hot_water": "Ciepła woda",
+              "legend_keep_warm": "Podtrzymanie",
+              "waiting": "E32 jeszcze niczego nie przekazał.",
+              "now": "teraz",
+              "warm": "{room}: ciepło",
+              "early": "{m} min za wcześnie",
+              "late": "{m} min za późno",
+              "on_time": "na czas",
+              "degree_days": "Stopniodni",
+              "target": "cel {t} °C",
+              "per_day": "{n} dni: {value} dziennie",
+              "today_since": "Dziś od północy"
+            }
+          }
+        }
       },
       "burner_starts_last_hour": {
         "name": "Starty palnika w ostatniej godzinie"
@@ -2168,6 +2243,61 @@
       "learned_overview": {
         "name": "Czego nauczył się termostat"
       },
+      "knowledge": {
+        "name": "Wiedza",
+        "state_attributes": {
+          "missing": {
+            "name": "Jeszcze do nauczenia"
+          },
+          "more": {
+            "name": "I jeszcze"
+          },
+          "card": {
+            "name": "Karta",
+            "state": {
+              "title": "E32 zna Twój dom",
+              "ring": "E32 zna Twój dom w {pct} %",
+              "hint": "Uczy się sam, gdy ogrzewanie pracuje.",
+              "missing": "Jeszcze do nauczenia",
+              "more": "I jeszcze {n}.",
+              "done": "Nauczył się wszystkiego, czego potrzebuje; sprawdza to dalej wraz ze zmianą pór roku.",
+              "waiting": "E32 jeszcze nie przekazał, co wie."
+            }
+          }
+        }
+      },
+      "boiler_response": {
+        "name": "Reakcja kotła",
+        "state": {
+          "collecting": "Wciąż nasłuchuje",
+          "learned": "Wyuczona",
+          "no_return": "Brak temperatury powrotu",
+          "not_driving": "E32 nie steruje kotłem"
+        },
+        "state_attributes": {
+          "held_today": {
+            "name": "Utrzymanie temperatury dziś"
+          },
+          "rest_min": {
+            "name": "Przerwa po utrzymaniu (min)"
+          },
+          "ceiling_c": {
+            "name": "Blisko temperatury docelowej E32 zadaje najwyżej (°C)"
+          },
+          "absorbed_kw": {
+            "name": "Ciepło pobierane przez dom (kW)"
+          },
+          "kw_per_k": {
+            "name": "kW na °C temperatury wody"
+          },
+          "return_reported": {
+            "name": "Temperatura powrotu zgłaszana"
+          },
+          "sentence": {
+            "name": "Słownie"
+          }
+        }
+      },
       "heating_gas": {
         "name": "Gaz na ogrzewanie"
       },
@@ -2190,7 +2320,56 @@
         }
       },
       "flow_curve": {
-        "name": "Temperatura wody wg kompensacji pogodowej"
+        "name": "Temperatura wody wg kompensacji pogodowej",
+        "state_attributes": {
+          "chart": {
+            "name": "Wykres",
+            "state": {
+              "title": "Temperatura wody a temperatura zewnętrzna",
+              "standard": "Standardowa",
+              "learned": "Wyuczona dla Twojego domu",
+              "now": "Teraz",
+              "frost": "Przy −10 °C i {room} °C wewnątrz: {flow} °C",
+              "now_point": "{outdoor} °C na zewnątrz → {flow} °C",
+              "at": "Przy {outdoor} °C na zewnątrz",
+              "lower": "o {n} °C chłodniej niż standardowo",
+              "higher": "o {n} °C cieplej niż standardowo",
+              "outdoor": "Temperatura zewnętrzna (°C)",
+              "water": "Woda do ogrzewania (°C)",
+              "caption": "Im zimniej na zewnątrz, tym cieplejsza woda. E32 uczy się linii dla Twojego domu i utrzymuje ją tak nisko, jak potrafi.",
+              "values": "Pokaż wartości",
+              "outside": "Na zewnątrz",
+              "off": "Kompensacja pogodowa jest wyłączona; linie pokazują, czego by żądała.",
+              "waiting": "E32 jeszcze nie przekazał danych kompensacji pogodowej.",
+              "house": "Oszacowana na podstawie Twojego domu",
+              "asks": "E32 zadaje {flow} °C"
+            }
+          },
+          "design_flow_c": {
+            "name": "Temperatura wody przy silnym mrozie (°C)"
+          },
+          "standard_slope": {
+            "name": "Standardowe nachylenie"
+          },
+          "room_c": {
+            "name": "Temperatura pomieszczenia (°C)"
+          },
+          "outdoor_c": {
+            "name": "Temperatura zewnętrzna teraz (°C)"
+          },
+          "minimum_flow_c": {
+            "name": "Najniższa temperatura wody (°C)"
+          },
+          "maximum_flow_c": {
+            "name": "Najwyższa temperatura wody (°C)"
+          },
+          "base_c": {
+            "name": "Temperatura wody na linii teraz (°C)"
+          },
+          "flow_c": {
+            "name": "Kompensacja pogodowa zadaje (°C)"
+          }
+        }
       },
       "flow_learned": {
         "name": "Wyuczona temperatura wody"
@@ -2336,6 +2515,40 @@
           "keep_warm": "Podtrzymanie ciepła",
           "charging": "Nagrzewanie zasobnika",
           "hot_water": "Ciepła woda"
+        },
+        "state_attributes": {
+          "card": {
+            "state": {
+              "title": "Kocioł teraz",
+              "no_data": "Brak danych z kotła",
+              "boiler": "Kocioł",
+              "code": "Kod {code}: {meaning}",
+              "code_bare": "Kod {code}",
+              "code_fault": "{severity} · kod {code}",
+              "link": "połączenie z kotłem: {state}",
+              "link_good": "dobre",
+              "link_none": "brak",
+              "dhw": "ciepła woda: {state}",
+              "yes": "tak",
+              "no": "nie",
+              "flow": "Woda do ogrzewania",
+              "asked": "żądanie {flow} °C",
+              "would_ask": "E32 zażądałby {flow} °C",
+              "no_request": "brak żądania",
+              "ceiling": "najwyżej {flow} °C",
+              "back": "Woda powrotna",
+              "difference": "różnica {n} °C",
+              "power": "Moc palnika",
+              "power_off": "palnik wyłączony",
+              "power_low": "mały płomień, spokojnie",
+              "power_mid": "średni płomień",
+              "power_full": "pełny płomień",
+              "starts": "Starty w ostatniej godzinie",
+              "calm": "spokojnie",
+              "often": "włącza się zbyt często",
+              "today": "dziś {n}"
+            }
+          }
         }
       },
       "e32_last_backup": {
@@ -3783,6 +3996,10 @@
     "e32_backup_failing": {
       "title": "Brak aktualnej kopii ustawień E32",
       "description": "{name}: Home Assistant od ponad 3 dni nie może utworzyć kopii ustawień E32 (ostatnia kopia: {last}). Bez aktualnej kopii zastępczy E32 nie odzyska bieżących ustawień. Sprawdź, czy E32 jest włączony i jego strona się otwiera oraz czy jego hasło w Home Assistant jest nadal poprawne; potem naciśnij Utwórz teraz kopię ustawień E32 na urządzeniu E32. Ten komunikat zniknie po następnej udanej kopii."
+    },
+    "heating_input_lost": {
+      "title": "E32 nie otrzymuje wartości pokojowych z Home Assistant",
+      "description": "E32 od {minutes} minut nie przyjął żadnych wartości pokojowych z Home Assistant, więc steruje pomieszczeniami według własnych czujników i programu tygodniowego. Home Assistant wysłał ostatnią wartość o {last_sent} (ostatni błąd wysyłania: {error}). OpenThermostat zaczął wysyłać od nowa. Jeśli ten komunikat nie znika, uruchom ponownie Home Assistant: ponowne wczytanie integracji nie zawsze wystarcza. Komunikat zniknie sam, gdy E32 znów przyjmie wartości."
     },
     "e32_time_zone": {
       "title": "E32 używa innej strefy czasowej",

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-05T00:23:07Z",
+  "requests": [
+    "Owner, 4 Nov 2026 (chat, Dutch): \"kunnen we geen rc5 maken voor dit ? ik wil top of the build self learning namelijk voor de 1.0 erin hebben zitten . Denk er nog even goed over na waar we hier nog extra slimheid kunnen maken zodat we niet weer een release moeten gaan maken.\" — \"wat zou dan je verbeter voorstel kunnen zijn en welke winst halen we daarbij. weer realistisch en het moet voor alle ketels ook kunnen werken natuurlijk\" — \"ok zet het maar in gang . gebruik zoveel agents als je nodig hebt en kies zelf het juiste model voor elke agent\" — on the dashboard: \"gas per day grafieken staan er 2x in volgens mij in het ha dashboard. Boiler tab vind ik nog een beetje onoverzichtelijk en rommelig. Zou je heel het dashboard een onder de loep willen nemen en met ee nvoorstel willen komen.\" — \"mag ook wel een mooi flitsend dashboard zijn.\" — \"alles moet gewoon in de volgende release komen dat kan makkelijk .\""
+  ],
+  "scope": "1.0 candidate rc.5: E32 v1.0.0-e32v2-rc.5 + HA ha-v1.0.0rc6. Publish after a green check and exact-tag CI. Installing is a separate, attended step with pre- and post-install capture (tools/acceptance); the 14 days of the 1.0 readiness report run on rc.5.",
+  "not_included": [
+    "installation (a separate, attended step)",
+    "v1.0.0 itself (after 14 days with all release_ready.py criteria PASS)"
+  ],
+  "publication_approval_reply": null,
+  "publication_approval_at_utc": null,
+  "installation_approval_reply": null
+}

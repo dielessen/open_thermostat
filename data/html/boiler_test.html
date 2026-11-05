@@ -106,7 +106,7 @@
 <style>
 #boiler-test [hidden]{display:none!important}#boiler-test [data-heat-trial]{display:none!important}#boiler-test .bt-boiler-test{margin:0 0 12px;padding:10px 14px}#boiler-test .bt-attention{color:var(--ot-text);font-size:1rem;padding:10px 14px;border-left:4px solid var(--ot-warn);border-radius:var(--ot-r1);background:var(--ot-warn-bg)}[data-boiler-display-host]>section{margin:0!important;padding:0 0 8px!important}.bt-trial>.pd-panel{background:var(--ot-surface)}#boiler-test-controls{border-top:4px solid var(--ot-accent)}#boiler-test-controls fieldset{border:0;margin:16px 0;padding:0}#boiler-test input[type=number]{max-width:220px}#boiler-test .bt-confirm{display:flex;gap:10px;align-items:start;max-width:650px;margin:16px 0}#boiler-test .bt-confirm input{margin-top:3px;flex-shrink:0}#boiler-test [data-workflow-help]{font-weight:500;padding:12px;background:var(--ot-surface-2);border-radius:var(--ot-r1)}#boiler-test [data-test-form]{display:flex;flex-wrap:wrap;align-items:end;gap:16px}#boiler-test [data-test-form]>div{flex-basis:100%}
 #boiler-test .bt-steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:18px 0}#boiler-test .bt-steps li{padding:8px 12px;border:1px solid var(--ot-border);border-radius:var(--ot-r1)}#boiler-test .bt-steps [aria-current=step]{background:var(--ot-accent-soft);border:2px solid var(--ot-accent);font-weight:600}#boiler-test .bt-result{border:1px solid var(--ot-border);border-left:5px solid var(--ot-warn);border-radius:var(--ot-r1);padding:16px;margin-top:16px;width:100%}#boiler-test .bt-result[data-outcome=passed],#boiler-test .bt-result[data-outcome=zero_passed]{border-left-color:var(--ot-ok)}#boiler-test .bt-result[data-outcome=failed]{border-left-color:var(--ot-err)}#boiler-test .bt-result h3{font-size:1.2rem}#boiler-test [data-trial-checks]{padding-left:20px}#boiler-test [data-trial-checks] li{margin:6px 0}#boiler-test [data-trial-selection]{flex-basis:100%;margin:0}
-#boiler-test .bt-act{display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:100%;min-width:0;vertical-align:top;margin:0 10px 10px 0}#boiler-test .d-flex>.bt-act{margin:0}#boiler-test .bt-why{margin:0;max-width:34ch;font-weight:500}#boiler-test .bt-live{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 20px;margin:0;padding:10px 12px;border:1px solid var(--ot-border);border-radius:var(--ot-r1);min-width:0}#boiler-test .bt-live>div{display:flex;gap:6px;flex-wrap:wrap;min-width:0}#boiler-test .bt-live dt{font-weight:500;color:var(--ot-muted)}#boiler-test .bt-live dd{margin:0;font-weight:600}#boiler-test .bt-live>p{flex-basis:100%;margin:0}
+#boiler-test .bt-act{display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:100%;min-width:0;vertical-align:top;margin:0 10px 10px 0}#boiler-test .d-flex>.bt-act{margin:0}#boiler-test .bt-why{margin:0;max-width:34ch;font-weight:500}#boiler-test .bt-live{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 20px;margin:0;padding:10px 12px;border:1px solid var(--ot-border);border-radius:var(--ot-r1);min-width:0}#boiler-test .bt-live>div{display:flex;gap:6px;flex-wrap:wrap;min-width:0}#boiler-test .bt-live dt{font-weight:500;color:var(--ot-muted)}#boiler-test .bt-live dd{margin:0;font-weight:600}#boiler-test .bt-live>p{flex-basis:100%;margin:0}#boiler-test [data-read-remark]{font-size:.8rem;font-weight:400}
 @media(max-width:600px){#boiler-test .bt-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#boiler-test .bt-steps li{padding:8px 6px;font-size:.9rem}}
 </style>
 <script>
@@ -172,7 +172,8 @@
       [uiText("Water temperature to heating (flow)"), show('measured_flow_temperature', 1, ' °C')], [uiText("Water temperature back (return)"), show('measured_return_temperature', 1, ' °C')],
       [uiText("Water pressure"), show('pressure', 1, ' bar')], [uiText("Hot water temperature"), show('measured_dhw_temperature', 1, ' °C')],
       [uiText("Burner power"), show('reported_burner_modulation', 0, ' %')],
-      [uiText("Maximum heating temperature (boiler setting)"), show('configured_heating_temperature', 0, ' °C')],
+      // A setting the boiler sends only when asked: shown with when it was read.
+      [uiText("Maximum heating temperature (boiler setting)"), show('configured_heating_temperature', 0, ' °C'), BoilerData.readRemark(field('configured_heating_temperature'))],
       [uiText("Display code"), codeText(code, service)],
       [uiText("Burner starts"), counted('reported_burner_starts', show('reported_burner_starts', 0, ''))],
       [uiText("Burner starts (last hour)"), burnerCycles?.known === true && Number.isInteger(burnerCycles.starts_last_hour) ? String(burnerCycles.starts_last_hour) : null],
@@ -186,8 +187,9 @@
     const signature = JSON.stringify(rows) + shortCycling + (codeInWords?.fault ? codeInWords.severity : '');
     if (essentials.dataset.rendered === signature) return;
     essentials.dataset.rendered = signature; essentials.replaceChildren();
-    for (const [label, value] of rows) {
+    for (const [label, value, remark] of rows) {
       cell(essentials, 'dt', label); cell(essentials, 'dd', value);
+      if (remark) { const note = document.createElement('small'); note.className = 'd-block'; note.dataset.readRemark = ''; note.textContent = remark; essentials.lastElementChild.append(note); }
       if (codeInWords?.fault && label === uiText("Display code")) {
         const chip = document.createElement('span'); chip.className = 'ot-chip ml-2 ot-chip--' + (codeInWords.lockout ? 'err' : 'warn');
         chip.dataset.codeSeverity = codeInWords.severity; chip.textContent = codeInWords.severityText;

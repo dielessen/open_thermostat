@@ -26,6 +26,7 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 struct Engine {
     RoomEngine rooms;
     FlowLearner learner;
+    FreeHeat freeHeat; // rc.5 (P3): sampled like HeatingController::stepFlowLearner
     HeatingInputRoute input;
     uint64_t now = 0;
     void heatingInput(std::string_view payload) { input.accept(payload, now, rooms, learner); }
@@ -83,6 +84,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
         }
         e.rooms.setPlan(plan);
         e.learner.setPlan(plan);
+        e.freeHeat.setPlan(plan);
     }
     // Inputs and 10 s control steps, like stepHeating().
     uint32_t unixTime = 1792368000u + (mode >> 1) * 3600u;
@@ -109,6 +111,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
         const auto outdoor = e.input.outdoor(std::nullopt, e.now);
         FlowLearner::Boiler boiler{int16_t(4000 + steps), request.heat, false, request.flowC, outdoor.centiC, uint8_t(steps * 3), int16_t(3500)};
         e.learner.sample(e.now, boiler, in.data(), count);
+        // rc.5 (P3): free heat over whatever the rooms read (heat every other step, the clock every other).
+        std::array<FreeHeat::RoomSample, RoomPlan::maxRooms> free{};
+        for (std::size_t i = 0; i < count; ++i) free[i] = {in[i].temperatureCentiC, FreeHeat::heatDelivered(request.heat, (steps & 2) != 0, request.flowC)};
+        e.freeHeat.sample(e.now, (steps & 1) ? std::optional<int64_t>(unixTime) : std::nullopt, outdoor.centiC, free.data(), count);
+    }
+    // rc.5 (P3): the last payload as a free heat frame's payload: refused whole or taken, and what is
+    // taken stores and loads back the same.
+    {
+        const std::string_view tail = std::string_view(all).substr(all.rfind('\0') == std::string::npos ? 0 : all.rfind('\0') + 1);
+        const bool taken = e.freeHeat.restore(tail);
+        if (taken != FreeHeat::valid(tail)) otfuzz::invariant("free heat restore and valid disagree");
+        const auto stored = e.freeHeat.stored();
+        if (stored.size() > FreeHeat::maxStoredBytes) otfuzz::invariant("free heat payload over its bound");
+        FreeHeat again; again.setPlan(e.rooms.plan());
+        if (!stored.empty() && (!again.restore(stored) || again.stored() != stored)) otfuzz::invariant("free heat payload does not load back");
     }
     // The status and its MQTT form over whatever the inputs left.
     LearnedContext context;
@@ -117,13 +134,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
     context.utc = int64_t(unixTime);
     context.temperatures = temperatures.data(); context.now = e.now;
     context.outdoorCentiC = e.input.outdoor(std::nullopt, e.now).centiC;
+    context.freeHeat = &e.freeHeat; // rc.5 (P3): "free_heat" per room, within learnedRoomBytes below
     if (Json learned{learnedJson(e.learner, e.rooms.plan(), context), cJSON_Delete})
         if (!cJSON_IsObject(cJSON_GetObjectItemCaseSensitive(learned.get(), "inputs"))) otfuzz::invariant("learned without inputs");
     // The MQTT forms: summary and every room's payload stay within their budgets.
     if (heatingSummaryTelemetry(e.learner, context, cJSON_CreateObject()).size() > 600) otfuzz::invariant("heating summary over 600 B");
     for (std::size_t i = 0; i < e.rooms.plan().rooms.size(); ++i) {
         if (!topicSafeRoomId(e.rooms.plan().rooms[i].id)) otfuzz::invariant("room id not topic safe");
-        if (learnedRoomTelemetry(e.learner, e.rooms.plan(), i, context).size() > 1000) otfuzz::invariant("learned room over 1000 B");
+        if (learnedRoomTelemetry(e.learner, e.rooms.plan(), i, context).size() > heating::control::learnedRoomBytes) otfuzz::invariant("learned room over its budget");
     }
     // Time helpers used for the week program.
     const auto t = RoomSchedule::localAt(int64_t(unixTime) + int64_t(mode) * 86400 * 97);

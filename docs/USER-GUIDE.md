@@ -43,6 +43,7 @@ energy inputs.
 | Lowest and highest water temperature for the boiler request | E32: Home → Water temperature limits | Configure → Heating and boiler → Water temperature limits |
 | Smart warm-up and Weather compensation, both on by default | E32: Home → Heating settings → Advanced | Configure → Heating and boiler → Smart warm-up and Weather compensation, or the switches on the E32 device |
 | Water temperature in hard frost (−10 °C), for Weather compensation | E32: Home → Heating settings → Advanced | Configure → Heating and boiler → Weather compensation → Advanced, or the selection on the E32 device |
+| Reading what the E32 learned (nothing to set): what it knows, how your boiler responds, yesterday compared with usual, free heat, the water temperature chart | E32: Home → What the thermostat has learned, and Heating settings for the chart | Dashboard tab Learning and settings; the sensors Knowledge and Boiler response on the E32 device |
 | Gas meter, gas price, outdoor temperature, boiler power, water meter (all optional) | — | Configure → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: System → Bluetooth sensors | E32: System → Bluetooth sensors |
 | Boiler model (name, picture and the display code table) | E32: Boiler → Boiler model | E32: Boiler → Boiler model |
@@ -77,23 +78,109 @@ back in the menu, and **Done** closes Configure.
 
 The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
 
-- **Overview**: the house (its mode, the next planned holiday, the rooms that
-  want heat and the boiler request) and one **status card** per room. The card shows the room's
-  temperature and target and, in one line, why it heats or not: window open,
-  away, warm enough, Smart warm-up heating early, and so on. The same line is
-  the **Reason** sensor of the room. A problem tile appears only while there is
-  a problem, and a tap on it opens Repairs.
+- **Overview**, from top to bottom: the **house card**, then **Rooms**,
+  **Today** and **House**. On a wide screen the last three stand side by side.
+  - The **house card** shows the whole house at a glance:
+    - A **status band** in the colour of what the boiler does now, in white
+      letters: orange while heating (with the water temperature), blue for
+      hot water, grey for "Boiler resting". The house mode is on the right of
+      the band; tap it to open the house mode control. While rooms want heat,
+      a second line says how many and what the boiler request is. A problem
+      comes first: the band turns red and says "Attention" with the first
+      reason. Tap it to open Repairs; **All reasons** lists every reason.
+    - Today's figures, large. The first is the room that is on, with its
+      temperature, its target and why it heats or not (every room also keeps
+      its own card under **Rooms**, the rooms that are on first).
+      Then **Hot water** (the taps so far today, or "running now"), **Gas
+      today** (heating and hot water together) with a small line of the last
+      7 days beside it and the average day of the week before under it, and
+      **Burner starts today**. While the band shows a problem, **Heating**
+      (on, with the water temperature, or off) is added, because the band
+      then cannot say it. A figure that your boiler or the E32 does not
+      report is left out. The gas and the burner starts are read from Home
+      Assistant's statistics; on the first day, until it has some, they show
+      "—".
+    - A **day strip** from midnight until now: when the boiler was heating,
+      making hot water or keeping it warm, with the hours and "now" under it.
+      Point at a part for its start and end time.
+  - **Rooms**: a card per room, with a round icon in the colour of what the
+    room does, its name, its temperature, large, and, in one line, why it
+    heats or not: window open, away, warm enough, Smart warm-up heating
+    early, and so on. The same line is the **Reason** sensor of the room.
+    Chips under it say in a word what the room does, whether Smart warm-up is
+    on, whether the house is at home, away or on holiday, and how far the
+    radiator valves are open.
+  - **Today**: for each room that is switched on, when it warms up next and
+    what it will be then ("Tomorrow Living room warms up from 6:10 to be
+    20.5 °C at 7:00"), and how yesterday's warm-up went ("Yesterday it was
+    warm 4 minutes early"). Under it one line on Weather compensation: what
+    it asks of the water temperature at today's outdoor temperature, and
+    which line it follows: the standard line, one estimated from your house,
+    or the line learned for your house. Until the line is learned, the line
+    says after how many steady periods it follows.
+  - **House**: **Home or away** (the house mode; tap it to change it),
+    **Holiday** (**Plan** opens the integration's page, where you plan one
+    under Configure → House → House mode and holiday; the next planned
+    holiday is shown under it) and **Outdoor** (the outdoor temperature).
 - **Rooms**: per room its thermostat, a 24-hour graph, its sensors, windows and
   people, and what it learned for that room.
 - **Week program**: the visual week planner for all rooms.
-- **Boiler**: what the boiler does in words, the display code, burner starts,
-  hot water, the heating advice, the values the boiler reports, the gas per
-  day and yesterday.
-- **Learning and settings**: what the thermostat learned about your house and
-  boiler, **Yesterday** in figures, Smart warm-up, Weather compensation, the
-  burner as information and the check before the E32 takes over.
-- **Diagnostics**: the E32 itself, hot water, the energy and hot water counters
-  and the raw boiler data.
+- **Boiler**, in the order you need it. It opens with the **Now** card: a band
+  in the colour of what the boiler does, in white letters (orange for heating,
+  blue for hot water, grey for resting; red for a fault, with what to do). The
+  band says it in words, with the display code ("Code -H: heating"), and on its
+  right it shows the connection with the boiler and whether the boiler serves
+  hot water. Under the band are four large figures: **Water to heating** (what
+  the E32 asks, and the most it asks near the target), **Water back** (with the
+  difference), **Burner power** (a small arc and a word, from "burner off" to
+  "full fire") and **Starts in the last hour** (calm, or switching on and off
+  too often, and today's starts). Tap a figure for its history. A figure that
+  your boiler does not report is left out. Then, from top to bottom: **Advice**
+  (the heating advice, when there is any), **Today and this week** (the gas for
+  heating and for hot water, the burner starts and the burner time of today, one
+  chart with the gas per day of the last week, and the burner hours per day),
+  **Hot water** (its temperature and target, the taps of today and a 24-hour
+  timeline), **Last 24 hours** (graphs of the water temperatures, the burner
+  power and the hot water), **What the boiler reports** (the values your boiler
+  sends, in groups) and **Boiler settings**. A section is hidden while the
+  boiler reports nothing for it, so a heading never stands over nothing.
+  Yesterday is not here; it is on the **Learning and settings** tab.
+- **Learning and settings**: what the E32 learned, so you read what it did.
+  It starts with seven sections, in this order:
+  1. **What the E32 knows**: a ring with how much of your house the E32
+     knows ("The E32 knows your house: 62 %") and, in words, what it still
+     has to learn.
+  2. **Your boiler**: one sentence on what the E32 learned from your boiler:
+     how it holds its temperature, how long it rests and what the E32 asks
+     because of it, or that the E32 is still listening.
+  3. **Water temperature by outdoor temperature**: the chart with the
+     standard line (dashed), the line learned for your house (solid), the
+     point of now and the water temperature in hard frost.
+  4. **Yesterday in figures**, the only Yesterday of the dashboard. Four
+     figures stand large at the top: how early or late the first room that is
+     switched on was warm, the burner starts per heating hour, the gas for
+     heating and the degree-days. Under them come the rest of yesterday and
+     the missed comfort of the last days.
+  5. **Noticed**: yesterday compared with your own usual days, one sentence
+     for each thing that stood out, with what can cause it. It is
+     information and changes nothing.
+  6. **Free heat**: per room the warmth it gets from sun, cooking and people
+     without the boiler, once the E32 has seen it often enough, and what
+     Smart warm-up does with it.
+  7. **Smart warm-up and weather compensation**: the two switches and the
+     water temperature in hard frost, and the links to the room editor and
+     the week program.
+
+  After them come **What the thermostat has learned** (how far each room is,
+  your house and your boiler, what the E32 changed by itself, and how it
+  learns) and **Who controls the boiler** (the burner as information and the
+  check before the E32 takes over). Each part shows only once it has something
+  to say (E32 rc.5). On a phone the sections stand under each other in this
+  order; on a wide screen they stand in two columns.
+- **Diagnostics**: the E32 itself, **Thermostat on the bus** (what a
+  thermostat on the boiler bus asks, as the E32 hears it; mostly of use in the
+  trial run), the energy and hot water counters, the raw boiler data and the
+  hot water capability.
 
 During a trial run a **Comparison** page opens from the **Learning and
 settings** tab.
@@ -154,8 +241,8 @@ The words come from the manufacturer's manual for the chosen boiler model, or
 from a general EMS table; a code that is not in the table stays the raw code.
 A fault or lockout is marked as a warning or an error. In Home Assistant the
 **Display code** sensor keeps the raw code as its state, with the meaning,
-severity and advice as attributes, and the **Boiler** tab of the dashboard
-shows the meaning.
+severity and advice as attributes, and the **Now** card of the dashboard's
+**Boiler** tab shows the meaning.
 
 Not every boiler reports every value. **Boiler → What your boiler reports** shows which
 values your boiler has (**Values available**), which it does not have (**Not
@@ -642,10 +729,12 @@ learns your house's own from steady heating periods of three hours. The
 learned overview in Home Assistant says which it uses ("Weather compensation:
 standard for now, learning from your house (2 of 6 steady periods)" or
 "Weather compensation: learned for your house"); the E32 Home page says the
-same. Without an outdoor temperature (from the boiler or Home Assistant) the
-water temperature follows the rooms only, and the status says so. The coolest
-water per room is used once learned ("Coolest water: still learning from each
-warm-up" until then).
+same. Since rc.5 the E32 can use an estimate from its
+[house model](#the-house-model-and-weather-compensation) in between, and
+[a chart](#the-heating-curve-chart) draws the line. Without an outdoor
+temperature (from the boiler or Home Assistant) the water temperature follows
+the rooms only, and the status says so. The coolest water per room is used once
+learned ("Coolest water: still learning from each warm-up" until then).
 
 **Water temperature in hard frost (−10 °C)** says how warm the water to your
 heating gets when it is −10 °C outside. In milder weather the E32 picks less.
@@ -705,9 +794,10 @@ learning information.
 
 Each problem except the water pressure (which has its own message) also
 appears under **Settings → System → Repairs** as **Heating needs attention**,
-and clears itself once the cause is gone. The sensor's `problems` and
-`reasons` attributes say what is wrong, so you can use it in your own
-notification automation.
+and clears itself once the cause is gone. On the dashboard, the band of the
+**house card** turns red while the sensor is on and names the first reason; a
+tap on it opens Repairs. The sensor's `problems` and `reasons` attributes say
+what is wrong, so you can use it in your own notification automation.
 
 The **Daily summary** sensor on the OpenThermostat device shows the last
 finished day; its attributes hold the last two weeks (three weeks are kept).
@@ -718,8 +808,10 @@ long it took to reach a raised target (late after 2 hours) and the missed
 comfort minutes. Only time with E32 data counts; a day with less than 20
 hours of data is marked partial. **Burner time**, **Burner starts** and
 **Missed comfort time** are running totals with long-term statistics, so
-their change per day is the daily figure. The **Boiler** tab of the dashboard
-shows yesterday in words and the last days as bars.
+their change per day is the daily figure. The **Learning and settings** tab of
+the dashboard shows yesterday in figures, with the missed comfort of the last
+days as bars. The gas and the burner hours of the last days are bars under
+**Today and this week** on the **Boiler** tab.
 
 ### Radiator valves
 
@@ -951,12 +1043,17 @@ restart; whatever the E32 did not measure is left out.
 | Degree days (how cold it was) | A measure of how cold the day was (base 18 °C), so you can compare days. |
 | Per room | How many minutes late or early the room was warm ("warm 12 min late", "warm 5 min early" or "warm on time") and how far it went above its target ("0.3 °C too warm"). |
 
-In Home Assistant it is a section of the **Learning and settings** tab ("Living
-room: warm 12 min late · 0.3 °C too warm", "Burner: 2.1 starts per heating
-hour", "Gas for heating: 8.4 kWh"). On the E32 it is on the **Home** page, under
-**What the thermostat has learned**. The **Boiler** tab of the dashboard has its
-own **Yesterday** section, the daily summary (see above); this one is the
-thermostat's scoreboard.
+In Home Assistant it is the section **Yesterday in figures** on the **Learning
+and settings** tab. Four figures stand large at the top: how many minutes early
+or late the first room that is switched on was warm, the burner starts per
+heating hour, the gas for heating and the degree days; tap one for its
+history. The rest follows in lines ("Bathroom: warm 12 min late · 0.3 °C too
+warm", "Heating time: 6.2 h · Short burner runs: 0.4 h"). It is the only
+Yesterday of the dashboard, so it also holds the daily summary (see
+[Daily summary and warnings](#daily-summary-and-warnings)): the burner time and
+starts, the gas for heating and hot water and, per room, how long it asked for
+heat. Under it is a chart of the missed comfort per day. On the E32 it is on
+the **Home** page, under **What the thermostat has learned**.
 
 Each figure is also a sensor, so Home Assistant keeps its history: per room
 **Warm on time** (minutes) and **Overshoot** (°C), and on the OpenThermostat
@@ -964,6 +1061,220 @@ device **Burner starts per heating hour**, **Short cycling hours**, **Heating
 gas yesterday** and **Gas per degree-day**. The state is yesterday's figure. A
 sensor appears once the E32 has a figure for it; with firmware before rc.4 there
 are none.
+
+### What the E32 knows, and what it still lacks
+
+From E32 rc.5 (Home Assistant integration 1.0.0rc6) the E32 also learns from
+your boiler and your house, and it says how far it is. There is nothing to set
+for any of it: the E32 tunes itself and you read what it did. This section and
+the five that follow describe what you find on the pages; E32 firmware before
+rc.5 shows none of it, and Home Assistant then leaves the new sensors unknown
+and the new section out.
+
+The first thing to read is one figure, **The E32 knows your house: 70 %**. It
+says how much of what the E32 can learn about your house it has learned. Under
+it, in words, stands what is still missing, for example "It still has to see
+how fast the living room warms up". The figure rises by itself while the
+heating runs. It is information and changes nothing the E32 does. It is
+rounded down, so 100 % means nothing is missing.
+
+| What counts | Share |
+| --- | --- |
+| How fast each room warms up (what Smart warm-up needs) | 25 % |
+| How fast each room cools down | 15 % |
+| The Weather compensation line, learned for your house | 15 % |
+| The morning check of each room: three mornings judged | 15 % |
+| The lowest water temperature your boiler heats at (known once the E32 found it, or while it controls the boiler) | 10 % |
+| How your boiler holds its temperature, or how much heat your house takes per °C of water temperature ([listening to the boiler](#listening-to-the-boiler)) | 10 % |
+| How fast your house loses heat and what the radiators and floor give ([the house model](#the-house-model-and-weather-compensation)) | 10 % |
+
+The room parts are the share of your active rooms. A part that does not apply
+counts as known: the morning check, for example, only counts rooms whose E32
+week program has a rise, and only while Smart warm-up is on. The part about
+your boiler counts once the E32 has learned a ceiling or the boiler's own rest
+(see [listening to the boiler](#listening-to-the-boiler)), or how much heat
+your house takes per °C of water temperature. The last one needs your boiler's
+return temperature, so a boiler that reports it gets there even when it never
+stops by itself. Only a boiler that reports no return temperature and never
+stops by itself has nothing to learn here: its state stays **No return
+temperature** and the figure tops out below 100 %.
+
+On the E32 you find the figure on the **Home** page under **What the
+thermostat has learned**. In Home Assistant the **Learning and settings** tab
+starts with **What the E32 knows**, and the sensor **Knowledge** on the E32
+device has the percentage as its state and the missing items, as sentences, in
+its attributes.
+
+### Listening to the boiler
+
+The E32 asks your boiler for a water temperature. A boiler that reaches it
+(give or take a few degrees) switches its burner off by itself, rests for a
+while and starts again, or it burns at its lowest power while the water still
+climbs above the request. Both happen although a room still asks for heat:
+the E32 asked for more than the house takes at that moment. The E32 hears this
+from values every EMS boiler reports (the water temperatures, the burner, hot
+water and the burner power). It never reads or changes a boiler setting, and
+it listens only while it controls the boiler itself.
+
+What it learns from it:
+
+- **A ceiling for the water temperature.** After a request in which the
+  boiler stopped by itself twice, the E32 takes the request minus 2 °C as the
+  most worth asking and keeps one ceiling per outdoor temperature range
+  (below −5 °C, −5 to 0, 0 to 5, 5 to 10, 10 to 15 and 15 °C and up). The
+  first such request already sets a ceiling, and the pages say **Learned**.
+  From then on the E32 asks no more than the ceiling near the target
+  temperatures (see the next point), as long as Smart warm-up is on (the
+  default). The result is cooler water and fewer burner starts. It never goes
+  below the lowest water temperature the E32 asks of your boiler or above your
+  highest water temperature. Not counted: the first 10 minutes of a request
+  (the circuit is still filling), a room that is catching up on a warm-up, and
+  anything around hot water.
+- **A cold morning is not slowed.** The ceiling is what the house takes near
+  its target temperatures, where the boiler's holds happen. While the room
+  that is furthest from its target is 1 °C or more below it, the E32 asks the
+  full water temperature, whatever the ceiling says.
+- **A ceiling that proves too low corrects itself.** For every 6 hours of
+  heating at or above the ceiling in which the boiler does not stop by itself,
+  the ceiling goes up 1 °C. The season or the house may have changed.
+- **The boiler's own rest.** After such a stop the boiler waits before it
+  starts again (the middle value of its last eight rests, once it has seen
+  three). A request sooner only meets a boiler that will not start yet, so
+  the E32 keeps its own **burner rest** at least that long, never more than 15
+  minutes. When a room is more than 0.3 °C below its target the rest is not
+  lengthened: comfort comes first. The burner rest you or the self-tuning set
+  is not changed; the boiler's rest only lies on top of it.
+- **The heat your house takes.** When your boiler reports the return
+  temperature, the E32 works out from steady burns how much heat the radiators
+  and the floor take: in kW now, and in kW per °C of water temperature above
+  the rooms. The [house model](#the-house-model-and-weather-compensation) uses
+  that figure, and it counts for the knowledge figure too.
+
+On the E32 the **Home** page says it in one sentence under **What the
+thermostat has learned**, for example "Your boiler holds about 43 °C and rests
+6 min; near the target the E32 asks at most 41 °C." (The ceiling it names holds
+near the target temperatures; a room that is 1 °C or more below its target gets
+more. With Smart warm-up off the sentence says what the E32 would ask.) While
+the boiler is still listening but the heat per °C is already known, the sentence
+says that figure instead: "Your boiler has not held a water temperature by
+itself yet; every degree the water is warmer than the rooms gives your house
+about 0.3 kW. The E32 keeps listening."
+Home Assistant shows the same sentence on the **Learning and settings** tab,
+under **Your boiler**, and has the sensor **Boiler response** on the E32 device.
+Its state is:
+
+| State | Meaning |
+| --- | --- |
+| Still listening | The E32 has not yet seen enough of how your boiler holds its temperature. A boiler that never stops by itself can stay here; the knowledge figure still counts it once the heat the house takes per °C is known. |
+| Learned | The E32 knows a ceiling or the boiler's own rest. The sentence above says what it found. |
+| No return temperature | Your boiler does not report the water coming back, so the E32 cannot see how much heat the house takes. Everything else works as usual, and the state becomes Learned as soon as the E32 knows a ceiling or the boiler's own rest. |
+| E32 not controlling the boiler | The E32 listens once it controls the boiler itself (not during the trial run). |
+
+The attributes of the sensor give how often the boiler held its temperature
+today, its rest, the ceiling it learned for this outdoor temperature, the heat
+the house takes (kW) and the kW per °C of water temperature.
+
+### The house model and Weather compensation
+
+From how fast the rooms warm up and cool down, or else from the gas used per
+degree of cold, the E32 works out two figures for the house: how much heat it
+loses per degree colder outside, and how much heat the radiators and the floor
+give per degree of water temperature (taken from the boiler's measurement
+above when there is one). Their ratio is the steepness of the Weather
+compensation line: how much warmer the water must be for every degree colder
+outside.
+
+Weather compensation learns that line from steady heating periods of three
+hours and needs six of them, which can take weeks in a mild autumn. Until then
+the E32 uses the house model's estimate instead of the standard line, when it
+has one (from two rooms whose heat loss is known, or from three days with a
+gas figure and degree-days). It never makes the line less than half as steep
+as the standard one, because an estimate must not leave rooms cold. When the
+six periods are in, what it measured replaces the estimate. The pages say
+which line is in use: "Weather compensation: estimated from your house for
+now, learning more (2 of 6 steady periods)". The model is worked out again
+every hour from what the E32 has learned.
+
+### Yesterday against your usual days
+
+Every day the E32 compares yesterday with the usual days of your own house,
+not with other houses. It keeps a usual value for four figures: gas for
+heating per degree of cold, burner starts per heating hour, heating hours per
+degree of cold and, per room, the warm-up minutes per °C. The usual value is a
+running average over your days; the first five days are simply averaged. From
+the fifth day on, yesterday is judged against it before it is added to it. A
+figure that is more than 30 % away from usual (and by more than a small
+minimum) gets one sentence, with what can cause it:
+
+| You read | It compares | What can cause it |
+| --- | --- | --- |
+| Yesterday used 35 % more gas per degree of cold than usual. | Gas for heating per degree-day | A window or door left open, or a room set warmer. |
+| Yesterday used 20 % less gas per degree of cold than usual. | The same | Sun, a cooler setting or fewer hours at home. |
+| Yesterday the burner started 40 % more often per heating hour than usual. | Burner starts per heating hour | Fewer, longer burns are gentler on the boiler; the thermostat watches this. |
+| Yesterday the heating ran 30 % longer per degree of cold than usual. | Heating hours per degree-day | A window or door left open, or a room set warmer. |
+| Yesterday the living room warmed up 50 % more slowly than usual. | The room's warm-up minutes per °C | A window left open, a closed radiator valve or furniture in front of the radiator. |
+
+At most four sentences stay. They describe yesterday only: every new day
+replaces them, and a day with less than an hour of heating leaves none and is
+not counted in the usual values. A mild day or a day with too little data is
+not judged. This is information. It is never a **Heating problem**, never a
+Repair, and you do not need to do anything.
+
+On the E32 you find the sentences on the **Home** page under **What the
+thermostat has learned**, under **Yesterday compared with usual**. In Home
+Assistant each one is a notification (dismiss it and it stays dismissed until
+the sentence changes) and the list is on the **Learning and settings** tab,
+under **Noticed**.
+
+### Free heat from sun, cooking and people
+
+Sun through the windows, cooking and people warm a room without the boiler. If
+Smart warm-up ignored that, it would start too early and the room would end up
+warmer than its target. The E32 learns it per room and per part of the day
+(six parts of four hours, from midnight). It looks at stretches of at least
+half an hour in which no heat reached the room (after the radiators or the
+floor stopped giving heat: 30 minutes for radiators, 2 hours for a floor) and
+sees whether the room still rose by 0.2 °C or more. That rise joins the
+average of that part of the day; a flat or falling stretch counts as zero. A
+stretch in which it was warmer outside than inside is not judged.
+
+From five stretches in a part of the day the E32 uses the number: a warm-up
+that falls in that part of the day starts later, its lead shrinking by the
+share of the warm-up rate that comes for free, but never to less than half of
+the usual lead. The morning check still judges every start, so a wrong guess
+is corrected the usual way: a room that is late gets an earlier start next
+time. A room that never warms up by itself shows nothing and keeps its lead.
+
+The room's learned details say it in words, for example "In the afternoon this
+room warms up by itself, about 0.4 °C per hour (sun, cooking or people)" and,
+when it changes a start, "Smart warm-up now starts 20 min later for it, so it
+does not heat what comes for free." The E32 **Home** page always shows them,
+under **What the thermostat has learned**. Home Assistant shows them, per room
+under **Free heat** on the **Learning and settings** tab, when the E32's report
+for that room has room for them.
+
+### The heating-curve chart
+
+**Water temperature by outdoor temperature** shows how warm the water to your
+heating gets at each outdoor temperature:
+
+- the **standard line** (dashed) is what Weather compensation starts with; it
+  follows from the **Water temperature in hard frost (−10 °C)**;
+- the **line learned for your house** (solid) appears once the E32 has learned
+  the line, or estimated it from the house model. The further below the
+  standard line, the cooler water your house needs;
+- **Now** marks today's outdoor temperature and what the E32 asks at it, and
+  the point at **−10 °C** shows the water temperature in hard frost.
+
+The chart stays between your lowest and highest water temperature. **Show the
+values** lists the same as a table. With Weather compensation switched off the
+chart shows what it would ask.
+
+On the E32 it is on the **Home** page under **Heating settings**, in the water
+temperature block. In Home Assistant it has its own part on the **Learning and
+settings** tab, and you can add the card to a dashboard of your own
+(`custom:openthermostat-heating-curve`; `show_name: false` leaves out its
+title).
 
 ### Gas for heating, hot water and keeping warm
 
@@ -1004,12 +1315,14 @@ are parts of hot water, so leave them out there.
 *Boiler activity* says what the boiler does now: idle, heating, tapping,
 keeping warm, charging the cylinder, or hot water it cannot sort. A tap shows
 as keeping warm until its fall is clear, usually within half a minute. On the
-dashboard's **Boiler** tab, the hot-water section shows this as a 24-hour timeline next to
-the boiler's heating state, and, once tapping or keeping warm has counted gas,
-the gas per day for heating, tapping and keeping warm over the last week. On
-the E32's own Overview, the boiler history has a hot-water strip: the share of
-each 5 minutes tapping and keeping warm (a cylinder's charging counts as
-keeping warm there).
+dashboard's **Boiler** tab, the **Hot water** section shows this as a 24-hour
+timeline next to the boiler's heating state; the day strip of the house card
+on the Overview shows it for today. The gas per day for heating, tapping and
+keeping warm over the last week is the one chart under **Today and this
+week**. Without the separate gas for tapping and for keeping warm, that chart
+shows heating and hot water. On the E32's own Overview, the boiler history has
+a hot-water strip: the share of each 5 minutes tapping and keeping warm (a
+cylinder's charging counts as keeping warm there).
 
 ## Backup and restore
 
@@ -1020,7 +1333,10 @@ holidays, the Bluetooth sensors, the flow options, the boiler model and the
 page language. It also
 holds what the thermostat has learned about your rooms, so a replacement E32
 carries on learning where the old one was. If that part of a backup cannot be
-read, the restore skips it with a note and the E32 learns from the start.
+read, the restore skips it with a note and the E32 learns from the start. What
+the E32 learned from your boiler (its ceiling and the boiler's rest, see
+[listening to the boiler](#listening-to-the-boiler)) is not in the file; a
+replacement E32 learns that again within days.
 
 - **Passwords and keys.** By default the file holds no secret. The page lists
   what you need to enter again after a restore: the MQTT password, the

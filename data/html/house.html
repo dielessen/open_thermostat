@@ -79,6 +79,16 @@
            itself when what it learned is good enough; the lines say what it uses now, switching off is advanced. -->
       <p class="pd-help" data-smart-warmup-state></p>
       <p class="pd-help" data-curve-state></p>
+      <!-- rc.5: water temperature by outdoor temperature, the standard line and the one learned for this house
+           (/status/heating flow.curve, the rooms' targets, learned.outdoor_c; the plan's limits). -->
+      <figure class="wc" data-curve-chart hidden>
+        <figcaption class="wc-title" data-i18n="Water temperature by outdoor temperature">Water temperature by outdoor temperature</figcaption>
+        <ul class="wc-legend" data-curve-legend></ul>
+        <div class="wc-plot" data-curve-plot></div>
+        <p class="pd-help wc-caption" data-i18n="The colder it is outside, the warmer the water. The E32 learns the line for your house and keeps it as low as it can.">The colder it is outside, the warmer the water. The E32 learns the line for your house and keeps it as low as it can.</p>
+        <p class="pd-help" data-curve-off hidden><span data-i18n="Weather compensation is off; the lines show what it would ask.">Weather compensation is off; the lines show what it would ask.</span></p>
+        <details class="ot-advanced wc-values"><summary data-i18n="Show the values">Show the values</summary><table class="wc-table" data-curve-table></table></details>
+      </figure>
       <p class="pd-help" data-learned-flow-state></p>
       <details class="ot-advanced hp-advanced" data-smart-warmup-advanced><summary data-i18n="Advanced">Advanced</summary>
       <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Starts heating early by itself so a room is warm at the time in its week program, with the coolest water that still does it. Off: heating starts at the program time.">
@@ -102,6 +112,19 @@
     <h2 data-i18n="What the thermostat has learned">What the thermostat has learned</h2>
     <p class="pd-help"><span data-i18n="The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.">The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.</span>
       <span data-i18n="What it learned is kept when the thermostat restarts, loses power or gets an update.">What it learned is kept when the thermostat restarts, loses power or gets an update.</span></p>
+    <!-- rc.5: what the E32 knows (a ring and what it still learns), how the boiler responds and yesterday compared with
+         usual (/status/heating "knowledge", "boiler", "insights", also in one "insight" object); hidden without them. -->
+    <div class="hl-knows" data-learned-knows hidden>
+      <div class="hl-knows-head">
+        <svg class="hl-ring" viewBox="0 0 72 72" role="img" data-knowledge-ring><circle class="hl-ring-track" cx="36" cy="36" r="30"/>
+          <circle class="hl-ring-fill" cx="36" cy="36" r="30" transform="rotate(-90 36 36)" data-knowledge-arc/><text x="36" y="41.5" text-anchor="middle" data-knowledge-pct></text></svg>
+        <div><p class="hl-knows-title" data-i18n="The E32 knows your house">The E32 knows your house</p>
+          <p class="hl-mean" data-i18n="It learns by itself while the heating runs.">It learns by itself while the heating runs.</p></div>
+      </div>
+      <div class="hl-missing" data-knowledge-missing></div>
+      <p class="hl-boiler" data-boiler-line hidden></p>
+      <div class="hl-insights" data-learned-insights hidden><h3 data-i18n="Yesterday compared with usual">Yesterday compared with usual</h3><div data-insight-list></div></div>
+    </div>
     <p class="hl-state" role="status" aria-live="polite" data-learned-state></p>
     <div class="hl-rooms" data-learned-rooms></div>
     <!-- rc.4 scoreboard (/status/heating "scoreboard"): yesterday in figures; hidden without it. -->
@@ -151,7 +174,38 @@
 #house-settings .hc-edit input{max-width:8rem;min-height:44px}#house-settings .hc-more{margin:12px 0 0}#house-settings [data-house-care] .ot-actions .btn{min-height:44px}
 #house-settings [data-care-lock]{display:none}#house-settings.hs-locked [data-care-lock]{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #house-settings.hs-locked [data-house-care] :is(.hc-actions,p.ot-actions) .btn:disabled{border-color:transparent;background:none;color:var(--ot-muted);opacity:.6;font-weight:500;padding:2px 12px 2px 0;min-height:0}
-#house-settings.hs-locked [data-house-care] .hc-actions{margin-top:0}</style>
+#house-settings.hs-locked [data-house-care] .hc-actions{margin-top:0}
+/* rc.5: what the E32 knows (a ring, what it still learns), the boiler's response, yesterday compared with usual. */
+#house-settings .hl-knows{margin:0 0 16px;padding:0 0 12px;border-bottom:1px solid var(--ot-border)}#house-settings .hl-knows-head{display:flex;align-items:center;gap:14px}
+#house-settings .hl-ring{flex:none;width:72px;height:72px}#house-settings .hl-ring-track{fill:none;stroke:var(--ot-accent-soft);stroke-width:7}
+#house-settings .hl-ring-fill{fill:none;stroke:var(--ot-accent);stroke-width:7;stroke-linecap:round}#house-settings .hl-ring text{font-size:16px;font-weight:600;fill:var(--ot-text)}
+#house-settings .hl-knows-title{margin:0 0 2px;font-size:1.05rem;font-weight:600}#house-settings .hl-missing h4{font-size:.95rem;font-weight:600;margin:12px 0 6px}
+#house-settings .hl-done{margin:12px 0 0}#house-settings .hl-boiler{margin:12px 0 0;padding:8px 12px;border-radius:var(--ot-r1);border-left:4px solid var(--ot-accent);background:var(--ot-accent-soft);line-height:1.4;overflow-wrap:anywhere}
+#house-settings .hl-insights h3{margin:14px 0 6px}#house-settings .hl-rest{color:var(--ot-muted)}
+/* rc.5: water temperature by outdoor temperature. The chart steps of the pages (history-chart.js), each mode its own. */
+#house-settings .wc{margin:12px 0 10px;--wc-learned:#00876f;--wc-now:#b5600c;--wc-learned-soft:rgba(0,135,111,.13);--wc-now-soft:rgba(181,96,12,.18)}
+@media (prefers-color-scheme:dark){#house-settings .wc{--wc-learned:#239c8a;--wc-now:#c97a2c;--wc-learned-soft:rgba(35,156,138,.2);--wc-now-soft:rgba(201,122,44,.24)}}
+#house-settings .wc-title{font-weight:600;margin:0 0 4px}#house-settings .wc-legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 6px;padding:0;list-style:none;font-size:.87rem;color:var(--ot-muted)}
+#house-settings .wc-legend li{display:inline-flex;align-items:center;gap:6px;max-width:100%}#house-settings .wc-key{display:inline-block;flex:none;width:18px;border-top:2px solid var(--wc-learned)}
+#house-settings .wc-key.standard{border-top:2px dashed var(--ot-muted)}#house-settings .wc-key.now{width:10px;height:10px;border:0;border-radius:50%;background:var(--wc-now);box-shadow:0 0 0 3px var(--wc-now-soft)}
+#house-settings .wc-plot{position:relative;touch-action:pan-y;max-width:46rem}#house-settings .wc-plot svg{display:block;max-width:100%;height:auto;overflow:visible;-webkit-tap-highlight-color:transparent}
+#house-settings .wc-plot svg:focus{outline:none}#house-settings .wc-plot svg:focus-visible{outline:3px solid var(--ot-focus);outline-offset:4px;border-radius:4px}
+#house-settings .wc .grid{stroke:var(--ot-border);stroke-width:1;shape-rendering:crispEdges}#house-settings .wc .tick,#house-settings .wc .axis-title{font-size:12px;fill:var(--ot-muted)}
+#house-settings .wc .tick{font-variant-numeric:tabular-nums}#house-settings .wc .band{fill:var(--wc-learned-soft)}
+#house-settings .wc .line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}#house-settings .wc .line.learned{stroke:var(--wc-learned)}
+#house-settings .wc .line.standard{stroke:var(--ot-muted);stroke-dasharray:6 5}#house-settings .wc .point{stroke:var(--ot-surface);stroke-width:2}
+#house-settings .wc .point.learned{fill:var(--wc-learned)}#house-settings .wc .point.standard{fill:var(--ot-muted)}#house-settings .wc .point.now{fill:var(--wc-now)}#house-settings .wc .halo{fill:var(--wc-now-soft)}
+#house-settings .wc .label{font-size:12.5px;font-weight:600;fill:var(--ot-text);paint-order:stroke;stroke:var(--ot-surface);stroke-width:4px;stroke-linejoin:round}
+#house-settings .wc .label .sub{font-weight:400;fill:var(--ot-muted)}#house-settings .wc .leader{stroke:var(--ot-muted);stroke-width:1}
+#house-settings .wc .cross{stroke:var(--ot-text);stroke-opacity:.35;stroke-width:1;shape-rendering:crispEdges}#house-settings .wc .hit{fill:transparent;cursor:crosshair}
+#house-settings .wc-tip{position:absolute;top:0;left:0;z-index:1;min-width:132px;padding:6px 10px;border-radius:var(--ot-r1);pointer-events:none;font-size:.87rem;line-height:1.35;
+background:var(--ot-surface);color:var(--ot-text);border:1px solid var(--ot-border);box-shadow:0 2px 10px rgba(0,0,0,.18)}#house-settings .wc-tip[hidden]{display:none}
+#house-settings .wc-tip-head{color:var(--ot-muted);margin-bottom:2px;white-space:nowrap}#house-settings .wc-tip-row{display:flex;align-items:center;gap:8px;white-space:nowrap}
+#house-settings .wc-tip-row b{font-weight:600;font-variant-numeric:tabular-nums}#house-settings .wc-tip-row span{color:var(--ot-muted)}
+#house-settings .wc-caption{margin:8px 0 0}#house-settings .wc-values{margin:10px 0 0}#house-settings .wc-table{border-collapse:collapse;color:inherit;font-size:.87rem;font-variant-numeric:tabular-nums;margin:0 0 4px}
+#house-settings .wc-table th,#house-settings .wc-table td{padding:4px 14px 4px 0;text-align:right;vertical-align:bottom;overflow-wrap:normal}#house-settings .wc-table td{white-space:nowrap}#house-settings .wc-table th{font-weight:500;color:var(--ot-muted)}
+#house-settings .wc-table :is(th,td):first-child{text-align:left}#house-settings .wc-table tr+tr td{border-top:1px solid var(--ot-border)}
+#house-settings .wc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
 <script>
 // House page (E32 beta.23): the house mode and away temperature (POST /config/heating/comfort), presence from Home
 // Assistant (read-only) and the house-wide heating settings. One 10 s refresh of /status/heating feeds every part
@@ -436,7 +490,10 @@
   }
   new MutationObserver(paint).observe(root, {attributes: true, attributeFilter: ['class']});
   const valid = p => p && Number.isInteger(p.minimum_flow_c) && Number.isInteger(p.maximum_flow_c) && Array.isArray(p.rooms);
-  function show(next) { plan = next; minFlow.value = plan.minimum_flow_c; maxFlow.value = plan.maximum_flow_c; paint(); }
+  function show(next) {
+    plan = next; minFlow.value = plan.minimum_flow_c; maxFlow.value = plan.maximum_flow_c; paint();
+    root.dispatchEvent(new CustomEvent('heating-plan', {detail: plan})); // rc.5: the heating curve draws within these limits
+  }
   async function load() {
     say(uiText("Loading…"));
     try {
@@ -499,8 +556,9 @@
   const smartState = box.querySelector('[data-smart-warmup-state]'), advanced = box.querySelector('[data-smart-warmup-advanced]');
   const curveState = box.querySelector('[data-curve-state]'), learnedState = box.querySelector('[data-learned-flow-state]');
   const stateText = {advice:"Advice only", applied:"In use", no_outdoor:"No outdoor temperature", no_room:"No room with a measurement",
-    not_ready:"Still learning", holding:"Holding temperature", none:"No start planned", no_clock:"Clock not set"};
-  const slopeText = {design:"From the setting for hard frost (−10 °C)", learned:"Learned from this house"};
+    not_ready:"Still learning", holding:"Holding temperature", none:"No start planned", no_clock:"Clock not set", held:"Limited by your boiler"};
+  // rc.5: "house": until the curve is learned from 6 steady periods, the slope the house model works out (HouseModel).
+  const slopeText = {design:"From the setting for hard frost (−10 °C)", learned:"Learned from this house", house:"Estimated from how your house loses heat"};
   const gasText = {no_meter:"No gas meter: estimate from the boiler power (rough)", collecting:"Gas meter connected, calibrating",
     calibrated:"Calibrated with the gas meter ({confidence})", meter_stale:"Gas meter not reporting"};
   const confidenceText = {low:"low", medium:"medium", high:"high"};
@@ -541,6 +599,9 @@
     if (!settings.weather_curve) return uiText("Weather compensation: off, the water temperature follows the rooms only.");
     if (curve.state === 'no_outdoor') return uiText("Weather compensation: no outdoor temperature right now, so the water temperature follows the rooms only.");
     if (curve.slope_source === 'learned') return uiText("Weather compensation: learned for your house.");
+    if (curve.slope_source === 'house') return Number.isInteger(curve.windows)
+      ? fill(uiText("Weather compensation: estimated from your house for now, learning more ({n} of {m} steady periods)."), {n: Math.min(curve.windows, curveSteps), m: curveSteps})
+      : uiText("Weather compensation: estimated from your house for now, learning more.");
     return Number.isInteger(curve.windows) ? fill(uiText("Weather compensation: standard for now, learning from your house ({n} of {m} steady periods)."), {n: Math.min(curve.windows, curveSteps), m: curveSteps})
       : uiText("Weather compensation: standard for now, learning from your house.");
   }
@@ -586,6 +647,11 @@
       const curve = flow.curve || {}, learned = flow.learned || {};
       const start = typeof flow.optimum_start === 'string' ? {state: flow.optimum_start} : flow.optimum_start || {};
       rows.push(["Water temperature now", join(label(sourceText, flow.source), status.request?.heat ? degrees(flow.applied_flow_c) : uiText("off"))]);
+      // rc.5: the most the E32 asks of this boiler now (BoilerResponse "ceiling_c"), shown while it is what holds the
+      // request (the learned state "held", or a request at the ceiling).
+      const ceiling = flow.ceiling_c, real = v => typeof v === 'number' && Number.isFinite(v);
+      if (real(ceiling) && ((flow.learned && flow.learned.state === 'held') || (status.request?.heat && real(flow.applied_flow_c) && flow.applied_flow_c >= ceiling)))
+        rows.push(["Asks at most (learned from your boiler)", degrees(ceiling)]);
       rows.push(["Weather compensation", join(label(stateText, curve.state), degrees(curve.flow_c))]);
       if (typeof curve.slope === 'number') rows.push(["Weather compensation steepness", join(fixed(curve.slope, 2), label(slopeText, curve.slope_source))]);
       rows.push(["Learned water temperature", join(label(stateText, learned.state), degrees(learned.flow_c))]);
@@ -622,6 +688,241 @@
 })();
 </script>
 <script>
+// Water temperature by outdoor temperature (E32 rc.5), from the house page's own 10 s refresh ('heating-status': flow.curve,
+// the rooms' targets, learned.outdoor_c) within the plan's limits ('heating-plan', from the limits above). The same chart as
+// the Home Assistant card (frontend/heating-curve-card.js): water = room + slope × max(0, room − outdoor), the standard line
+// (from the water temperature in hard frost, WeatherCurve::slopeFor) dashed, the line learned for this house solid with the
+// gain between them, "Now" and the hard-frost point labelled; a crosshair by pointer, touch or arrow keys, and the values as
+// a table. Plain inline SVG at the panel's own width; hidden without a curve (firmware before beta.19).
+(() => {
+  'use strict';
+  const root = document.getElementById('house-settings'), figure = root && root.querySelector('[data-curve-chart]');
+  if (!figure) return;
+  const host = figure.querySelector('[data-curve-plot]'), legend = figure.querySelector('[data-curve-legend]');
+  const table = figure.querySelector('[data-curve-table]'), off = figure.querySelector('[data-curve-off]');
+  const TEXT = {standard: "Standard", learned: "Learned for your house", house: "Estimated from your house", now: "Now",
+    frost: "At −10 °C with {room} °C inside: {flow} °C", now_point: "{outdoor} °C outside → {flow} °C", asks: "E32 asks {flow} °C",
+    at: "At {outdoor} °C outside", lower: "{n} °C cooler than standard",
+    higher: "{n} °C warmer than standard", outdoor: "Outdoor temperature (°C)", water: "Water to heating (°C)", outside: "Outside",
+    title: "Water temperature by outdoor temperature"};
+  const fill = (text, values) => Object.entries(values).reduce((s, [k, v]) => s.split('{' + k + '}').join(v), text);
+  const t = (key, values = {}) => fill(uiText(TEXT[key]), values);
+  const n = (v, digits = 0) => Number(v).toLocaleString(OpenThermostatLanguage.locale, {maximumFractionDigits: digits, minimumFractionDigits: 0, useGrouping: false}).replace('-', '−');
+  const real = v => typeof v === 'number' && Number.isFinite(v);
+  const X0 = -15, X1 = 20, Y0 = 20, Y1 = 80, FROST = -10, NS = 'http://www.w3.org/2000/svg';
+  const make = (tag, attrs = {}, text) => {
+    const e = tag.startsWith('svg:') ? document.createElementNS(NS, tag.slice(4)) : document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined) e.setAttribute(k, v);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  // WeatherCurve::baseCentiC as the E32 computes it, within the water temperature limits.
+  const water = (slope, room, low, high) => outdoor => Math.min(high ?? Infinity, Math.max(low ?? -Infinity, room + slope * Math.max(0, room - outdoor)));
+  let plan = null, status = null, drawn = '';
+  const keep = {at: null, focus: false};
+  // What the chart needs, or null without a curve: the standard slope from the water temperature in hard frost the E32
+  // uses (flow.curve.design_flow_c), the slope in use when it is learned (or estimated from the house), the room
+  // temperature the curve starts from (the highest target of the rooms it heats now, as FlowPolicy), the limits (the
+  // request's cap and the plan's lowest), the outdoor temperature now, the line's own value now (curve.base_c) and what
+  // weather compensation asks with the room correction (curve.flow_c).
+  function inputs() {
+    const flow = status && status.flow && typeof status.flow === 'object' ? status.flow : null, curve = flow && flow.curve && typeof flow.curve === 'object' ? flow.curve : null;
+    if (!curve) return null;
+    const design = Number.isInteger(curve.design_flow_c) && curve.design_flow_c >= 25 && curve.design_flow_c <= 80 ? curve.design_flow_c : null;
+    const standardSlope = design !== null ? Math.min(2.5, Math.max(0.2, (design - 20) / 30)) : curve.slope_source === 'design' && real(curve.slope) ? curve.slope : null;
+    const learned = (curve.slope_source === 'learned' || curve.slope_source === 'house') && real(curve.slope) && curve.slope > 0;
+    if (standardSlope === null && !learned) return null;
+    const targets = (Array.isArray(status.rooms) ? status.rooms : []).filter(r => r && (r.status === 'ok' || r.status === 'fallback') && real(r.setpoint)
+      && r.setpoint >= 5 && r.setpoint <= 30).map(r => r.setpoint);
+    const cap = real(flow.cap_c) && flow.cap_c >= 20 && flow.cap_c <= 90 ? flow.cap_c : null, outdoor = status.learned?.outdoor_c;
+    return {standardSlope, slope: learned ? curve.slope : null, learned, house: curve.slope_source === 'house',
+      room: targets.length ? Math.max(...targets) : 20, low: plan && Number.isInteger(plan.minimum_flow_c) ? plan.minimum_flow_c : null,
+      high: cap ?? (plan && Number.isInteger(plan.maximum_flow_c) ? plan.maximum_flow_c : null),
+      outdoor: real(outdoor) && outdoor >= -50 && outdoor <= 60 ? outdoor : null, now: real(curve.flow_c) && curve.flow_c > 0 ? curve.flow_c : null,
+      base: real(curve.base_c) && curve.base_c >= 0 && curve.base_c <= 90 ? curve.base_c : null, off: curve.state === 'advice'};
+  }
+  function chart(data) {
+    const width = Math.max(260, Math.round(host.clientWidth || 320)), M = {left: 34, right: 12, top: 24, bottom: 42};
+    const plotH = Math.round(Math.min(240, Math.max(168, width * 0.5))), height = M.top + plotH + M.bottom;
+    const x0 = data.outdoor !== null && data.outdoor < X0 ? Math.floor((data.outdoor - 1) / 5) * 5 : X0;
+    const x1 = data.outdoor !== null && data.outdoor > X1 ? Math.ceil((data.outdoor + 1) / 5) * 5 : X1;
+    const px = v => M.left + (v - x0) / (x1 - x0) * (width - M.left - M.right);
+    const py = v => M.top + (Y1 - Math.min(Y1, Math.max(Y0, v))) / (Y1 - Y0) * plotH;
+    const svg = make('svg:svg', {width, height, viewBox: `0 0 ${width} ${height}`, tabindex: '0', role: 'img'});
+    const tip = make('div', {class: 'wc-tip', hidden: ''}), live = make('span', {class: 'wc-sr', 'aria-live': 'polite'});
+    const was = keep.at, refocus = keep.focus;
+    host.replaceChildren(svg, tip, live); // in the document first, so the labels can be measured
+    const layer = cls => svg.appendChild(make('svg:g', {class: cls}));
+    const grid = layer('axes'), marks = layer('marks'), labels = layer('labels'), cross = layer('crosshair');
+    for (let v = Y0; v <= Y1; v += 10) grid.append(make('svg:line', {class: 'grid', x1: M.left, x2: width - M.right, y1: py(v), y2: py(v)}),
+      make('svg:text', {class: 'tick', x: M.left - 8, y: py(v) + 4, 'text-anchor': 'end'}, n(v)));
+    for (let v = Math.ceil(x0 / 5) * 5; v <= x1; v += 5) grid.append(make('svg:text', {class: 'tick', x: px(v), y: M.top + plotH + 18, 'text-anchor': 'middle'}, n(v)));
+    grid.append(make('svg:text', {class: 'axis-title', x: (M.left + width - M.right) / 2, y: height - 4, 'text-anchor': 'middle'}, t('outdoor')),
+      make('svg:text', {class: 'axis-title', x: M.left - 30, y: 12}, t('water')));
+    const standard = data.standardSlope !== null ? water(data.standardSlope, data.room, data.low, data.high) : null;
+    const own = data.learned ? water(data.slope, data.room, data.low, data.high) : null;
+    const sample = f => { const out = []; for (let v = x0; v <= x1 + 1e-9; v += 0.25) out.push([px(v), py(f(v))]); return out; };
+    const path = points => 'M' + points.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L');
+    const lines = [];
+    if (standard && own) marks.append(make('svg:path', {class: 'band', d: path([...sample(own), ...sample(standard).reverse()]) + 'Z'}));
+    if (standard) { const s = sample(standard); lines.push(s); marks.append(make('svg:path', {class: 'line standard', 'data-line': 'standard', d: path(s)})); }
+    if (own) { const s = sample(own); lines.push(s); marks.append(make('svg:path', {class: 'line learned', 'data-line': 'learned', d: path(s)})); }
+    const used = own || standard, frost = Math.round(used(FROST)), gain = own && standard ? Math.round(standard(FROST) - own(FROST)) : 0;
+    const solid = data.house ? 'house' : 'learned'; // the solid line's words: learned, or estimated from the house
+    marks.append(make('svg:circle', {class: 'point ' + (own ? 'learned' : 'standard'), 'data-point': 'frost', cx: px(FROST), cy: py(used(FROST)), r: 4.5}));
+    // "Now" sits on the line: the E32's own value of it (base_c), else the line here at the outdoor temperature now; what
+    // weather compensation asks with the room correction (flow_c) is told beside it when it differs.
+    const base = data.outdoor === null ? null
+      : data.base !== null ? Math.min(data.high ?? Infinity, Math.max(data.low ?? -Infinity, data.base)) : used(data.outdoor);
+    const showNow = base !== null;
+    const nowRows = showNow ? [t('now_point', {outdoor: n(data.outdoor, 1), flow: n(Math.round(base))})] : [];
+    if (showNow && data.now !== null && Math.round(data.now) !== Math.round(base)) nowRows.push(t('asks', {flow: n(data.now)}));
+    if (showNow) marks.append(make('svg:circle', {class: 'halo', cx: px(data.outdoor), cy: py(base), r: 12}),
+      make('svg:circle', {class: 'point now', 'data-point': 'now', cx: px(data.outdoor), cy: py(base), r: 5}));
+    // Labels, most important first; each takes the first of its places that overlaps no line, mark or earlier label and
+    // stays inside the plot. An optional one that finds none is left out (the legend, tooltip and table still carry it).
+    // A required one ("Now", the hard-frost point) then takes the free place of the plot nearest to its point, with a
+    // thin leader; in a plot without one it crosses a line (its halo keeps it legible) rather than cover a label or point.
+    const taken = [], plot = {l: M.left, r: width - M.right, t: M.top - 4, b: M.top + plotH};
+    const crosses = box => lines.some(line => line.some(([x, y]) => x >= box.l - 2 && x <= box.r + 2 && y >= box.t - 2 && y <= box.b + 2));
+    const covers = box => taken.some(o => box.l < o.r && box.r > o.l && box.t < o.b && box.b > o.t);
+    const outside = box => Math.max(0, plot.l - box.l) + Math.max(0, box.r - plot.r) + Math.max(0, plot.t - box.t) + Math.max(0, box.b - plot.b);
+    const score = box => outside(box) * 10 + (covers(box) ? 100 : 0) + (crosses(box) ? 1 : 0);
+    const place = (attrs, rows, spots, required, near) => {
+      const text = make('svg:text', {class: 'label', ...attrs});
+      rows.forEach((row, i) => text.append(make('svg:tspan', {class: i ? 'sub' : null, x: 0, dy: i ? 15 : 0}, row)));
+      labels.append(text);
+      const at = ([x, y, anchor]) => {
+        text.setAttribute('text-anchor', anchor); text.querySelectorAll('tspan').forEach(s => s.setAttribute('x', x)); text.setAttribute('y', y);
+        let b; try { b = text.getBBox(); } catch (_) { b = null; }
+        const w = b && b.width ? b.width : Math.max(...rows.map(r => r.length)) * 7, l = anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x;
+        return {l, r: l + w, t: y - 12, b: y - 12 + 15 * rows.length};
+      };
+      let best = null, size = null;
+      for (const spot of spots) {
+        const box = at(spot), s = score(box);
+        if (s === 0) { taken.push(box); return box; }
+        if (!best || s < best[0]) best = [s, 0, spot];
+        size = box;
+      }
+      if (!required || !best) { text.remove(); return null; }
+      // Every place of the plot on an 8 px grid: the lowest score, then the nearest to the point.
+      const w = size.r - size.l, h = size.b - size.t;
+      for (let y = plot.t + 12; y - 12 + h <= plot.b; y += 8) for (let x = plot.l + 4; x + w <= plot.r; x += 8) {
+        const box = {l: x, r: x + w, t: y - 12, b: y - 12 + h}, s = score(box);
+        const d = Math.hypot(Math.max(box.l - near[0], 0, near[0] - box.r), Math.max(box.t - near[1], 0, near[1] - box.b));
+        if (s < best[0] || (s === best[0] && d < best[1])) best = [s, d, [x, y, 'start']];
+      }
+      const box = at(best[2]); taken.push(box); return box;
+    };
+    const leader = (x, y, r, box) => {
+      const nx = Math.min(box.r, Math.max(box.l, x)), ny = Math.min(box.b, Math.max(box.t, y)), d = Math.hypot(nx - x, ny - y);
+      if (d > r + 10) marks.append(make('svg:line', {class: 'leader', x1: x + (nx - x) / d * (r + 2), y1: y + (ny - y) / d * (r + 2), x2: nx, y2: ny}));
+    };
+    const dot = (x, y, r) => taken.push({l: x - r, r: x + r, t: y - r, b: y + r});
+    const around = (x, y, gx, gy) => [[x + gx, y - gy, 'start'], [x + gx, y + gy + 12, 'start'], [x - gx, y - gy, 'end'], [x - gx, y + gy + 12, 'end'],
+      [x, y - gy - 6, 'middle'], [x, y + gy + 18, 'middle']];
+    dot(px(FROST), py(used(FROST)), 6);
+    if (showNow) {
+      const x = px(data.outdoor), y = py(base);
+      dot(x, y, 12);
+      const box = place({'data-label': 'now'}, nowRows, [...around(x, y, 14, 12), ...around(x, y, 14, 28)], true, [x, y]);
+      if (box) leader(x, y, 6, box);
+    }
+    // The hard-frost point is the line at −10 °C for the room temperature the curve starts from (WeatherCurve), so it names
+    // that room temperature: the setting "water temperature in hard frost" is for a 20 °C room.
+    const frostAt = flow => t('frost', {room: n(data.room, 1), flow: n(flow)});
+    const frostRows = [frostAt(frost)];
+    if (Math.abs(gain) >= 1) frostRows.push(t(gain > 0 ? 'lower' : 'higher', {n: n(Math.abs(gain))}));
+    const fx = px(FROST), fy = py(used(FROST)), upper = Math.min(fy, standard ? py(standard(FROST)) : fy, own ? py(own(FROST)) : fy);
+    const frostBox = place({'data-label': 'frost'}, frostRows,
+      [[fx + 10, upper - 14 - 15 * (frostRows.length - 1), 'start'], ...around(fx, fy, 10, 10), ...around(fx, fy, 10, 30)], true, [fx, fy]);
+    if (frostBox) leader(fx, fy, 5, frostBox);
+    for (const [f, key] of [[own, 'learned'], [standard, 'standard']]) {
+      if (!f) continue;
+      const x = px(x0) + 6, y = py(f(x0 + 0.5));
+      place({'data-label': key}, [t(key === 'learned' ? solid : key)], [[x, y - 9, 'start'], [x, y + 19, 'start']]);
+    }
+    const words = key => t(key === 'learned' ? solid : key);
+    // The crosshair: the nearest half degree under the pointer, or the arrow keys.
+    const hair = make('svg:line', {class: 'cross', y1: M.top, y2: M.top + plotH, visibility: 'hidden'});
+    const series = [own && ['learned', own], standard && ['standard', standard]].filter(Boolean);
+    const dots = series.map(([key]) => make('svg:circle', {class: 'point ' + key, r: 4, visibility: 'hidden'}));
+    cross.append(hair, ...dots, make('svg:rect', {class: 'hit', x: M.left, y: M.top, width: width - M.left - M.right, height: plotH}));
+    let at = null;
+    const show = (outdoor, announce) => {
+      at = keep.at = Math.min(x1, Math.max(x0, Math.round(outdoor * 2) / 2));
+      const x = px(at);
+      hair.setAttribute('x1', x); hair.setAttribute('x2', x); hair.setAttribute('visibility', 'visible');
+      const values = series.map(([key, f], i) => {
+        dots[i].setAttribute('cx', x); dots[i].setAttribute('cy', py(f(at))); dots[i].setAttribute('visibility', 'visible');
+        return [key, Math.round(f(at))];
+      });
+      const head = make('div', {class: 'wc-tip-head'}, t('at', {outdoor: n(at, 1)}));
+      tip.replaceChildren(head, ...values.map(([key, value]) => {
+        const row = make('div', {class: 'wc-tip-row'});
+        row.append(make('i', {class: 'wc-key ' + key}), make('b', {}, n(value) + ' °C'), make('span', {}, words(key)));
+        return row;
+      }));
+      tip.hidden = false;
+      const left = Math.min(width - tip.offsetWidth - 2, Math.max(2, x + (x > width / 2 ? -tip.offsetWidth - 12 : 12)));
+      tip.style.transform = `translate(${left}px, ${M.top}px)`;
+      if (announce) live.textContent = [head.textContent, ...values.map(([key, value]) => words(key) + ' ' + n(value) + ' °C')].join(', ');
+    };
+    const hide = () => { at = keep.at = null; tip.hidden = true; hair.setAttribute('visibility', 'hidden'); dots.forEach(d => d.setAttribute('visibility', 'hidden')); };
+    const outdoorAt = e => { const box = svg.getBoundingClientRect(); return x0 + ((e.clientX - box.left) / box.width * width - M.left) / (width - M.left - M.right) * (x1 - x0); };
+    svg.addEventListener('pointermove', e => show(outdoorAt(e)));
+    svg.addEventListener('pointerdown', e => show(outdoorAt(e)));
+    svg.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') hide(); });
+    svg.addEventListener('focus', () => { keep.focus = true; show(at ?? data.outdoor ?? 0, true); });
+    // Leaving the chart hides the crosshair; the 10 s refresh that redraws it does not.
+    svg.addEventListener('blur', () => { if (svg.isConnected) { keep.focus = false; hide(); } });
+    svg.addEventListener('keydown', e => {
+      const step = {ArrowLeft: -1, ArrowRight: 1, ArrowDown: -1, ArrowUp: 1}[e.key];
+      if (step) { e.preventDefault(); show((at ?? data.outdoor ?? 0) + step * (e.shiftKey ? 5 : 1), true); }
+      else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); show(e.key === 'Home' ? x0 : x1, true); }
+      else if (e.key === 'Escape') hide();
+    });
+    const name = [t('title')];
+    if (standard) name.push(t('standard') + ': ' + frostAt(Math.round(standard(FROST))));
+    if (own) name.push(t(solid) + ': ' + frostAt(Math.round(own(FROST))));
+    if (showNow) name.push(t('now') + ': ' + nowRows.join(', '));
+    svg.setAttribute('aria-label', name.join('. '));
+    if (refocus) svg.focus({preventScroll: true});
+    if (was !== null) show(was);
+    // The legend (a line key per line, a dot for now) and the table view: outdoor every 5 °C, each line.
+    const key = (cls, label) => { const li = make('li', {'data-key': cls}); li.append(make('i', {class: 'wc-key ' + cls}), label); return li; };
+    legend.replaceChildren(...[standard && key('standard', t('standard')), own && key('learned', t(solid)), showNow && key('now', t('now'))].filter(Boolean));
+    const head = make('tr');
+    head.append(make('th', {scope: 'col'}, t('outside')), ...[standard && 'standard', own && 'learned'].filter(Boolean).map(k => make('th', {scope: 'col'}, words(k))));
+    const rows = [head];
+    for (let v = Math.ceil(x0 / 5) * 5; v <= x1; v += 5) {
+      const row = make('tr');
+      row.append(make('td', {}, n(v) + ' °C'), ...[standard, own].filter(Boolean).map(f => make('td', {}, n(Math.round(f(v))) + ' °C')));
+      rows.push(row);
+    }
+    table.replaceChildren(...rows);
+  }
+  // Drawn again only when what it shows, the language or the width changed (the page refreshes every 10 s).
+  function render() {
+    const data = inputs();
+    figure.hidden = !data;
+    if (!data) { drawn = ''; return; }
+    off.hidden = !data.off;
+    const signature = JSON.stringify([data, document.documentElement.lang, host.clientWidth]);
+    if (signature === drawn) return;
+    drawn = signature;
+    chart(data);
+  }
+  root.addEventListener('heating-plan', event => { plan = event.detail && typeof event.detail === 'object' ? event.detail : null; render(); });
+  root.addEventListener('heating-status', event => { status = event.detail && typeof event.detail === 'object' ? event.detail : null; render(); });
+  if (typeof ResizeObserver === 'function') {
+    const resize = new ResizeObserver(() => { if (!figure.isConnected) { resize.disconnect(); return; } if (!figure.hidden) render(); });
+    resize.observe(host);
+  }
+})();
+</script>
+<script>
 // "What the thermostat has learned" and "Comfort and boiler care" (E32 rc.2). The overview reads the house page's 10 s
 // refresh ('heating-status': "learned", "flow", "tuning", "rooms"); the knobs GET/POST /config/heating/flow: "tuning"
 // (in effect), "tuning_manual" (the knobs set by the owner). Every figure gets a line on what it means.
@@ -633,6 +934,34 @@
   const careMessage = care.querySelector('[data-care-message]'), stateLine = panel.querySelector('[data-learned-state]');
   const roomsBox = panel.querySelector('[data-learned-rooms]'), houseList = panel.querySelector('[data-learned-house]'), logList = panel.querySelector('[data-learned-log]');
   const yesterdayBox = panel.querySelector('[data-learned-yesterday]'), scoreList = panel.querySelector('[data-learned-score]');
+  // rc.5: what the E32 knows (the ring and what it still learns), the boiler's response and yesterday compared with usual.
+  const knowsBox = panel.querySelector('[data-learned-knows]'), ring = panel.querySelector('[data-knowledge-ring]');
+  const arc = panel.querySelector('[data-knowledge-arc]'), pctText = panel.querySelector('[data-knowledge-pct]');
+  const missingBox = panel.querySelector('[data-knowledge-missing]'), boilerLine = panel.querySelector('[data-boiler-line]');
+  const insightsBox = panel.querySelector('[data-learned-insights]'), insightList = panel.querySelector('[data-insight-list]');
+  const missingText = {warmup: "It still has to see how fast {room} warms up.", cooling: "It still has to see how fast {room} cools down.",
+    arrival: "It still has to check whether {room} is warm on time.",
+    curve: "It is still learning how much warmer the water must be when it gets colder outside.",
+    boiler_minimum: "It is still finding out from which water temperature your boiler starts heating.",
+    boiler_response: "It is still listening to how your boiler holds its temperature.", house: "It is still working out how fast your house loses heat."};
+  // The ceiling holds near the target temperatures only (a room 1 °C or more below its target gets the full water
+  // temperature) and only with Smart warm-up on, so "asks at most" comes with the ceiling in effect (flow.ceiling_c).
+  const boilerText = {learned_both: "Your boiler holds about {flow} °C and rests {rest}; near the target the E32 asks at most {ceiling} °C.",
+    learned_ceiling: "Your boiler holds about {flow} °C; near the target the E32 asks at most {ceiling} °C.",
+    learned_held_rest: "Your boiler holds about {flow} °C and rests {rest}.", learned_held: "Your boiler holds about {flow} °C.",
+    learned_rest: "Your boiler rests {rest} each time it reaches its temperature.", learned: "The E32 has learned how your boiler holds its temperature.",
+    ceiling_off: "With Smart warm-up on, the E32 would ask at most {ceiling} °C near the target.",
+    collecting: "The E32 is still listening to how your boiler holds its temperature.",
+    collecting_output: "Your boiler has not held a water temperature by itself yet; every degree the water is warmer than the rooms gives your house about {kw} kW. The E32 keeps listening.",
+    no_return: "Your boiler does not report the water coming back, so the E32 cannot see how much heat your house takes; it still learns how your boiler holds its temperature.",
+    not_driving: "The E32 listens to your boiler once it controls the boiler itself."};
+  const insightText = {gas_per_dd_up: ["Yesterday used {pct} % more gas per degree of cold than usual.", "A window or door left open, or a room set warmer, can cause this."],
+    gas_per_dd_down: ["Yesterday used {pct} % less gas per degree of cold than usual.", "Sun, a cooler setting or fewer hours at home can cause this."],
+    starts_up: ["Yesterday the burner started {pct} % more often per heating hour than usual.", "Fewer, longer burns are gentler on the boiler; the thermostat watches this."],
+    hours_per_dd_up: ["Yesterday the heating ran {pct} % longer per degree of cold than usual.", "A window or door left open, or a room set warmer, can cause this."],
+    warmup_slower: ["Yesterday {room} warmed up {pct} % more slowly than usual.", "A window left open, a closed radiator valve or furniture in front of the radiator can slow a room down."]};
+  // FreeHeat: six local dayparts of 4 hours from midnight.
+  const dayparts = ["At night", "Early in the morning", "In the morning", "In the afternoon", "In the evening", "Late in the evening"];
   const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.split('{' + k + '}').join(v), text);
   const num = (v, digits = 1) => Number(v).toFixed(digits).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('.', document.documentElement.lang === 'nl' ? ',' : '.');
   const ok = v => typeof v === 'number' && Number.isFinite(v);
@@ -816,6 +1145,80 @@
     const pct = ok(a.factor) ? Math.round(Math.abs(a.factor - 1) * 100) : 0;
     return went + (pct ? '; ' + fill(uiText(a.factor > 1 ? "tomorrow {pct} % earlier" : "tomorrow {pct} % later"), {pct}) : '') + '.';
   }
+  // rc.5 FreeHeat ("free_heat" of the learned room, else of its plan): {"rate": [6 × °C per hour or null], "n": [6 counts],
+  // "applied_min"}. The strongest daypart with 5 windows or more, as the E32 counts it; below 0.1 °C an hour nothing.
+  function freeHeat(f) {
+    if (!f || typeof f !== 'object' || !Array.isArray(f.rate) || !Array.isArray(f.n) || f.rate.length !== 6 || f.n.length !== 6) return null;
+    let best = null;
+    f.rate.forEach((rate, part) => {
+      if (ok(rate) && rate >= 0.05 && rate <= 10 && Number.isInteger(f.n[part]) && f.n[part] >= 5 && (!best || rate > best.rate)) best = {part, rate};
+    });
+    return best && {...best, applied: Number.isInteger(f.applied_min) && f.applied_min > 0 && f.applied_min <= 1440 ? f.applied_min : 0};
+  }
+  // rc.5: the parts of the insight: the E32 has "knowledge" and "insights" in one "insight" object and the boiler both
+  // at the top of /status/heating and in it; a part at the top wins.
+  const part = (status, key) => status[key] !== undefined ? status[key] : status.insight && typeof status.insight === 'object' ? status.insight[key] : undefined;
+  function missingLine(key, names) {
+    if (typeof key !== 'string') return null;
+    const [kind, room] = key.includes(':') ? key.split(':') : [key, null];
+    const perRoom = ['warmup', 'cooling', 'arrival'].includes(kind);
+    if (!missingText[kind] || perRoom !== (room !== null) || (perRoom && !/^[a-z0-9_]{1,32}$/.test(room))) return null;
+    return fill(uiText(missingText[kind]), {room: perRoom ? names[room] || room : ''});
+  }
+  // The boiler's response in one sentence (insight.boiler_sentence in Home Assistant says the same). flow: the status's
+  // flow, for the ceiling in effect (flow.ceiling_c) and Smart warm-up (flow.settings.apply_learned).
+  function boilerSentence(b, flow) {
+    if (!b || typeof b !== 'object' || !['collecting', 'learned', 'no_return', 'not_driving'].includes(b.state)) return '';
+    // Still collecting, but the emitters' output per K is known (it counts as learned in what the E32 knows).
+    if (b.state === 'collecting' && ok(b.kw_per_k) && b.kw_per_k >= 0 && b.kw_per_k <= 20)
+      return fill(uiText(boilerText.collecting_output), {kw: num(Math.round(b.kw_per_k * 100) / 100, 2)});
+    if (b.state !== 'learned') return uiText(boilerText[b.state]);
+    const m = ok(b.rest_s) && b.rest_s >= 1 && b.rest_s <= 7200 ? Math.max(1, Math.round(b.rest_s / 60)) : null;
+    const rest = m === null ? null : fill(uiText(m === 1 ? "{n} minute" : "{n} minutes"), {n: m});
+    const ceiling = ok(b.ceiling_c) && b.ceiling_c >= 10 && b.ceiling_c <= 90 ? Math.round(b.ceiling_c) : null;
+    const f = flow && typeof flow === 'object' ? flow : {};
+    const cap = ok(f.ceiling_c) && f.ceiling_c >= 10 && f.ceiling_c <= 90 ? Math.round(f.ceiling_c) : null;
+    // A held target is the boiler stopping by itself at about the request; the ceiling it leaves is that request
+    // minus 2 °C (BoilerResponse), so the boiler holds about the ceiling + 2 °C.
+    const held = ceiling === null ? null : num(ceiling + 2, 0);
+    if (ceiling !== null && cap !== null)
+      return fill(uiText(boilerText[rest ? 'learned_both' : 'learned_ceiling']), {rest, flow: held, ceiling: num(cap, 0)});
+    const key = rest && ceiling !== null ? 'learned_held_rest' : ceiling !== null ? 'learned_held' : rest ? 'learned_rest' : 'learned';
+    const sentence = fill(uiText(boilerText[key]), {rest, flow: held});
+    const smart = f.settings && typeof f.settings === 'object' ? f.settings.apply_learned : undefined;
+    return ceiling !== null && smart === false ? sentence + ' ' + fill(uiText(boilerText.ceiling_off), {ceiling: num(ceiling, 0)}) : sentence;
+  }
+  function insightItems(list, names) {
+    return (Array.isArray(list) ? list : []).filter(i => i && insightText[i.kind] && ok(i.pct) && i.pct >= 0 && i.pct <= 10000
+      && (i.kind !== 'warmup_slower' || (typeof i.room === 'string' && /^[a-z0-9_]{1,32}$/.test(i.room)))).slice(0, 8)
+      .map(i => item(fill(uiText(insightText[i.kind][0]), {pct: Math.round(i.pct), room: names[i.room] || i.room || ''}), uiText(insightText[i.kind][1])));
+  }
+  // The ring with how much the E32 knows, what it still learns (three, the rest under "More"), the boiler's response in
+  // one sentence and yesterday compared with usual. Firmware before rc.5 reports none of it: the block stays hidden.
+  function knows(status, names) {
+    const k = part(status, 'knowledge'), b = part(status, 'boiler');
+    const pct = k && typeof k === 'object' && ok(k.pct) && k.pct >= 0 && k.pct <= 100 ? Math.round(k.pct) : null;
+    const boiler = boilerSentence(b, status.flow), insights = insightItems(part(status, 'insights'), names);
+    knowsBox.hidden = pct === null && !boiler && !insights.length;
+    knowsBox.querySelector('.hl-knows-head').hidden = pct === null;
+    if (pct !== null) {
+      const length = 2 * Math.PI * 30;
+      arc.setAttribute('stroke-dasharray', (pct / 100 * length).toFixed(2) + ' ' + length.toFixed(2));
+      arc.style.display = pct > 0 ? '' : 'none';
+      pctText.textContent = pct + ' %';
+      ring.setAttribute('aria-label', fill(uiText("The E32 knows your house: {pct} %"), {pct}));
+      const lines = [];
+      let more = Number.isInteger(k.more) && k.more > 0 ? k.more : 0;
+      for (const key of Array.isArray(k.missing) ? k.missing : []) { const s = missingLine(key, names); if (s) lines.push(item(s, null)); else more += 1; }
+      if (more) { const rest = item(fill(uiText("And {n} more."), {n: more}), null); rest.classList.add('hl-rest'); lines.push(rest); }
+      const title = document.createElement('h4'); title.textContent = uiText("Still to learn");
+      const done = document.createElement('p'); done.className = 'hl-done'; done.textContent = uiText("It has learned everything it needs; it keeps checking as the seasons change.");
+      missingBox.replaceChildren(...(lines.length ? [title, moreList('missing', lines, 3)] : [done]));
+    } else missingBox.replaceChildren();
+    boilerLine.hidden = !boiler; boilerLine.textContent = boiler;
+    insightsBox.hidden = !insights.length;
+    insightList.replaceChildren(moreList('insights', insights, 4));
+  }
   function roomCard(r, l, plan, names, outdoor, smartOn) {
     const card = document.createElement('article'); card.className = 'hl-room'; card.dataset.room = r.id;
     const h = document.createElement('h4'); h.textContent = names[r.id];
@@ -840,6 +1243,11 @@
       ul.push(item(fill(uiText("Loses about {rate} °C per hour at {out} °C outside."), {rate: num(Math.max(0, l.loss_per_h * (inside - out)), 2), out: num(out, 0)}),
         uiText("This is how fast it cools when the heating is off, for example at night.")));
     }
+    // rc.5: sun, cooking and people warm the room by themselves; Smart warm-up starts later for that.
+    const free = freeHeat(l?.free_heat || plan?.free_heat);
+    if (free) ul.push(item(fill(uiText("{when} this room warms up by itself, about {rate} °C per hour (sun, cooking or people)."), {when: uiText(dayparts[free.part]), rate: num(free.rate, 1)}),
+      free.applied ? fill(uiText("Its next warm-up starts {m} min later, so Smart warm-up does not heat what comes for free."), {m: free.applied})
+        : uiText("Smart warm-up takes this into account when it plans a warm-up at that time of day.")));
     // rc.3 Smart warm-up: the same line as the room on the Overview (index.html smartWarmupLine).
     // With the arrival feedback (rc.4) as its second line: how the last morning went.
     const start = plan?.optimum_start, line = typeof smartWarmupLine === 'function' ? smartWarmupLine(start, smartOn) : '';
@@ -888,11 +1296,13 @@
     if (panel.hidden) return;
     const names = {}, rooms = (Array.isArray(status.rooms) ? status.rooms : []).filter(r => r && typeof r.id === 'string');
     for (const r of rooms) names[r.id] = typeof r.name === 'string' && r.name ? r.name : r.id;
+    knows(status, names); // rc.5
     const byId = items => Object.fromEntries((Array.isArray(items) ? items : []).filter(x => x && typeof x.id === 'string').map(x => [x.id, x]));
     const lr = byId(learned?.rooms), plans = byId(learned?.plans?.rooms);
     roomsBox.replaceChildren(...rooms.filter(r => r.state !== 'inactive').map(r => roomCard(r, lr[r.id], plans[r.id], names, learned?.outdoor_c, status.flow?.settings?.apply_learned)));
     const house = [], curve = status.flow?.curve;
     if (curve && ok(curve.slope)) house.push(item(fill(uiText(curve.slope_source === 'learned' ? "Weather compensation, learned from your house: the water gets about {s} °C warmer for every degree colder outside."
+      : curve.slope_source === 'house' ? "Weather compensation, estimated from your house: the water gets about {s} °C warmer for every degree colder outside."
       : "Weather compensation: the water gets about {s} °C warmer for every degree colder outside."), {s: num(curve.slope, 2)}),
       uiText(status.flow?.settings?.weather_curve ? "Weather compensation sets the water temperature, so the boiler runs as cool as the weather allows." : "Weather compensation is not switched on; this is shown as advice.")));
     const y = t?.yesterday;

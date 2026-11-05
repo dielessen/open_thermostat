@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v1.0.0-e32v2-rc.5",
+  "unaccepted_predecessor": "v1.0.0-e32v2-rc.4",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.22",
+  "accepted_basis_receipt_sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/RC4-UPDATE-GAP-20261105.json",
+  "gap_report_sha256": "2ed15107a5c1caab424d287a416e13a1b13c34c7ef2f35be707f1c98a91359f9",
+  "reason": "rc.4 is installed and runs, but no acceptance receipt was captured. Publish this one rc.5 pre-release with beta.22 as the last accepted basis. The rc.5 installation is captured as its acceptance (pre- and post-install, Home Assistant route); v1.0.0 still needs an accepted rc.5 update and a 14-day PASS readiness report.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "Owner, 4 Nov 2026 19:05 UTC (chat, Dutch), answer to the request for his own words for the fourth one-time exception of the rc series (rc.5 published while rc.4, which he installed himself on 4 Nov 2026 through the Home Assistant update entity without a capture, has no acceptance receipt; the request named the gate rule, the install order HA 1.0.0rc6 first and then E32 1.0.0-rc.5 with the capture, and a suggested wording): \"ja je hebt akkoord\". Earlier the same day, on the rc.5 build: \"ok zet het maar in gang . gebruik zoveel agents als je nodig hebt en kies zelf het juiste model voor elke agent\" and, on the dashboard redesign: \"alles moet gewoon in de volgende release komen dat kan makkelijk .\".",
+    "at_utc": "2026-11-04T19:05:14Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/RC5-OWNER-INSTRUCTION-20261105.json"
+}

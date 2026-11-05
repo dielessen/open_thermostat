@@ -10,13 +10,13 @@ needed. Home Assistant is optional: without it you set everything up on the
 E32's own web pages. With it you get a thermostat per room, a week planner card,
 energy figures and updates with one click.
 
-**Status:** version 1.0 is in its last test phase (release candidate rc.4). It
-runs every day in the developer's home. Version 1.0.0 follows once rc.4 has run
-for 14 days without problems with the E32 controlling the boiler.
+**Status:** version 1.0 is in its last test phase (release candidate rc.5). It
+runs every day in the developer's home. Version 1.0.0 follows once rc.5 has run
+for 14 days unchanged and without problems with the E32 controlling the boiler.
 
-**Updating from rc.3?** Install Home Assistant integration 1.0.0rc5 first in
+**Updating from rc.4?** Install Home Assistant integration 1.0.0rc6 first in
 HACS (switch **Pre-release** on) and restart Home Assistant. Then press
-**Install** on the E32's **Firmware** entity (E32 firmware 1.0.0-rc.4) and
+**Install** on the E32's **Firmware** entity (E32 firmware 1.0.0-rc.5) and
 confirm the takeover again: a firmware update clears it
 ([update steps](docs/INSTALL.md#13-updates)).
 
@@ -58,6 +58,12 @@ broker (for example the Mosquitto add-on) and the MQTT integration.
   and tells you in plain words what it changed and why. **Yesterday** shows in
   figures how the day went: heating hours, burner starts, gas for heating and,
   per room, how late or early it was warm.
+- **Knows your house and your boiler.** It listens to how your boiler answers,
+  so it stops asking for water hotter than your house takes and the burner
+  starts less often. It works out how fast your house loses heat and how much
+  warmth sun, cooking and people give for free. It says how much it already
+  knows and what it still has to learn, compares yesterday with your own usual
+  days and draws the water temperature by outdoor temperature in a chart.
 - **Away and holiday.** It can follow who is at home, lower the temperature
   while everyone is out and be warm again when you come back. A room can have
   its own away temperature: a bedroom cools down when its people are out,
@@ -67,7 +73,11 @@ broker (for example the Mosquitto add-on) and the MQTT integration.
   window is open.
 - **Radiator valves** through Zigbee2MQTT or Home Assistant, set per room.
 - **Your boiler at a glance:** water temperatures, pressure, burner starts,
-  hot water use and the boiler's display code in words.
+  hot water use and the boiler's display code in words. The Home Assistant
+  dashboard opens with one house card (what the boiler does now, gas today and
+  the day so far). Its Boiler tab lists what you need first and opens with a
+  Now card: what the boiler does in words, the water to the heating and back,
+  and the burner power.
 - **Backups.** Home Assistant keeps a daily backup of all E32 settings. A new or
   replaced E32 gets everything back in one step.
 - **Updates from Home Assistant** with one click. A new firmware that does not

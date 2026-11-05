@@ -1567,6 +1567,37 @@
           },
           "valve_position": {
             "name": "Radiator valves open"
+          },
+          "chip": {
+            "name": "Status word",
+            "state": {
+              "off": "Off",
+              "window_open": "Paused",
+              "window_pending": "Pausing soon",
+              "no_measurement": "No measurement",
+              "hot_water": "Waiting",
+              "boiler_pause": "Waiting",
+              "warm_up": "Warming up",
+              "away_return": "Warming up",
+              "holiday": "Holiday",
+              "away": "Away",
+              "room_away": "Away",
+              "house_away": "Away",
+              "boost": "Boost",
+              "temporary": "Temporary",
+              "heating": "Heating",
+              "wants_heat": "Wants heat",
+              "warm_enough": "At temperature"
+            }
+          },
+          "card": {
+            "name": "Card",
+            "state": {
+              "smart_on": "Smart warm-up on",
+              "home": "At home",
+              "away": "Away",
+              "holiday": "Holiday"
+            }
           }
         }
       },
@@ -1604,7 +1635,51 @@
         }
       },
       "heat_request": {
-        "name": "Boiler request (E32)"
+        "name": "Boiler request (E32)",
+        "state_attributes": {
+          "card": {
+            "name": "Card",
+            "state": {
+              "title": "Your house",
+              "heating": "Heating",
+              "status_heating": "Heating · water {flow} °C",
+              "status_heating_plain": "Heating",
+              "heating_on": "on · water {flow} °C",
+              "heating_on_plain": "on",
+              "heating_off": "off",
+              "request": "Boiler request {flow} °C",
+              "no_request": "No boiler request",
+              "wants": "{n} rooms want heat",
+              "wants_one": "1 room wants heat",
+              "hot_water": "Hot water",
+              "taps": "{n} taps today",
+              "taps_one": "1 tap today",
+              "taps_none": "no taps yet today",
+              "running": "running now",
+              "gas_today": "Gas today",
+              "week": "Last 7 days: {values}",
+              "starts_today": "Burner starts today",
+              "idle": "Boiler resting",
+              "attention": "Attention: {reason}",
+              "all_reasons": "All reasons",
+              "mode": "House mode: {mode}",
+              "today": "Today",
+              "legend_heating": "Heating",
+              "legend_hot_water": "Hot water",
+              "legend_keep_warm": "Keeping warm",
+              "waiting": "The E32 has not reported yet.",
+              "now": "now",
+              "warm": "{room} was warm",
+              "early": "{m} min early",
+              "late": "{m} min late",
+              "on_time": "on time",
+              "degree_days": "Degree-days",
+              "target": "target {t} °C",
+              "per_day": "{n} days: {value} a day",
+              "today_since": "Today since midnight"
+            }
+          }
+        }
       },
       "burner_starts_last_hour": {
         "name": "Burner starts last hour"
@@ -2168,6 +2243,61 @@
       "learned_overview": {
         "name": "What the thermostat learned"
       },
+      "knowledge": {
+        "name": "Knowledge",
+        "state_attributes": {
+          "missing": {
+            "name": "Still to learn"
+          },
+          "more": {
+            "name": "And more"
+          },
+          "card": {
+            "name": "Card",
+            "state": {
+              "title": "The E32 knows your house",
+              "ring": "The E32 knows your house: {pct} %",
+              "hint": "It learns by itself while the heating runs.",
+              "missing": "Still to learn",
+              "more": "And {n} more.",
+              "done": "It has learned everything it needs; it keeps checking as the seasons change.",
+              "waiting": "The E32 has not reported what it knows yet."
+            }
+          }
+        }
+      },
+      "boiler_response": {
+        "name": "Boiler response",
+        "state": {
+          "collecting": "Still listening",
+          "learned": "Learned",
+          "no_return": "No return temperature",
+          "not_driving": "E32 not controlling the boiler"
+        },
+        "state_attributes": {
+          "held_today": {
+            "name": "Held its temperature today"
+          },
+          "rest_min": {
+            "name": "Rest after holding (min)"
+          },
+          "ceiling_c": {
+            "name": "Near the target the E32 asks at most (°C)"
+          },
+          "absorbed_kw": {
+            "name": "Heat the house takes (kW)"
+          },
+          "kw_per_k": {
+            "name": "kW per °C of water temperature"
+          },
+          "return_reported": {
+            "name": "Return temperature reported"
+          },
+          "sentence": {
+            "name": "In words"
+          }
+        }
+      },
       "heating_gas": {
         "name": "Gas for heating"
       },
@@ -2190,7 +2320,56 @@
         }
       },
       "flow_curve": {
-        "name": "Water temperature by weather compensation"
+        "name": "Water temperature by weather compensation",
+        "state_attributes": {
+          "chart": {
+            "name": "Chart",
+            "state": {
+              "title": "Water temperature by outdoor temperature",
+              "standard": "Standard",
+              "learned": "Learned for your house",
+              "now": "Now",
+              "frost": "At −10 °C with {room} °C inside: {flow} °C",
+              "now_point": "{outdoor} °C outside → {flow} °C",
+              "at": "At {outdoor} °C outside",
+              "lower": "{n} °C cooler than standard",
+              "higher": "{n} °C warmer than standard",
+              "outdoor": "Outdoor temperature (°C)",
+              "water": "Water to heating (°C)",
+              "caption": "The colder it is outside, the warmer the water. The E32 learns the line for your house and keeps it as low as it can.",
+              "values": "Show the values",
+              "outside": "Outside",
+              "off": "Weather compensation is off; the lines show what it would ask.",
+              "waiting": "The E32 has not reported its weather compensation yet.",
+              "house": "Estimated from your house",
+              "asks": "E32 asks {flow} °C"
+            }
+          },
+          "design_flow_c": {
+            "name": "Water temperature in hard frost (°C)"
+          },
+          "standard_slope": {
+            "name": "Standard steepness"
+          },
+          "room_c": {
+            "name": "Room temperature (°C)"
+          },
+          "outdoor_c": {
+            "name": "Outdoor temperature now (°C)"
+          },
+          "minimum_flow_c": {
+            "name": "Lowest water temperature (°C)"
+          },
+          "maximum_flow_c": {
+            "name": "Highest water temperature (°C)"
+          },
+          "base_c": {
+            "name": "Water temperature on the line now (°C)"
+          },
+          "flow_c": {
+            "name": "Weather compensation asks (°C)"
+          }
+        }
       },
       "flow_learned": {
         "name": "Learned water temperature"
@@ -2336,6 +2515,40 @@
           "keep_warm": "Keeping warm",
           "charging": "Heating the hot water tank",
           "hot_water": "Hot water"
+        },
+        "state_attributes": {
+          "card": {
+            "state": {
+              "title": "The boiler now",
+              "no_data": "No data from the boiler",
+              "boiler": "Boiler",
+              "code": "Display code {code}: {meaning}",
+              "code_bare": "Display code {code}",
+              "code_fault": "{severity} · display code {code}",
+              "link": "connection with the boiler: {state}",
+              "link_good": "good",
+              "link_none": "none",
+              "dhw": "hot water: {state}",
+              "yes": "yes",
+              "no": "no",
+              "flow": "Water to heating",
+              "asked": "asked {flow} °C",
+              "would_ask": "E32 would ask {flow} °C",
+              "no_request": "no request",
+              "ceiling": "at most {flow} °C",
+              "back": "Water back",
+              "difference": "difference {n} °C",
+              "power": "Burner power",
+              "power_off": "burner off",
+              "power_low": "low fire, calm",
+              "power_mid": "medium fire",
+              "power_full": "full fire",
+              "starts": "Starts in the last hour",
+              "calm": "calm",
+              "often": "switching on and off too often",
+              "today": "today {n}"
+            }
+          }
         }
       },
       "e32_last_backup": {
@@ -3783,6 +3996,10 @@
     "e32_backup_failing": {
       "title": "No recent backup of the E32 settings",
       "description": "{name}: Home Assistant could not back up the E32 settings for more than 3 days (last backup: {last}). Without a recent backup a replacement E32 cannot get your current settings back. Check that the E32 is on and its web page opens, and that its password in Home Assistant is still right; then press Back up E32 settings now on the E32 device. This message disappears after the next successful backup."
+    },
+    "heating_input_lost": {
+      "title": "The E32 does not receive the room values from Home Assistant",
+      "description": "The E32 has accepted no room values from Home Assistant for {minutes} minutes, so it runs the rooms on its own sensors and week program. Home Assistant last sent a value at {last_sent} (last send error: {error}). OpenThermostat has started sending afresh. If this message stays, restart Home Assistant: reloading the integration is not always enough. This message clears itself once the E32 accepts the values again."
     },
     "e32_time_zone": {
       "title": "The E32 uses another time zone",

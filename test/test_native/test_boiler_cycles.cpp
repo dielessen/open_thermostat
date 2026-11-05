@@ -58,7 +58,8 @@ TEST(BoilerCounters, ErrorRecordsAndUptimeDecodeFromTheTable){
     EXPECT_DOUBLE_EQ(*o.value(8,"last_blocking_error_number",200),0);
     EXPECT_DOUBLE_EQ(*o.value(8,"last_locking_error_code",200),('E'<<8)|'A');
     EXPECT_FALSE(o.value(0x17,"last_locking_error_code",200).has_value());
-    EXPECT_TRUE(o.value(8,"boiler_uptime",100+settingTtl-1));EXPECT_FALSE(o.value(8,"boiler_uptime",100+settingTtl));
+    // Sent only when asked (rc.5): a record and the uptime stay until a newer report replaces them.
+    EXPECT_TRUE(o.value(8,"boiler_uptime",100+statusTtl));EXPECT_TRUE(o.value(8,"last_locking_error_code",100+30ull*86400000));
 }
 // Firmware and HA share the generated table: 36 catalog fields in 4 groups.
 TEST(BoilerCounters, CatalogGroupsStayValidAndBoundedAtTheirLargest){

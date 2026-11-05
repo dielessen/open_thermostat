@@ -118,7 +118,7 @@ settings (see [Updates](#13-updates)).
 
 1. Open the [releases page](https://github.com/dielessen/open_thermostat/releases)
    and choose the newest **E32 V2** release. Its tag starts with `v` and
-   contains `e32v2`, for example `v1.0.0-e32v2-rc.4`.
+   contains `e32v2`, for example `v1.0.0-e32v2-rc.5`.
 2. Under **Assets**, download `open-thermostat-e32v2-<version>.zip`. Do not
    use the "Source code" downloads that GitHub adds automatically.
 3. Extract the ZIP into a new folder. You need two files from it:
@@ -421,7 +421,7 @@ OpenThermostat is a *custom repository* in HACS: you add it once.
 4. Restart Home Assistant (**Settings → System → Restart**). *Why:* Home
    Assistant only loads new integrations at start-up.
 
-**Pre-releases** (versions such as `1.0.0rc5`): HACS offers only
+**Pre-releases** (versions such as `1.0.0rc6`): HACS offers only
 stable versions unless you ask for more. Two ways:
 
 - **One specific version:** in the HACS list, open the three dots of the
@@ -437,7 +437,7 @@ stable versions unless you ask for more. Two ways:
 
 1. On the [releases page](https://github.com/dielessen/open_thermostat/releases),
    choose the **Home Assistant** release that the release notes pair with your
-   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc5`.
+   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc6`.
    Download `OpenThermostat-HA-<version>.zip`.
 2. Extract the ZIP on your computer. It contains a folder
    `custom_components/open_thermostat`.
@@ -711,11 +711,15 @@ set on the boiler itself.
 ### 11.6 Check it
 
 - The **OpenThermostat** dashboard in the sidebar opens on the **Overview**
-  tab. It shows which rooms want heat and the calculated boiler request, and a
-  status card for each room with its temperature and target and, in one line,
-  why the room heats or not. The **Rooms** tab has the 24-hour graph of each
-  room. The E32's own **Overview** shows the same line on each room's card, in
-  the same words, also without Home Assistant.
+  tab. It starts with the **house card**: what the boiler does now, the boiler
+  request while rooms want heat, today's gas and burner starts and the day so
+  far. Under it is a status card for each room with its temperature and target
+  and, in one line, why the room heats or not (the rooms that are on come
+  first; the house card shows the room that is on as a figure too). Next to the room cards
+  stand **Today** (when each room warms up next) and **House** (home or away,
+  holiday, outdoor temperature). The **Rooms** tab has the 24-hour graph of
+  each room. The E32's own **Overview** shows the same line on
+  each room's card, in the same words, also without Home Assistant.
 - Each room has its own group on the integration page, with a thermostat
   (climate entity).
 - The **Heating problem** sensor is off when all is well, and **Settings →
@@ -726,9 +730,10 @@ set on the boiler itself.
 - Once the E32 has measured a day, **Yesterday** shows how it went: heating
   hours, burner starts per heating hour, short burner runs, gas for heating
   (an estimate), degree-days and, per room, how many minutes late or early it
-  was warm and how far it overshot. In Home Assistant it is a section of the
-  **Learning and settings** tab (each figure is also a sensor); on the E32 it
-  is on the **Home** page, under **What the thermostat has learned**.
+  was warm and how far it overshot. In Home Assistant it is the section
+  **Yesterday in figures** of the **Learning and settings** tab (each figure is
+  also a sensor); on the E32 it is on the **Home** page, under **What the
+  thermostat has learned**.
 
 **Without Home Assistant**, rooms are set up on the E32 **Rooms** page
 instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-room-on-the-e32).
@@ -841,6 +846,9 @@ The trial run is optional. **The E32 does:**
   controlling the boiler. The Overview says **Your thermostat controls the
   boiler** and, under **Who controls the boiler?**, that this is a trial run;
 - change any boiler setting;
+- learn from how your boiler answers its requests (its ceiling and rest, see
+  [Listening to the boiler](USER-GUIDE.md#listening-to-the-boiler)); the
+  boiler's response says **E32 not controlling the boiler** until the takeover;
 - drive radiator valves. A room's **Valve control** switch is off by default,
   and even when it is on, valves are only driven while the E32 controls the
   boiler itself.
@@ -882,13 +890,13 @@ When a new release pair comes out, read its release notes first. They say
 which integration goes with which firmware. Usually: **update the integration
 first, then the firmware.**
 
-**From 1.0.0-rc.3 to 1.0.0-rc.4** (Home Assistant integration 1.0.0rc5), while
+**From 1.0.0-rc.4 to 1.0.0-rc.5** (Home Assistant integration 1.0.0rc6), while
 someone is home:
 
-1. Update OpenThermostat in HACS to **1.0.0rc5** and restart Home Assistant
+1. Update OpenThermostat in HACS to **1.0.0rc6** and restart Home Assistant
    ([13.2](#132-update-the-integration)). HACS offers it only while the
    **Pre-release** switch is on ([9.1](#91-with-hacs-recommended)).
-2. Install E32 1.0.0-rc.4 from the **Firmware** update entity
+2. Install E32 1.0.0-rc.5 from the **Firmware** update entity
    ([13.3](#133-update-the-e32-firmware-from-home-assistant-recommended)).
 3. Confirm the takeover again. A firmware update clears it, and until you
    confirm, the E32 keeps only frost protection. In Home Assistant choose
@@ -896,8 +904,17 @@ someone is home:
    (Settings → System → Repairs), or use the **Rooms** page on the E32.
 
 Settings, rooms, programs, sensors, valves and what the E32 learned are kept,
-and so are entity IDs and history in Home Assistant. From the first morning
-after the update Smart warm-up starts heating early (see
+and so are entity IDs and history in Home Assistant. What rc.5 adds (listening
+to the boiler, the house model, the knowledge figure, free heat) starts from
+zero and fills in over the first days of heating, so **The E32 knows your
+house** starts lower than it will end up; see
+[What the E32 knows](USER-GUIDE.md#what-the-e32-knows-and-what-it-still-lacks).
+The two new sensors **Knowledge** and **Boiler response** read unknown until
+the E32 runs rc.5 and has reported.
+
+**Coming from 1.0.0-rc.3?** The same order and the same versions (integration
+1.0.0rc6, firmware 1.0.0-rc.5); the changes of rc.4 come along. From the first
+morning after the update Smart warm-up starts heating early (see
 [Warm on time](USER-GUIDE.md#warm-on-time-smart-warm-up)). The **Yesterday**
 sensors appear once the E32 has measured a day.
 
@@ -1103,7 +1120,7 @@ While the E32 still works on your network, you can also change Wi-Fi from
 ### I cannot sign in on the E32
 
 - The user name is always `admin`. Forgot the password? Use `password-reset`
-  over USB (section 15).
+  over USB (section 16).
 - "Four saved web sessions occupy all sign-in slots": the E32 remembers up to
   four signed-in browsers. Tick **End previous web sessions and sign in** and
   enter your password again. A sign-in ends by itself after 30 minutes

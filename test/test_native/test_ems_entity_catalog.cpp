@@ -16,7 +16,9 @@ TEST(EmsEntityCatalog, RowsAreUniquePerTypeOffsetAndBitAndUseKnownUnits){
     std::set<std::string> keys;
     for(const auto& spec:entityCatalog){
         ASSERT_TRUE(keys.insert(std::to_string(spec.type)+":"+std::to_string(spec.offset)+":"+std::to_string(spec.bit)+":"+spec.id).second) << spec.id;
-        EXPECT_GT(spec.divisor,0);EXPECT_LE(spec.minimum,spec.maximum);EXPECT_GT(spec.ttlMs,0u);
+        EXPECT_GT(spec.divisor,0);EXPECT_LE(spec.minimum,spec.maximum);
+        // A lifetime, or none for a boiler value sent only when asked (requestOnlyTtl).
+        EXPECT_TRUE(spec.requestOnly()?spec.source==EntitySource::boiler:spec.ttlMs>=monitorTtl) << spec.id;
         const std::string unit=spec.unit;
         EXPECT_TRUE(unit=="degC"||unit=="%"||unit=="bool"||unit=="bar"||unit=="uA"||unit=="starts"||unit=="min"||unit=="L/min"||unit=="code"||unit=="text") << spec.id;
     }

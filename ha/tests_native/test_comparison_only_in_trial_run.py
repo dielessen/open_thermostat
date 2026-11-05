@@ -39,9 +39,10 @@ def readiness_record(hass, e):
 
 
 def now_cards(config):
-    """The takeover check and the comparison link: the "Boiler control" section of the learning view."""
+    """The takeover check and the comparison link: the "Who controls the boiler" section of the learning view."""
     learning = next(v for v in config["views"] if v["path"] == "learned")
-    return next(s["cards"] for s in learning["sections"] if s["cards"][0]["heading"] in ("Boiler control", "Aansturing van de ketel"))
+    return next(s["cards"] for s in learning["sections"]
+                if s["cards"][0]["heading"] in ("Who controls the boiler", "Wie regelt de ketel"))
 
 
 # -- the dashboard -------------------------------------------------------------------------------------------

@@ -173,7 +173,7 @@ De criteria, gemeten met `tools/switchover/release_ready.py` (alleen lezen):
 | --- | --- | --- |
 | `stability` | 14 dagen zonder onverwachte herstart of langdurig offline; een geplande update telt niet | HA-geschiedenis (uptime, Firmware-entiteit) |
 | `active_control` | de E32 stuurt de ketel zelf, 14 dagen zonder teruggeven | HA 0.4.0b14+: `boiler_output_enabled` |
-| `trv_control` | elke ruimte met kranen heeft de kraansturing 14 dagen aan | de kraanschakelaars van de 1.0-kandidaat |
+| `trv_control` | elke ruimte met kranen heeft de kraansturing 14 dagen aan; zonder kranen (geen kraanschakelaars) "niet van toepassing" = PASS (rc.5) | de kraanschakelaars van de 1.0-kandidaat |
 | `failure_tests` | alle bijgewoonde tests T1–T12 geslaagd (T12 mag het alternatief uit de checklist) | `OVERSCHAKELING-RESULTATEN-<datum>.json`, via `tools/switchover/record_test.py` |
 | `updates` | minstens één update geaccepteerd via de HA-route | `update-acceptance/e32-beta20/21/22-*.json` (PASS) |
 | `install_guide` | iemand anders volgde de installatiehandleiding tot het eind; elk gevonden probleem opgelost | `INSTALLATIETEST-<datum>.json`, via `record_test.py install` |
@@ -218,6 +218,12 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
 
 **Gevolg:** de 14 dagen naar 1.0.0 beginnen opnieuw bij de installatie van rc.4; 1.0.0 eind november op zijn vroegst. Slim opwarmen werkt dan echt in 1.0.0.
 
+## rc.5 — luisteren naar de ketel, een huismodel, weten wat hij niet weet, inzichten en gratis warmte (besluit eigenaar 4 november)
+
+De eigenaar wil het zelfleren compleet in 1.0 ("top of the build self learning"), universeel voor alle EMS-ketels, zonder knoppen. rc.5 wordt mét opname geïnstalleerd (de geaccepteerde update) en is de code van v1.0.0; de 14 dagen lopen op rc.5. Ontwerp, contracten, werkpakketten P1–P7 en bewijs: [RC5-PLAN.md](RC5-PLAN.md). Kort: (1) `BoilerResponse` — vastgehouden doelen, het rustritme van de ketel en opgenomen warmte uit aanvoer–retour → een geleerd plafond op de aanvraag per buitentemperatuur-band en een bodem onder de branderrust; (2) `HouseModel` — warmteverlies per K en afgifte per K aanvoer, een vroege stookcurve; (3) `Knowledge` — één kennisgetal met wat nog ontbreekt; (4) `Insights` — gisteren tegen de eigen basislijnen, alleen informatie; (5) `FreeHeat` — gratis warmte per dagdeel, kortere opwarmstarts. Bewust niet: weersvoorspelling, dagplanning, aanwezigheidspatronen (na 1.0, zonder nieuwe structuur).
+
+**Documentatie (P7, tak `rc5-docs`):** bijgewerkt voor E32 rc.5 / HA 1.0.0rc6: `README.md` (status, "Updating from rc.4?", drie zinnen over het nieuwe leren), `docs/USER-GUIDE.md` (zes nieuwe secties: wat de E32 weet, luisteren naar de ketel, het huismodel, gisteren tegen je gewone dagen, gratis warmte, de grafiek), `docs/INSTALL.md` (13.1, sectie 12, de tagvoorbeelden), `docs/FIELD-TESTER.md`, `docs/INSTALL-CHECK.md`, `TELEMETRIEBUDGET.nl.md` (rij `fw/telemetry/insight`), de Nederlandse PDF-handleiding (`tools/dev/manual`, 11 pagina's, wordt niet gecommit) en de notitieontwerpen `RELEASE-1.0-RC5-NOTES-DRAFT.en.md` (5229 B gerenderd) en `HA-RC6-NOTES-DRAFT.en.md` (3330 B; grens 6000), beoordeeld met `organize_releases.py --publication-notes-for` op een wegwerpkopie. De integrator zet de ontwerpen vooraan in de versie-commit (`prepare_rc5.py`) en loopt na de integratie de namen en getallen in de teksten na (lijst in het rapport P7).
+
 ## Na 1.0
 
 - **Alleen-lezen API-sleutel voor assistenten** (eigenaar 2 november): een sleutel op de E32 voor gereedschap en assistenten, standaard uit en in te trekken; alleen GET-routes, zonder websessie, met een verzoeklimiet. Zo kan bijvoorbeeld de Claude van een vriend zijn E32 lezen zonder het admin-wachtwoord.
@@ -235,6 +241,7 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
 - **Testerprogramma:** opt-in in HA; "Deel resultaat" opent een vooraf ingevuld GitHub-issue met alleen het ketelprofiel; een GitHub Action controleert het; een profiel komt pas na beoordeling mee.
 - **HACS-vermelding** van de integratie in de standaardlijst van HACS; sinds 2 november staat ze al als custom repository `dielessen/openthermostat-ha`.
 - De overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
+- **Eigen wachttijd voor deur- en raamsensoren (eigenaar 4 november: "ik wil dat de deursensor en raamsensor allebei een eigen timer hebben"):** nu geldt per ruimte één "Pauzeer na" voor alle contacten (HA stuurt elke wijziging naar de E32, die de wachttijd en `window_pending` bijhoudt). Gewenst: een eigen wachttijd voor deuren (even doorlopen mag langer) en voor ramen (luchten pauzeert sneller), per ruimte en als huisstandaard, op basis van de sensorklasse in HA (window → raam; door, opening, garage_door → deur). Firmware + HA-integratie, dus pas na de 14 dagen van rc.4 (1.0.x); op een tak voor te bereiden met native tests.
 - **Bewust niet in rc.4 (uit de eindreviews van 4 november), voor 1.0.x of 1.1:**
   - R2-16 een eigen EMS-projectie voor `controller_request` (HA leest nu nog `fw/telemetry/controller_request`);
   - R2-26 generatietellers in `FlowLearner`/`RoomEngine`;
@@ -242,8 +249,8 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
   - F9 het firmwaredeel (de moderne status zonder koppeling melden zou de HA-koppeling haar herstart laten overslaan);
   - de terugkeervoorlooptijd met de aankomstfactor (`RoomOverrides::returnLeadS` neemt de standaardvoorlooptijd zonder plafond);
   - review-fw L2 (een herstart midden in een opwarmstart telt als één les "te laat"), L5 (~0,9 KB stapel in `AutoTuner::setPlan` op het HTTP-pad), L6 (het terugzetten van het vakantierecord na een mislukte comfort-opslag is zelf gepoort);
-  - R5-28 (tooling) en het echt draaien van de publicatiescripts tegen GitHub (gebeurt bij deze release);
-  - **idee eigenaar 4 november:** de ketel meldt displaycode 0Y (water warmer dan gevraagd, brander uit) zelf op de bus; dat als direct signaal gebruiken dat de gevraagde aanvoer te hoog is voor wat het huis afneemt, zodat het leren de aanvoer sneller verlaagt dan via het doorschieten van de kamer.
+  - R5-28 (tooling) en het echt draaien van de publicatiescripts tegen GitHub (gebeurd bij rc.4 op 4 november: de eerste poging van beide tag-runs faalde binnen seconden in de nieuwe publicatiestap `publish_github_release.py`, alle bouw- en testjobs groen; "Re-run failed jobs" maakte het concept af en publiceerde. Oorzaak onbekend zonder het logboek van poging 1 (vereist beheerdersrechten) — vóór 1.0.0 dat logboek lezen en de eerste poging betrouwbaar maken, want 1.0.0 kent geen herkansing via een uitzondering);
+  - **Leren uit wat de ketel zelf meldt (eigenaar 4 november, eerste leerwerk na 1.0.0):** de E32 kent de gevraagde aanvoer, leest de gemeten aanvoer en retour, de brander en de modulatie, dus hij ziet zelf wanneer de ketel zijn doel haalt. Drie universele signalen, zonder afhankelijkheid van displaycodes: (1) "doel gehaald, brander uit, wachten" (bij de eigenaar 0Y) meerdere keren binnen één warmtevraag = het huis neemt minder op dan gevraagd → aanvoer omlaag, niet alleen de rust omhoog; de displaycode is bevestiging waar die bestaat; (2) modulatie op het minimum en toch doorschieten → aanvraag te hoog voor wat vloer en radiatoren afgeven; (3) het verschil aanvoer–retour als maat voor wat het huis werkelijk opneemt, om de aanvoer voor het moment te schatten. Ontwerpen en testen met de opgenomen telemetrie (replay) en de duurtest; firmware, dus bouwen op een tak en installeren na 1.0.0.
 
 ## Werkafspraken
 

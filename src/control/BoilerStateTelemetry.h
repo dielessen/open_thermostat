@@ -4,6 +4,7 @@
 #include "EMS/ClassicBoilerMonitor.h"
 #include <cJSON.h>
 #include <array>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -15,16 +16,39 @@ namespace heating::control {
 //                                "profile","fields":[the rows of boilerStateIndexes]}}
 // Rows keep the [index, raw, observed_ms, quality, type] form; a value older
 // than its field's lifetime is sent as raw null (the E32 decides freshness,
-// since an unchanged value is not sent again for up to 15 minutes).
+// since an unchanged value is not sent again for up to 15 minutes). A
+// request-only value (ems::BoilerFieldSpec: the 0x16/0x33 settings;
+// ems::EntitySpec: the 0xE6/0xEA settings, error records and uptime) is never
+// nulled for its age: it stays until a newer report replaces it, and
+// sampled_at_ms minus its observed_ms tells how long ago it was read. Home
+// Assistant knows these fields from its catalog (boiler_fields.py: REQUEST_ONLY),
+// so the rows carry no marker.
 // Flow, return, modulation, pressure, burner, hot water and faults, Classic and EMS+.
 inline constexpr std::array<uint8_t, 18> boilerStateIndexes{1, 2, 4, 6, 7, 11, 12, 24, 25, 78, 80, 81, 82, 83, 85, 100, 101, 102};
 inline constexpr std::array<uint8_t, 6> boilerStateGroups{0, 1, 2, 7, 8, 10};
-inline uint32_t boilerFieldTtlMs(size_t index) {
-    if (index < boilerFieldCount) return ems::boilerFieldSpecs[index].ttlMs;
-    if (index >= catalogFieldBase && index - catalogFieldBase < ems::entityFieldCount)
-        return ems::entityCatalog[ems::entityFieldRows[index - catalogFieldBase]].ttlMs;
+// A field's lifetime by wire index; nullopt: a request-only value, which
+// never expires. An index without a field has none (0).
+inline std::optional<uint32_t> boilerFieldTtlMs(size_t index) {
+    if (index < boilerFieldCount) {
+        const auto& spec = ems::boilerFieldSpecs[index];
+        return spec.requestOnly() ? std::nullopt : std::optional<uint32_t>(spec.ttlMs);
+    }
+    if (index >= catalogFieldBase && index - catalogFieldBase < ems::entityFieldCount) {
+        const auto& spec = ems::entityCatalog[ems::entityFieldRows[index - catalogFieldBase]];
+        return spec.requestOnly() ? std::nullopt : std::optional<uint32_t>(spec.ttlMs);
+    }
     return 0;
 }
+// The request-only fields are exactly the Classic fields of 0x16 and 0x33, the settings the boiler
+// sends only when asked; every other field (status, measurements, counters) keeps its lifetime.
+constexpr bool requestOnlyFieldsAreTheSettingsTelegrams() {
+    for (size_t i = 0; i < boilerFieldCount; ++i)
+        if (ems::boilerFieldSpecs[i].requestOnly() != (boilerFieldSourceTypes[i] == 0x16 || boilerFieldSourceTypes[i] == 0x33))
+            return false;
+    return true;
+}
+static_assert(ems::boilerFieldSpecs.size() == boilerFieldCount && requestOnlyFieldsAreTheSettingsTelegrams(),
+              "request-only marks exactly the 0x16/0x33 settings");
 // Raw units: centi-degC (Classic), deci-degC (EMS+), percent.
 inline double boilerStateBand(size_t index) {
     switch (index) {
@@ -47,7 +71,8 @@ inline cJSON* boilerGroupValues(std::string_view raw, size_t group) {
     for (cJSON* row = cJSON_GetObjectItemCaseSensitive(values, "fields")->child; row; row = row->next) {
         const cJSON* observed = cJSON_GetArrayItem(row, 2);
         const size_t index = size_t(cJSON_GetArrayItem(row, 0)->valuedouble);
-        if (cJSON_IsNumber(observed) && cJSON_IsNumber(cJSON_GetArrayItem(row, 1)) && sampled - observed->valuedouble > boilerFieldTtlMs(index))
+        const auto ttl = boilerFieldTtlMs(index);
+        if (ttl && cJSON_IsNumber(observed) && cJSON_IsNumber(cJSON_GetArrayItem(row, 1)) && sampled - observed->valuedouble > *ttl)
             cJSON_ReplaceItemInArray(row, 1, cJSON_CreateNull());
     }
     return values;

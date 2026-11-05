@@ -1,4 +1,4 @@
-# Field tester pack: OpenThermostat 1.0 rc.4
+# Field tester pack: OpenThermostat 1.0 rc.5
 
 Thank you for testing. You are the first person other than the developer to
 install OpenThermostat, and the first on a **Nefit TopLine**. This page tells
@@ -13,13 +13,13 @@ us is a gap in the guide: please write it down. When you get through the guide
 on your own, that meets the 1.0 criterion "an install guide someone else has
 followed".
 
-Versions: E32 firmware **1.0.0-rc.4** with Home Assistant integration
-**1.0.0rc5**, or a newer pair that the release notes name together.
+Versions: E32 firmware **1.0.0-rc.5** with Home Assistant integration
+**1.0.0rc6**, or a newer pair that the release notes name together.
 
-Already testing rc.3? Do not start over: update with the three steps in
-[INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0rc5
+Already testing rc.4 (or rc.3)? Do not start over: update with the three steps
+in [INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0rc6
 first, then the E32's **Firmware** entity, then confirm the takeover again)
-and read [What to look at in rc.4](#what-to-look-at-in-rc4).
+and read [What to look at in rc.5](#what-to-look-at-in-rc5).
 
 ## 1. Before you start
 
@@ -88,7 +88,7 @@ it is done.
    3. Release candidates are pre-releases, which HACS does not offer by
       default. In the HACS list, open the three dots of **OpenThermostat**,
       choose **Download**, open **Need a different version?** and pick
-      **1.0.0rc5**.
+      **1.0.0rc6**.
    4. Restart Home Assistant (**Settings → System → Restart**).
 
    To be offered the next release candidate as an update, switch on the
@@ -226,7 +226,48 @@ only your home can tell us:
   whether the figures make sense for your home. Self-tuning only changes
   settings on days the E32 controlled the boiler.
 
-### What to look at in rc.4
+### What to look at in rc.5
+
+rc.5 adds the learning from your boiler and your house. Nothing is to be set:
+the E32 tunes itself and the pages say what it found. Please follow it for the
+first two weeks.
+
+- **What it knows.** On the E32 **Home** page under **What the thermostat has
+  learned**, and in Home Assistant on the **Learning and settings** tab under
+  **What the E32 knows**: the figure ("The E32 knows your house: 70 %") and the
+  sentences about what it still has to learn. Does it rise over the days, and
+  is each sentence true? See
+  [what the E32 knows](USER-GUIDE.md#what-the-e32-knows-and-what-it-still-lacks).
+- **Your boiler.** The sentence about your boiler ("Your boiler rests about
+  6 min each time it reaches its temperature; the E32 asks at most 41 °C now,
+  so it starts less often"; in Home Assistant under **Your boiler** on the
+  **Learning and settings** tab) and the state of the sensor **Boiler response**.
+  It only listens once the E32 controls the boiler. Does the ceiling it names
+  make sense for your boiler, and do the burner starts per heating hour on the
+  **Yesterday** block go down over the days? The ceiling holds near the target
+  temperatures: while a room is 1 °C or more below its target the E32 asks the
+  full water temperature, so a cold morning should not be slower than before.
+  Tell us at once if a room is late on a cold morning, or stays cold. Does
+  your boiler report the return temperature ("No return temperature" says it
+  does not)? See
+  [listening to the boiler](USER-GUIDE.md#listening-to-the-boiler).
+- **Yesterday compared with usual.** From the fifth day: a plain sentence when
+  a day stood out, with what can cause it (in Home Assistant under **Noticed**
+  on the **Learning and settings** tab). Was the cause something you know (a
+  window left open, a guest, sun)? It is information only; a sentence that is
+  plainly wrong is worth a report.
+- **Free heat.** On a sunny day, a room's learned details may say "In the
+  afternoon this room warms up by itself, about 0.4 °C per hour". The E32 page
+  always shows it; Home Assistant shows it under **Free heat** on the
+  **Learning and settings** tab when the E32's report for that room has room
+  for it. Does it match the room, and is the room still warm on time on those
+  days?
+- **The chart.** **Water temperature by outdoor temperature** on the E32
+  **Home** page (under **Heating settings**) and in Home Assistant on the
+  **Learning and settings** tab. Is the line learned for your house below the
+  standard line, and does the point of now match what the E32 asks?
+
+Still worth following from rc.4:
 
 - **The morning line.** Smart warm-up now starts early from the first morning,
   as an estimate ("starts at 07:40 (estimate; it learns from every morning)").
@@ -313,6 +354,9 @@ one issue per problem, with a title that starts with "Field test:". Include:
   boiler display when it matters.
 - **Where you were in the guide:** the INSTALL.md section, or the
   INSTALL-CHECK.md row.
+- **For the rc.5 items:** the knowledge figure with its sentences, the boiler
+  sentence and the state of **Boiler response**, any **Yesterday compared with
+  usual** sentence, and the chart, as text or a screenshot, with the date.
 - **For the rc.4 items:** the morning line, the **Yesterday** block or the
   holiday list as text or a screenshot, with the date, the room and whether it
   has floor heating or radiators.
@@ -323,7 +367,7 @@ Notes on the guide itself (a word that did not match, a missing step) are
 just as welcome. The filled-in [INSTALL-CHECK.md](INSTALL-CHECK.md) is the
 best report of all.
 
-## 8. Known limits in rc.4
+## 8. Known limits in rc.5
 
 - **Radiator valve control is not yet verified on real valves.** You are the
   one verifying it. Switch **Valve control** on one room at a time, after the
@@ -336,6 +380,15 @@ best report of all.
 - **Smart warm-up starts as an estimate.** Until a room has been checked on a
   few mornings, it can be warm a little early or late; the E32 adjusts it
   every morning.
+- **What it learns from your boiler takes days.** It listens only while the
+  E32 controls the boiler, and sets a ceiling only after your boiler stopped
+  by itself twice in one request. A boiler that reports its return temperature
+  still counts as learned for the knowledge figure once the E32 knows how much
+  heat the house takes per °C of water temperature. Only a boiler that reports
+  no return temperature and never stops by itself has nothing to learn here:
+  its state stays "No return temperature" and the knowledge figure tops out
+  below 100 %. A settings backup does not carry what the E32 learned from the
+  boiler; a replacement E32 learns it again within days.
 - **Self-tuning** waits 24 hours after the first start or a change that
   touches the control, and 2 hours after a restart. It only changes settings
   on days the E32 controlled the boiler. During a trial run it only shows what

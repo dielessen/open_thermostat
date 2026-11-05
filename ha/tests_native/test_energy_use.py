@@ -291,12 +291,17 @@ def test_gas_counting_never_writes_a_setting():
 async def test_dashboard_gas_section_shows_both_sensors_per_day_and_how_they_are_counted(hass):
     from homeassistant.helpers.template import Template
     from custom_components.open_thermostat.dashboard import TEXT, _energy_section
-    assert _energy_section(TEXT["en"], None, None) is None
-    section = _energy_section(TEXT["nl"], "sensor.gas_voor_verwarmen", "sensor.gas_voor_warm_water")
-    # The days in one bar chart (not the meter totals, which tell a user little), and how it is counted.
-    heading, graph, note = section["cards"]
-    assert heading["heading"] == "Gas per dag"
+    assert _energy_section(TEXT["en"], {}) is None
+    section = _energy_section(TEXT["nl"], {"heating_gas": "sensor.gas_voor_verwarmen",
+                                           "hot_water_gas": "sensor.gas_voor_warm_water"})
+    # Today's gas as two figures, the days in one bar chart (not the meter totals, which tell a user little), and
+    # how it is counted (rc.5: the Boiler view's "Today and this week").
+    heading, heating, hot_water, graph, note = section["cards"]
+    assert heading["heading"] == "Vandaag en deze week"
+    assert [(card["type"], card["name"]) for card in (heating, hot_water)] == [
+        ("statistic", "Gas verwarmen"), ("statistic", "Gas warm water")]
     assert graph["type"] == "statistics-graph" and graph["stat_types"] == ["change"] and graph["period"] == "day"
+    assert graph["title"] == "Gas per dag"
     assert graph["entities"] == [{"entity": "sensor.gas_voor_verwarmen", "name": "Verwarmen"},
                                  {"entity": "sensor.gas_voor_warm_water", "name": "Warm water"}]
     hass.states.async_set("sensor.gas_voor_verwarmen", "1.2", {"estimate": True})

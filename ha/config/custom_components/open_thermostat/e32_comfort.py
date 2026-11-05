@@ -48,6 +48,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from functools import partial
 import json
 import time
 
@@ -573,6 +574,16 @@ class ComfortForwarder:
             self._away_timer = async_call_later(self.hass, wait + 1, due)
 
     @callback
+    def refresh(self, _now=None):
+        """Every REFRESH: all again (the E32 forgets a report after 15 minutes).
+
+        A @callback, so Home Assistant runs it in the event loop. As a plain lambda (beta.19 to rc.5) it ran
+        in a worker thread, where sending raises: the refresh never went out, and from 1.0.0rc5 on every
+        refresh also kept a place in the sender until room values were dropped too (P22).
+        """
+        self.publish()
+
+    @callback
     def _changed(self, event):
         self.publish(event.data["entity_id"])
 
@@ -1034,20 +1045,19 @@ async def async_setup_e32_climates(hass, entry, async_add_entities):
     from .e32_setting_device import SettingDevicePusher
     pusher = state["setting_device_pusher"] = SettingDevicePusher(hass, entry, hub)
     entry.async_on_unload(pusher.start())
-    # Only the MQTT prefix and the broker, not the shadow link (heating_link.topic_base).
-    from .heating_link import publish_input, topic_base
-    topic = topic_base(hass, entry) + "ha/heating_input"
-
-    def send(payload):
-        publish_input(hass, topic, payload)  # a broker failure is logged once, never an unretrieved task (R4-07)
+    # The entry's one route to the E32's ha/heating_input, shared with the room and energy values: the topic
+    # where the E32 reports, a broker failure logged once, never a stuck or leaked send (P22).
+    from .heating_link import heating_input_link
+    link = heating_input_link(hass, entry, hub)
 
     if PRESENCE_MEMORY not in hass.data:
         from homeassistant.helpers.storage import Store
         memory = hass.data[PRESENCE_MEMORY] = PresenceMemory(hass, Store(hass, 1, f"{DOMAIN}.presence"))
         await memory.async_load()
-    forwarder = state["comfort_forwarder"] = ComfortForwarder(hass, entry, hub, send)
+    # Not watched: E32 rc.4 does not count contacts and presence in ha.input_age_s (HeatingInputWatch).
+    forwarder = state["comfort_forwarder"] = ComfortForwarder(hass, entry, hub, partial(link.send, watched=False))
     entry.async_on_unload(hub.add_listener(forwarder.hub_changed))
-    entry.async_on_unload(async_track_time_interval(hass, lambda _now: forwarder.publish(), REFRESH))
+    entry.async_on_unload(async_track_time_interval(hass, forwarder.refresh, REFRESH))
     forwarder.reconfigure()
     entry.async_on_unload(forwarder.stop)
 

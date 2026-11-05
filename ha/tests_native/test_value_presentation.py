@@ -35,7 +35,8 @@ class Shown(BoilerFieldEntity):
 
     def __init__(self, name, raw):
         super().__init__("fixture", SimpleNamespace(
-            ready=True, boiler_fields=SimpleNamespace(concept_state=lambda members: None, profile="classic")), AT[name])
+            ready=True, clock=lambda: 0.0, boiler_fields=SimpleNamespace(
+                concept_state=lambda members: None, profile="classic", source_age_ms=lambda index, now: None)), AT[name])
         self._reading = (AT[name], {"raw": raw, "usable": True, "measurement_state": "fresh", "quality": 0,
                                     "source_type": "retained", "observed_at_ms": 1, "availability_reason": "fresh"})
 
@@ -91,6 +92,18 @@ def test_service_number_and_state_bits_are_whole_numbers_and_the_bits_also_hex()
     bits = Shown("raw_boiler_state", 9)
     assert bits.native_value == 9 and bits.suggested_display_precision == 0
     assert bits.extra_state_attributes["hex"] == "0x09" and "raw_value" not in bits.extra_state_attributes
+
+
+def test_whole_numbers_on_the_wire_read_without_a_decimal():
+    """The demo Home Assistant (P16) showed "Boiler state bits (raw) 11.0" and "Service number 200.0": the frontend
+    shows a state without a unit as written (no display precision applies), and raw / 1 is a float. Values the
+    boiler sends as whole numbers (divisor 1: codes, counts, minutes, %) stay whole; scaled values keep decimals."""
+    for name, raw, shown in (("service_number", 200, "200"), ("raw_boiler_state", 11, "11"),
+                             ("reported_burner_modulation", 38, "38"), ("pump_run_on", 3, "3"),
+                             ("plus_burner_starts", 12345, "12345"), ("measured_flow_temperature", 4120, "41.2"),
+                             ("dhw_flow", 85, "8.5")):
+        value = Shown(name, raw).native_value
+        assert str(value) == shown and type(value) is (int if spec(AT[name])[2] == 1 else float), name
 
 
 def test_words_only_where_there_never_were_statistics():

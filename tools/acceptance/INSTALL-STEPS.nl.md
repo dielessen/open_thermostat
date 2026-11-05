@@ -1,7 +1,7 @@
 # Installatie met vastlegging: stappen voor Mark
 
-Deze stappen gelden voor de release in `install-config.json` (nu E32 **v1.0.0-e32v2-rc.4** met HA
-**1.0.0rc5**, vanaf rc.3 en 1.0.0rc4). De opdrachten staan in [README.md](README.md).
+Deze stappen gelden voor de release in `install-config.json` (nu E32 **v1.0.0-e32v2-rc.5** met HA
+**1.0.0rc6**, vanaf rc.4 en 1.0.0rc5). De opdrachten staan in [README.md](README.md).
 
 **Wat er gebeurt:** eerst gaat Home Assistant naar de nieuwe integratie, via HACS. Daarna gaat de E32 naar de
 nieuwe firmware, via Home Assistant. Tussendoor maak ik metingen; die vormen samen het acceptatiebewijs.
@@ -32,7 +32,7 @@ Gaat er iets mis, dan stoppen we hier en verandert er niets.
 
 1. Ga naar **HACS** → **OpenThermostat**.
 2. Kies de drie puntjes → **Download**.
-3. Klap **Need a different version?** open en kies de versie uit `install-config.json` (nu **1.0.0rc5**).
+3. Klap **Need a different version?** open en kies de versie uit `install-config.json` (nu **1.0.0rc6**).
    Druk op **Download**.
 4. Verwijder de integratie niet. Er hoeft niets weg: HACS schrijft over dezelfde map heen.
 5. Start Home Assistant opnieuw. Gebruik de melding "Opnieuw opstarten vereist", of ga naar Instellingen →
@@ -66,7 +66,7 @@ af (`capture_preinstall.py --stage e32`).
 ## 4. De E32 bijwerken: één keer Installeren (jij)
 
 1. Ga naar Instellingen → Apparaten en diensten → Apparaten → **Woonkamer E32** → **Firmware**.
-2. Controleer dat er de geplande versie staat (nu **v1.0.0-e32v2-rc.4**).
+2. Controleer dat er de geplande versie staat (nu **v1.0.0-e32v2-rc.5**).
 3. Druk **één keer** op **Installeren**. Zeg me hoe laat het is.
 4. Wacht. Home Assistant downloadt de firmware, controleert hem, zet hem op de E32 en wacht op de herstart. Dat
    duurt meestal 1,5 tot 3 minuten. Druk in die tijd nergens op.

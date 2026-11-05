@@ -24,10 +24,10 @@ from reportlab.platypus import (KeepTogether, PageBreak, Paragraph, SimpleDocTem
                                 TableStyle)
 
 # ---- What the manual is written for (change these at each release) ------------------------------------
-# The release pair: E32 firmware rc.4 goes with Home Assistant integration 1.0.0rc5 (see tools/dev/prepare_rc4.py).
-E32_TAG = "v1.0.0-e32v2-rc.4"
-E32_VERSION = "1.0.0-rc.4"
-HA_VERSION = "1.0.0rc5"
+# The release pair: E32 firmware rc.5 goes with Home Assistant integration 1.0.0rc6 (see tools/dev/prepare_rc5.py).
+E32_TAG = "v1.0.0-e32v2-rc.5"
+E32_VERSION = "1.0.0-rc.5"
+HA_VERSION = "1.0.0rc6"
 
 # ---- Fonts ---------------------------------------------------------------------------------------------
 # The first complete set wins: Arial and Consolas from Windows (also reachable from WSL), then DejaVu.
@@ -332,15 +332,33 @@ def content():
          KeepTogether([
          p("Het dashboard", "h2"),
          p("Open in de zijbalk het dashboard <b>OpenThermostat</b>. Het heeft zes tabbladen:"),
+         # The dashboard as the owner sketched it (docs/modern-thermostat/RC5-DASHBOARD-SPEC.md, the rc5-design sketches). Names that
+         # are in the Dutch dashboard texts or in translations/nl.json already go through ui(), so that tools/dev/test_manual_labels.py
+         # checks them. These are plain <b> until the cards that bring them are merged and their texts are in the integration; then
+         # (sections of Leren en instellingen).
          table([["Tabblad", "Wat je ziet"],
-                [ui("Overzicht"), "Het huis (met de huismodus en de volgende vakantie), een eventueel probleem met de reden, en een kaart per ruimte "
-                 "die in één regel zegt waarom ze verwarmt of niet."],
+                [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een band in de kleur van wat de ketel nu doet (bij een probleem rood, met de "
+                 "reden; een tik brengt je bij Reparaties) met de huismodus rechts, de cijfers van vandaag, groot (de ruimte die aan staat, warm "
+                 "water, gas met de laatste 7 dagen, branderstarts; bij een probleem ook de verwarming) en de dag tot nu toe als balk. Daaronder, "
+                 "naast elkaar: "
+                 + ui("Ruimtes") + " (een kaart per "
+                 "ruimte, met in één regel waarom ze verwarmt of niet), " + ui("Vandaag") + " (wanneer elke ruimte opwarmt en wat de weerafhankelijke "
+                 "regeling vraagt) en " + ui("Huis") + " (thuis of weg, vakantie plannen, buiten)."],
                 [ui("Ruimtes"), "Per ruimte de thermostaat, de dag, de sensoren, ramen en personen, en wat de E32 leerde."],
                 [ui("Weekprogramma"), "De weekplanner voor alle ruimtes."],
-                [ui("Ketel"), "Alles over de ketel op één plek."],
-                [ui("Leren en instellingen"), "Wat de E32 leerde, " + ui("Gisteren") + " in cijfers, Slim opwarmen, de weerafhankelijke regeling "
-                 "en de controle voor de overname."],
-                [ui("Diagnose"), "Voor het zoeken naar fouten."]],
+                [ui("Ketel"), "Bovenaan de kaart " + ui("Nu") + ": de ketel in woorden met de displaycode, het water naar de verwarming en terug, "
+                 "het brandervermogen en de starts van het laatste uur. Daarna, in de volgorde van wat je nodig hebt: " + ui("Advies") + ", "
+                 + ui("Vandaag en deze week") + " (gas en branderstarts van vandaag, met één grafiek met het gas per dag van de laatste week), "
+                 + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", " + ui("Wat de ketel meldt") + " en " + ui("Ketelinstellingen") + ". Een "
+                 "onderdeel verschijnt pas als de ketel er iets voor meldt. Gisteren staat hier niet; dat vind je bij " + ui("Leren en instellingen") + "."],
+                [ui("Leren en instellingen"), "Wat de E32 zelf leerde en deed, in zeven onderdelen: " + ui("Wat de E32 weet") + " (en nog moet "
+                 "leren), " + ui("Je ketel") + " (hoe hij zijn temperatuur vasthoudt), " + ui("Watertemperatuur bij buitentemperatuur") + " (de grafiek "
+                 "met de standaardlijn en de lijn voor jouw huis), " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier), "
+                 "" + ui("Opgevallen") + " (gisteren tegenover je eigen gewone dagen), " + ui("Gratis warmte") + " (zon, koken en mensen) en "
+                 + ui("Slim opwarmen en weerafhankelijke regeling") + " (de schakelaars). Daarna " + ui("Wat de thermostaat heeft geleerd")
+                 + " en " + ui("Wie regelt de ketel") + "."],
+                [ui("Diagnose"), "Voor het zoeken naar fouten, met ook " + ui("Thermostaat op de bus") + ": wat een andere thermostaat aan de ketel "
+                 "vraagt, zoals de E32 het hoort."]],
                [48 * mm, W - 48 * mm])]),
          Spacer(1, 4),
          p("In de proefperiode (de E32 rekent mee maar stuurt de ketel nog niet) is er ook een onderdeel " + ui("Vergelijking")
@@ -391,6 +409,8 @@ def content():
          table([["Onderwerp", "Wat je moet weten"],
                 ["Zelf leren", "De E32 leert hoe snel elke kamer opwarmt, met welke laagste watertemperatuur, en een weerafhankelijke regeling "
                  "voor jouw huis. <b>Slim opwarmen</b> en de <b>weerafhankelijke regeling</b> staan standaard aan. "
+                 "Sinds rc.5 luistert hij ook naar je ketel en zegt hij hoeveel hij van je huis weet (de rijen hieronder). "
+                 "Er is niets in te stellen: hij stelt zichzelf af en jij leest wat hij deed. "
                  "Wat hij leerde, zie je op het dashboardtabblad " + ui("Leren en instellingen") + " en op de E32 onder "
                  "<b>Huis → Wat de thermostaat heeft geleerd</b>. Aanpassen kan onder <b>Configureren</b> → "
                  + ui("Verwarming en ketel") + " (" + named("Slim opwarmen", "Weerafhankelijke regeling") + ")."],
@@ -403,7 +423,41 @@ def content():
                 ["Gisteren in cijfers", "Zodra de E32 een dag heeft gemeten, toont <b>Gisteren</b> hoe die dag ging: stooktijd, branderstarts per "
                  "stookuur, korte brandtijden, gas voor verwarmen (schatting), graaddagen en per ruimte hoeveel minuten te laat of te vroeg "
                  "ze warm was en hoeveel graden te warm. Home Assistant: dashboardtabblad " + ui("Leren en instellingen") + ", blok "
-                 + ui("Gisteren") + ". E32: <b>Huis → Wat de thermostaat heeft geleerd</b>, blok <b>Gisteren</b>."],
+                 + ui("Gisteren in cijfers") + " (gisteren staat op het dashboard alleen daar). E32: <b>Huis → Wat de thermostaat heeft geleerd</b>, "
+                 "blok <b>Gisteren</b>."],
+                ["De E32 kent je huis", "Sinds rc.5 zegt de E32 hoeveel hij al van je huis weet: <b>De E32 kent je huis: 70 %</b>, met in gewone "
+                 "woorden wat hij nog moet leren, bijvoorbeeld \"Hij moet nog zien hoe snel de woonkamer opwarmt\". Het getal stijgt vanzelf "
+                 "terwijl de verwarming draait; het is alleen informatie en er is niets in te stellen. Home Assistant: dashboardtabblad "
+                 + ui("Leren en instellingen") + ", bovenaan " + ui("Wat de E32 weet") + "; de sensoren " + ui("Kennis") + " en "
+                 + ui("Reactie van de ketel") + " staan op het E32-apparaat. E32: <b>Huis → Wat de thermostaat heeft geleerd</b>."],
+                ["Luisteren naar de ketel", "Haalt de ketel de gevraagde watertemperatuur en slaat hij zelf af terwijl een ruimte nog warmte wil, "
+                 "dan vroeg de E32 meer dan het huis opneemt. Gebeurt dat twee keer in één warmtevraag, dan leert de E32 een <b>plafond</b> voor "
+                 "de watertemperatuur (per bereik van de buitentemperatuur) en vraagt hij niet meer dan dat: koeler water en minder branderstarts. "
+                 "Zolang de ruimte die het verst van haar doel zit 1 °C of meer te koud is, vraagt hij wel de volle watertemperatuur: een koude "
+                 "ochtend wordt niet vertraagd door de beperkingen van gisteren. Ook leert hij hoe lang de ketel dan zelf rust, en houdt hij zijn eigen brandrust minstens zo lang (hooguit 15 minuten), tenzij een "
+                 "ruimte meer dan 0,3 °C te koud is: comfort gaat voor. Dit gebeurt alleen terwijl de E32 de ketel regelt, het plafond ook alleen "
+                 "met <b>Slim opwarmen</b> aan. Hij gebruikt alleen waarden die elke ketel meldt en verandert geen ketelinstelling. Meldt je ketel "
+                 "de retourtemperatuur niet, dan ziet hij niet hoeveel warmte het huis opneemt; al het andere werkt gewoon. Je leest het in één "
+                 "zin, bijvoorbeeld \"Je ketel rust ongeveer 6 min telkens als hij zijn temperatuur bereikt; de E32 vraagt nu hooguit 41 °C, "
+                 "zodat hij minder vaak start.\""],
+                ["Het huis en de weerafhankelijke regeling", "Uit hoe snel de ruimtes opwarmen en afkoelen (of uit het gas per graaddag) rekent de "
+                 "E32 uit hoe snel je huis warmte verliest en hoeveel warmte radiatoren of vloer per graad watertemperatuur afgeven. Daarmee schat "
+                 "hij de <b>weerafhankelijke regeling</b> al voordat hij zes rustige stookperiodes van drie uur heeft gezien, nooit minder dan half "
+                 "zo steil als de standaardlijn. De pagina's zeggen het: \"Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog "
+                 "bij (2 van 6 rustige periodes).\" De grafiek " + ui("Watertemperatuur bij buitentemperatuur") + " toont de standaardlijn (gestippeld), "
+                 "de lijn die voor je huis is geleerd (doorgetrokken), het punt van nu en de watertemperatuur bij −10 °C. Home Assistant: "
+                 "dashboardtabblad " + ui("Leren en instellingen") + ". E32: <b>Huis → Verwarming → Watertemperatuur</b>."],
+                ["Gisteren vergeleken met normaal", "Vanaf de vijfde dag vergelijkt de E32 gisteren met de gewone dagen van je eigen huis: gas per "
+                 "graad kou, branderstarts per stookuur, stookuren per graad kou en per ruimte de opwarmtijd. Wijkt iets meer dan 30 % af, dan "
+                 "staat er één gewone zin met wat het kan veroorzaken, bijvoorbeeld \"Gisteren ging er 35 % meer gas per graad kou door dan "
+                 "normaal.\" Het is alleen informatie: nooit een storing en nooit een reparatie. Home Assistant: een melding per zin (weg te "
+                 "klikken) en de lijst " + ui("Opgevallen") + " op het tabblad " + ui("Leren en instellingen") + ". E32: "
+                 "<b>Huis → Wat de thermostaat heeft geleerd</b>."],
+                ["Gratis warmte", "Zon, koken en mensen verwarmen een ruimte zonder ketel. De E32 leert dat per ruimte en per dagdeel van vier uur. "
+                 "Vanaf vijf metingen in een dagdeel begint Slim opwarmen in dat dagdeel later: de voorlooptijd wordt korter, nooit tot minder dan "
+                 "de helft, en de ochtendcontrole blijft elke start beoordelen. Je leest het bij de ruimte op de E32-pagina, en per ruimte onder "
+                 "" + ui("Gratis warmte") + " op het tabblad " + ui("Leren en instellingen") + " (als het bericht van de E32 voor die ruimte er plaats "
+                 "voor heeft): \"'s Middags warmt deze ruimte vanzelf op, ongeveer 0,4 °C per uur (zon, koken of mensen).\""],
                 ["Waarom verwarmt een ruimte?", "Op de E32-pagina <b>Overzicht</b> zegt elke ruimte in één regel waarom ze verwarmt of niet, "
                  "in dezelfde woorden als Home Assistant, bijvoorbeeld \"Warm genoeg: 21 °C (gewenst 21 °C)\", \"Gepauzeerd: er staat een raam "
                  "of deur open\" of \"Slim opwarmen: nu al verwarmen voor 08:00 (21 °C)\". Dat werkt ook zonder Home Assistant."],
@@ -414,20 +468,23 @@ def content():
                  + ui("Eindigt (weer thuis)") + "; het einde ligt hooguit een jaar vooruit) en " + ui("Temperatuur op vakantie")
                  + " (5–25 °C; tot je die instelt is het de afwezigheidstemperatuur). Wijzigen of verwijderen kan met "
                  + ui("Vakantie wijzigen of verwijderen") + "; een lopende vakantie stop je met " + ui("Vakantie stoppen")
-                 + " onder <b>Configureren</b> → " + ui("Huis") + ". Op de E32: pagina <b>Huis</b>, blok <b>Vakanties</b> "
+                 + " onder <b>Configureren</b> → " + ui("Huis") + ". Op de E32: pagina " + ui("Huis") + ", blok <b>Vakanties</b> "
                  "(<b>Vakantie toevoegen</b> met <b>Van</b> en <b>Tot</b>, <b>Vakantie opslaan</b>, <b>Temperatuur op vakantie (°C)</b>). "
                  "Beide plekken wijzigen dezelfde lijst. Een vakantie heeft de klok van de E32 nodig."],
                 ["Zelfafstelling", "Branderrust, brandtijd en marges stelt hij zelf af, met hooguit één kleine stap per dag. "
                  "Na een herstart wacht hij eerst 2 uur, na de eerste start of een wijziging die de regeling raakt 24 uur."],
                 ["Updates", f"Eerst de integratie ({HA_VERSION}) in HACS (met <b>Pre-release</b> aan) en Home Assistant herstarten, dan de firmware via de "
-                 "entiteit " + ui("Firmware") + " (<b>Instellingen → Updates</b>). Doe dit als er iemand thuis is."],
+                 "entiteit " + ui("Firmware") + " (<b>Instellingen → Updates</b>). Doe dit als er iemand thuis is. Wat rc.5 toevoegt (ketel, huis, "
+                 "gratis warmte) begint bij nul en vult zich in de eerste stookdagen; het getal van <b>De E32 kent je huis</b> begint dus lager."],
                 ["Na elke firmware-update", "<b>Bevestig de overname opnieuw</b>: Reparatie " + ui("Bevestig opnieuw dat de E32 de ketel mag regelen")
                  + " (<b>Instellingen → Systeem → Reparaties</b>), of Ruimtes op de E32. Tot dan houdt de E32 alleen vorstbeveiliging aan."],
                 ["Back-up", "Home Assistant maakt dagelijks een back-up van de E32-instellingen, inclusief geplande vakanties en wat hij geleerd heeft "
-                 "(7 dagen bewaard). Zelf maken kan op <b>Systeem → Backup and restore</b>."],
+                 "(7 dagen bewaard). Wat hij van je ketel leerde (plafond en rust) zit er niet in; dat leert hij binnen enkele dagen opnieuw. "
+                 "Zelf maken kan op <b>Systeem → Backup and restore</b>."],
                 ["Afmelden", "Onderaan het menu <b>Systeem</b> staat <b>Afmelden</b>, zodra je bent aangemeld. Daarmee sluit je je sessie op de E32."],
-                ["Problemen zien", "Het tabblad " + ui("Overzicht") + " toont " + ui("Verwarming") + " met de reden eronder; elk probleem staat ook onder "
-                 "<b>Instellingen → Systeem → Reparaties</b>. Een blauwdruk stuurt desgewenst een melding naar je telefoon."]],
+                ["Problemen zien", "Op het tabblad " + ui("Overzicht") + " wordt de band van de huiskaart rood met \"Let op\" en de eerste reden; een tik "
+                 "brengt je bij Reparaties. Elk probleem staat ook onder <b>Instellingen → Systeem → Reparaties</b>. Een blauwdruk stuurt "
+                 "desgewenst een melding naar je telefoon."]],
                [42 * mm, W - 42 * mm]),
          p("Terug naar je oude thermostaat?", "h2"),
          p("Kan altijd: op de E32 <b>Ruimtes → Active control</b> → regeling teruggeven, en de oude thermostaat weer aansluiten. "

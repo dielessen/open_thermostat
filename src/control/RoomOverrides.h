@@ -307,8 +307,9 @@ public:
     // {"kind":"contact","room":id,"open":bool,"delay_s":0..1800}: the room's window/door
     // contacts (HA aggregates: any open = open); {"kind":"presence","home":bool};
     // {"kind":"room_presence","room":id,"home":bool}: the room's own persons.
-    // True when the payload was one of these (consumed, also when invalid).
-    bool input(std::string_view payload, const RoomPlan& plan, uint64_t now) {
+    // True when the payload was one of these (consumed, also when invalid). rejected: set to why an
+    // invalid one was refused (a string literal: unknown_room, invalid_value; ha.last_rejected, P22).
+    bool input(std::string_view payload, const RoomPlan& plan, uint64_t now, const char** rejected = nullptr) {
         if (payload.size() > inputBytes || (payload.find("\"contact\"") == std::string_view::npos
                                             && payload.find("\"presence\"") == std::string_view::npos
                                             && payload.find("\"room_presence\"") == std::string_view::npos)) return false;
@@ -317,15 +318,18 @@ public:
         const cJSON* kind = cJSON_GetObjectItemCaseSensitive(root.get(), "kind");
         if (!cJSON_IsString(kind)) return false;
         const std::string_view k = kind->valuestring;
+        const auto refuse = [&](const char* reason) { if (rejected) *rejected = reason; return true; };
         if (k == "presence") {
             const cJSON* home = cJSON_GetObjectItemCaseSensitive(root.get(), "home");
-            if (cJSON_IsBool(home)) { presenceKnown_ = true; presenceHome_ = cJSON_IsTrue(home); presenceAt_ = now; }
+            if (!cJSON_IsBool(home)) return refuse("invalid_value");
+            presenceKnown_ = true; presenceHome_ = cJSON_IsTrue(home); presenceAt_ = now;
             return true;
         }
         if (k == "room_presence") {
             const cJSON* id = cJSON_GetObjectItemCaseSensitive(root.get(), "room");
             const cJSON* home = cJSON_GetObjectItemCaseSensitive(root.get(), "home");
-            if (!cJSON_IsString(id) || !cJSON_IsBool(home) || !plan.find(id->valuestring)) return true;
+            if (!cJSON_IsString(id) || !cJSON_IsBool(home)) return refuse("invalid_value");
+            if (!plan.find(id->valuestring)) return refuse("unknown_room");
             Slot* s = find(id->valuestring);
             if (!s) s = claim(id->valuestring);
             if (s) { s->personsKnown = true; s->personsHome = cJSON_IsTrue(home); s->personsAt = now; }
@@ -335,10 +339,11 @@ public:
         const cJSON* id = cJSON_GetObjectItemCaseSensitive(root.get(), "room");
         const cJSON* open = cJSON_GetObjectItemCaseSensitive(root.get(), "open");
         const cJSON* delay = cJSON_GetObjectItemCaseSensitive(root.get(), "delay_s");
-        if (!cJSON_IsString(id) || !cJSON_IsBool(open) || !plan.find(id->valuestring)) return true;
+        if (!cJSON_IsString(id) || !cJSON_IsBool(open)) return refuse("invalid_value");
+        if (!plan.find(id->valuestring)) return refuse("unknown_room");
         uint32_t delayS = defaultContactDelayS;
         if (delay) {
-            if (!cJSON_IsNumber(delay) || !whole(delay->valuedouble, 0, maxContactDelayS)) return true;
+            if (!cJSON_IsNumber(delay) || !whole(delay->valuedouble, 0, maxContactDelayS)) return refuse("invalid_value");
             delayS = uint32_t(delay->valuedouble);
         }
         Slot* s = find(id->valuestring);

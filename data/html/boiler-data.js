@@ -67,5 +67,17 @@ window.BoilerData = (() => {
     if(document.visibilityState==='hidden')clearTimeout(timer);
     else if(listeners.size)refresh();
   });
-  return Object.freeze({subscribe,refresh});
+  // A setting the boiler sends only when asked (request_only, EMS/ClassicBoilerMonitor.h) stays shown
+  // until a newer read replaces it, with when it was read: "read at start-up" for a value from the E32's
+  // first 15 minutes, else its age. '' for any other field, or without a value.
+  const startupMs=900000;
+  function readRemark(field){
+    const count=n=>Number.isSafeInteger(n)&&n>=0;
+    if(field?.request_only!==true||field.value===null||field.value===undefined||!count(field.age_ms))return '';
+    if(count(field.observed_at_ms)&&field.observed_at_ms<startupMs)return uiText("read at start-up");
+    if(field.age_ms<60000)return uiText("read just now");
+    return field.age_ms<3600000?uiText("read {n} min ago").replace('{n}',Math.floor(field.age_ms/60000))
+      :uiText("read {n} h ago").replace('{n}',Math.round(field.age_ms/3600000));
+  }
+  return Object.freeze({subscribe,refresh,readRemark});
 })();

@@ -34,7 +34,10 @@
 #include "control/HeatingInput.h"
 #include "control/HeatingTelemetry.h"
 #include "control/Scoreboard.h"
+#include "control/Knowledge.h" // rc.5 (P2): HouseModel, Knowledge, the insight topic
 #include "control/HeatingHistory.h"
+#include "control/BoilerResponse.h" // rc.5 (P1)
+#include "control/RestFloor.h"      // rc.5 (P1)
 #include <esp_heap_caps.h>
 #include "diagnostics/BlackBox.h"
 #include <cmath>
@@ -181,7 +184,9 @@ public:
         {
             if (eraseStaleNvsKeys()) DBGLOGFI(log_, logFeature_, "NVS: erased the unused access secret of untagged October builds (ot_access/secret)\n");
             LearnedNvs nvs;
-            const auto rooms = learnedStore_.restore(nvs, flowLearner_, flowPolicy_, bleReceiptClock());
+            // rc.5 (P1): the boiler's response comes back from its own frame ('B') in the global record.
+            const auto rooms = learnedStore_.restore(nvs, flowLearner_, flowPolicy_, bleReceiptClock(),
+                                                     [this](std::string_view f) { if (f[1] == control::BoilerResponse::frameKind) boilerResponse_.restore(f); });
             DBGLOGFI(log_, logFeature_, "Learned state restored for %u room(s)\n", unsigned(rooms));
         }
         // A holiday set before rc.4 (the comfort record's dated away): into its own record once. After the
@@ -234,9 +239,14 @@ public:
             return control::heatingSummaryTelemetry(flowLearner_, learnedContext(now, temperatures), ems_.dhwSummaryJson(), &flowPolicy_,
                 [&](cJSON* root) {
                     return autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual, control::AutoTuner::mqttEntries)
-                        && scoreboard_.addJson(root, autoTuner_, roomEngine_.plan(), true); // rc.4 (F1): its own topic, today without rooms
+                        && scoreboard_.addJson(root, autoTuner_, roomEngine_.plan(), true) // rc.4 (F1): its own topic, today without rooms
+                        && boilerResponse_.addJson(root) // rc.5 (P1): "boiler", sent with the flow (fw/telemetry/flow)
+                        && insightJson(root, control::insightMaxKeys, control::insightMaxBytes); // rc.5 (P2): fw/telemetry/insight
                 });
         });
+        // P22: Home Assistant sends values while the plan reads its entities; 15 silent minutes then
+        // make the E32 subscribe ha/heating_input again (control/HaInputSilence.h).
+        mqtt_.setHeatingInputExpected([this] { return planReadsHa(); });
 #endif
 	}
 
@@ -366,6 +376,7 @@ public:
         flowLearner_.setPlan(plan);
         flowPolicy_.setPlan(plan);  // rc.4 (R1-04): the start latch, the curve window and the arrival factors follow the ids
         autoTuner_.setPlan(plan);
+        houseUpdatedAt_.reset();    // rc.5 (P2): the house model from the new rooms at the next step
         if (controlChanged) autoTuner_.restart(bleReceiptClock());
         // Valves of rooms the plan no longer has leave their record (stored), so a later valve
         // save is not refused as unknown_room and their fw/state/trv/<room> topic is cleared.
@@ -572,13 +583,20 @@ public:
             scaled("age_s", value.temperatureAgeMs ? std::optional<uint32_t>(*value.temperatureAgeMs / 1000) : std::nullopt, 1.0);
         }
         const auto now = bleReceiptClock();
-        // The HA route's freshness for the rooms page banner.
-        if (!control::addHaLink(root, haInput_.lastAcceptedMs(), now, brokerConnected())) { cJSON_Delete(root); return nullptr; }
+        // The HA route's freshness for the rooms page banner; why the last value was refused and when the
+        // E32 last subscribed again after 15 silent minutes (P22).
+        const auto rejected = haInput_.lastRejected();
+        if (!control::addHaLink(root, haInput_.lastAcceptedMs(), now, brokerConnected(), rejected.reason, rejected.atMs,
+                                mqtt_.haResubscribedMs())) { cJSON_Delete(root); return nullptr; }
         if (mqtt) return root;
         // The self-tuning (AutoTuner): its state, the knobs in effect, yesterday and the change log.
         if (!autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual)) { cJSON_Delete(root); return nullptr; }
         // rc.4 (F1): the daily scoreboard (on time, overshoot, starts, short cycling, gas, degree-days).
         if (!scoreboard_.addJson(root, autoTuner_, roomEngine_.plan())) { cJSON_Delete(root); return nullptr; }
+        // rc.5 (P1): what the E32 learned from the boiler (control/BoilerResponse.h).
+        if (!boilerResponse_.addJson(root)) { cJSON_Delete(root); return nullptr; }
+        // rc.5 (P2): what it knows about the house and the boiler, and yesterday's insights (the page: every missing key).
+        if (!insightJson(root, control::Knowledge::Result{}.missing.size(), SIZE_MAX)) { cJSON_Delete(root); return nullptr; }
         // What the learner found (report only) and, with a trusted clock, its plans.
         std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
         cJSON* learned = control::learnedJson(flowLearner_, roomEngine_.plan(), learnedContext(now, temperatures));
@@ -989,8 +1007,11 @@ private:
     control::FlowLearner flowLearner_;
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)
     control::FlowSettings flowSettings_; // as stored: the options, the owner's knobs and which are manual
+    control::BoilerResponse boilerResponse_; // rc.5 (P1): held targets, the boiler's rest, absorbed heat (NVS: frame 'B' in "learned_a")
     control::AutoTuner autoTuner_;       // rc.2: the automatic knobs from the measured days (NVS "autotune")
-    control::Scoreboard scoreboard_;     // rc.4: the daily scoreboard (NVS "scoreboard")
+    control::Scoreboard scoreboard_;     // rc.4: the daily scoreboard (NVS "scoreboard"; rc.5: with the Insights' baselines)
+    control::HouseModel houseModel_;     // rc.5 (P2): heat loss and emitter output per K, the curve's slope before CurveLearner has one
+    std::optional<uint64_t> houseUpdatedAt_; // rc.5 (P2): HouseModel::update hourly and at the day change
     std::string scoreboardStored_;       // the stored record until the clock knows the local day
     bool scoreboardAdopted_ = false;
     uint64_t scoreboardLastMs_ = 0;
@@ -1009,7 +1030,7 @@ private:
     void saveLearned(uint64_t now) {
         rewriteEvicted();
         LearnedNvs nvs;
-        if (!learnedStore_.save(nvs, flowLearner_, flowPolicy_, now))
+        if (!learnedStore_.save(nvs, flowLearner_, flowPolicy_, now, {boilerResponse_.stored()})) // rc.5 (P1): the boiler's frame
             DBGLOGFI(log_, logFeature_, "Learned state of %u of %u room(s) saved (NVS short of room or a write failed); the rest kept in RAM, retried in 6 h\n",
                      unsigned(learnedStore_.storedRooms()), unsigned(learnedStore_.rooms()));
     }
@@ -1023,6 +1044,7 @@ private:
     }
     control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
+    uint32_t haResubscribesLogged_ = 0;   // HaInputSilence resubscriptions already logged (P22)
     uint32_t activePosted_ = 0; uint64_t activePostedAt_ = 0; // the last command handed to the EMS route
     std::optional<uint8_t> limitC_; std::optional<uint64_t> limitAtMs_; uint32_t limitReads_ = 0; // last step's 0x16 view
     // The owner's confirmation over restarts, bound to this firmware build.
@@ -1047,10 +1069,24 @@ private:
         } else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms (a boot zero is still owed)\n");
     }
     // ha/heating_input: room states and the learner's gas, price, outdoor and
-    // boiler power (control/HeatingInput.h). Anything else is ignored.
+    // boiler power (control/HeatingInput.h). Anything else is ignored; why is ha.last_rejected (P22).
     void heatingInput(std::string_view payload) {
-        if (overrides_.input(payload, roomEngine_.plan(), bleReceiptClock())) return; // window/door contacts, presence
-        haInput_.accept(payload, bleReceiptClock(), roomEngine_, flowLearner_);
+        const auto now = bleReceiptClock();
+        const char* rejected = nullptr;
+        if (overrides_.input(payload, roomEngine_.plan(), now, &rejected)) { // window/door contacts, presence
+            if (rejected) haInput_.reject(rejected, now); else haInput_.accepted(now);
+            return;
+        }
+        haInput_.accept(payload, now, roomEngine_, flowLearner_);
+    }
+    // The plan reads Home Assistant entities (a source or a setpoint entity): HA then sends at least every
+    // five minutes, so a long silence on ha/heating_input means nothing arrives (P22, HaInputSilence).
+    bool planReadsHa() const {
+        for (const auto& room : roomEngine_.plan().rooms) {
+            if (!room.setpointEntity.empty()) return true;
+            for (const auto& source : room.sources) if (source.type == control::RoomPlan::SourceType::ha) return true;
+        }
+        return false;
     }
     // The learner's outdoor: the boiler's (0x19/0xD1) while fresh, else HA's for 15 min.
     control::HeatingInputRoute::Outdoor learnerOutdoor(uint64_t now) const { return haInput_.outdoor(ems_.getOutdoorTemperature(), now); }
@@ -1064,11 +1100,17 @@ private:
         context.temperatures = temperatures.data();
         context.outdoorCentiC = outdoor.centiC; context.outdoorSource = outdoor.source; context.now = now;
         context.arrival = &flowPolicy_.arrival(); // rc.4 (L2)
+        context.freeHeat = &flowPolicy_.freeHeat(); // rc.5 (P3)
         return context;
     }
     // Every 10 s: feed the Bluetooth sources, then compute the (shadow) request.
     void stepHeating() {
         const auto now = bleReceiptClock();
+        if (const auto resubscribes = mqtt_.haResubscribes(); resubscribes != haResubscribesLogged_) { // P22
+            haResubscribesLogged_ = resubscribes;
+            DBGLOGFI(log_, logFeature_, "No Home Assistant input for 15 min on a live MQTT session: ha/heating_input subscribed again (%lu)\n",
+                     static_cast<unsigned long>(resubscribes));
+        }
         for (const auto& room : roomEngine_.plan().rooms)
             for (const auto& source : room.sources) {
                 control::ManagedBleAddress address{};
@@ -1089,12 +1131,15 @@ private:
         // never exceeds what the boiler accepts; unknown: the plan's ceiling.
         const auto ems = ems_.activeHeatView();
         roomEngine_.setBoilerLimit(ems.limitC);
+        refreshRestFloor(); // rc.5 (P1): the burner rest in effect follows the boiler's own and the rooms
         const auto rule = roomEngine_.step(now, unixNow, adjust);
         const auto tadoFlowC = ems_.thermostatRequestedFlowC();
+        if (!houseUpdatedAt_ || now - *houseUpdatedAt_ >= 3600000ull) updateHouse(now); // rc.5 (P2): hourly (and at the day change)
         const auto request = applyFlowPolicy(now, rule, ems); // the rule itself while the options are off
         shadowComparison_.sample(now, unixNow, request, tadoFlowC);
         sampleReadiness(now, unixNow, request, tadoFlowC, ems);
         stepFlowLearner(now, ems, tadoFlowC);
+        stepBoilerResponse(now, ems); // rc.5 (P1)
         if (learnedStore_.due(now, unixNow)) saveLearned(now); // every 6 h and at a day change, when changed
         // Radiator valves: their feedback on the request and their commands, both only while the E32
         // drives the boiler after a confirmed takeover (the last step's output; frost protection
@@ -1186,6 +1231,55 @@ private:
             rooms[i] = {fresh.temperature, roomEngine_.result(i).setpoint, fresh.source};
         }
         flowLearner_.sample(now, boiler, rooms.data(), count);
+        // rc.5 (P3): free heat (control/FreeHeat.h) per plan room: its fresh reading and whether heat reached
+        // it (the burner on for heating or the heating reference asking heat; hot water heats no room).
+        std::array<control::FreeHeat::RoomSample, control::RoomPlan::maxRooms> free{};
+        const bool heat = control::FreeHeat::heatDelivered(ems.burnerOn, ems.hotWater, boiler.requestedFlowC);
+        for (size_t i = 0; i < count; ++i) free[i] = {rooms[i].temperatureCentiC, heat};
+        flowPolicy_.freeHeat().sample(now, networkTimeTrusted ? std::optional<int64_t>(std::time(nullptr)) : std::nullopt,
+                                      boiler.outdoorCentiC, free.data(), count);
+    }
+    // rc.5 (P1): listening to the boiler (control/BoilerResponse.h) on the view and the request FlowLearner
+    // gets: the guard's command while the E32 drives the boiler, the usable rooms' mean, their demand and the
+    // lead room's shortfall; the ceiling's bounds are the lowest flow the E32 asks and the plan's maximum.
+    void stepBoilerResponse(uint64_t now, const ems::EmsController::ActiveHeatView& ems) {
+        const auto& plan = roomEngine_.plan();
+        control::BoilerResponse::Sample s;
+        s.now = now;
+        if (networkTimeTrusted) s.utc = static_cast<int64_t>(std::time(nullptr));
+        s.ownRequest = activeGuard_.outputActive(); s.requestC = activeGuard_.command().flowC;
+        s.flowCentiC = ems.flowCentiC; s.returnCentiC = ems.returnCentiC; s.outdoorCentiC = learnerOutdoor(now).centiC;
+        s.burnerOn = ems.burnerOn; s.hotWater = ems.hotWater; s.modulationPct = ems.modulationPct;
+        s.nominalKw = flowLearner_.nominalKw(); s.kwhPerM3 = flowLearner_.params().kwhPerM3;
+        s.minimumC = flowLearner_.effectiveMinimumC(ems.limitC); s.maximumC = plan.maximumFlowC;
+        s.productId = ems.boilerProductId; // another boiler starts over (as FlowLearner's minimum)
+        int32_t sum = 0, usable = 0;
+        for (size_t i = 0; i < plan.rooms.size(); ++i) {
+            const auto& r = roomEngine_.result(i);
+            if (!r.usable || r.status == control::RoomDemand::Status::inactive || !r.temperature) continue;
+            sum += *r.temperature; ++usable;
+            s.demand = s.demand || roomEngine_.demand(i);
+            s.shortfallCentiC = s.shortfallCentiC ? std::max(*s.shortfallCentiC, r.errorCentiC) : r.errorCentiC;
+        }
+        if (usable) s.roomMeanCentiC = static_cast<int16_t>(sum / usable);
+        boilerResponse_.sample(s);
+    }
+    // rc.5 (P1): the knobs as the control applies them: effectiveTuning() with the burner rest never shorter
+    // than the boiler's own after a held target, unless a room is cold now (control/RestFloor.h). Never stored
+    // or shown as the knob: GET /config/heating/flow and the tuning status keep effectiveTuning().
+    control::ControlTuning controlTuning() const {
+        auto t = effectiveTuning();
+        bool cold = false;
+        for (size_t i = 0; i < roomEngine_.plan().rooms.size(); ++i) cold = cold || control::RestFloor::cold(roomEngine_.result(i));
+        control::RestFloor::apply(t, boilerResponse_.restS(), cold);
+        return t;
+    }
+    // rc.5 (P1): each step, a changed floor goes to the room engine (FlowDemand's minimum off) and the policy.
+    void refreshRestFloor() {
+        const auto t = controlTuning();
+        if (t.minOffS == roomEngine_.tuning().minOffS) return;
+        auto applied = flowSettings_; applied.tuning = t;
+        flowPolicy_.setSettings(applied); roomEngine_.setTuning(t);
     }
     void loadFlowSettings() {
         const bool restored = AutoTunerNvs::read(autoTuner_);
@@ -1202,17 +1296,43 @@ private:
             autoTuner_.adoptDay(day);
             if (!scoreboardStored_.empty() && !scoreboard_.restore(scoreboardStored_.c_str(), day)) DBGLOGFI(log_, logFeature_, "Scoreboard record not for today; dropped\n");
             scoreboardStored_.clear();
+            updateHouse(now); // rc.5 (P2): the restored gas per degree-day baseline counts at once
         }
         const uint32_t dtS = scoreboardLastMs_ && now > scoreboardLastMs_ ? uint32_t(std::min<uint64_t>(now - scoreboardLastMs_, 60000) / 1000) : 0;
         scoreboardLastMs_ = now;
-        scoreboard_.step(*unixNow, dtS, learnerOutdoor(now).centiC, flowLearner_.gas().heatingKwh());
+        if (scoreboard_.step(*unixNow, dtS, learnerOutdoor(now).centiC, flowLearner_.gas().heatingKwh())) {
+            // rc.5 (P2): yesterday judged against the house's own baselines, then folded in (control/Insights.h). The
+            // rooms' warm-up minutes per degC as AutoTuner's minutesPerC, at the conditions they were learned in (no
+            // outdoor shift: a cold night is no slower room). Stored at once, then the house model again.
+            const auto& plan = roomEngine_.plan();
+            std::array<std::optional<uint16_t>, control::RoomPlan::maxRooms> warmup{};
+            const size_t count = std::min({plan.rooms.size(), warmup.size(), flowLearner_.rooms()});
+            for (size_t i = 0; i < count; ++i)
+                if (const auto w = flowLearner_.warmupSeconds(i, 100, flowLearner_.ruleFlow(100), std::nullopt))
+                    warmup[i] = static_cast<uint16_t>(std::min<uint32_t>((*w + 30) / 60, 1000));
+            scoreboard_.judge(autoTuner_.yesterday(), warmup.data(), count);
+            if (const auto text = scoreboard_.stored(); !text.empty() && !ScoreboardNvs::write(text, learnedStore_.pendingEntries()))
+                DBGLOGFI(log_, logFeature_, "Scoreboard not saved (NVS short of room or write failed)\n");
+            updateHouse(now);
+        }
         for (control::ArrivalLearner::Event ev; flowPolicy_.arrival().pop(ev);) scoreboard_.arrival(ev.room, ev.atUtc, ev.errorMin);
+    }
+    // rc.5 (P2): the house model from the learners, the scoreboard's gas baseline and the boiler's output per K.
+    void updateHouse(uint64_t now) {
+        houseModel_.update({&flowLearner_, &scoreboard_, boilerResponse_.kwPerFlowK(), &roomEngine_.plan()});
+        houseUpdatedAt_ = now;
+    }
+    // rc.5 (P2): the members of fw/telemetry/insight (control/Knowledge.h: knowledge, house, boiler, insights).
+    bool insightJson(cJSON* root, size_t maxKeys, size_t maxBytes) const {
+        const auto& plan = roomEngine_.plan();
+        const auto k = control::Knowledge::percent(flowLearner_, flowPolicy_.curveLearner(), flowPolicy_.arrival(), &boilerResponse_, houseModel_, plan);
+        return control::addInsightJson(root, k, houseModel_, &boilerResponse_, scoreboard_.insights(), plan, maxKeys, maxBytes);
     }
     control::ControlTuning effectiveTuning() const { return autoTuner_.effective(flowSettings_.tuning, flowSettings_.manual); }
     // The stored settings with the knobs in effect for every part.
     void applyFlowSettings(const control::FlowSettings& settings) {
         flowSettings_ = settings;
-        auto applied = settings; applied.tuning = effectiveTuning();
+        auto applied = settings; applied.tuning = controlTuning(); // rc.5 (P1): with the rest floor
         flowPolicy_.setSettings(applied); flowLearner_.setApplied(settings.applyLearned);
         flowLearner_.setTuning(applied.tuning); roomEngine_.setTuning(applied.tuning);
     }
@@ -1268,6 +1388,9 @@ private:
         if (networkTimeTrusted) in.utc = static_cast<int64_t>(std::time(nullptr));
         in.outdoorCentiC = learnerOutdoor(now).centiC; in.boilerLimitC = ems.limitC;
         in.flowCentiC = ems.flowCentiC; in.burnerOn = ems.burnerOn; in.hotWater = ems.hotWater;
+        in.houseSlope = houseModel_.slope(); // rc.5 (P2): the curve's slope between the learned one and the design
+        // rc.5 (P1): the boiler's learned ceiling for this outdoor, applied while the E32 drives the boiler.
+        in.ownRequest = activeGuard_.outputActive(); in.ceilingC = boilerResponse_.ceilingC(in.outdoorCentiC);
         return flowPolicy_.apply(in, flowLearner_);
     }
     // Active mode: the guard decides; the EMS route sends at the boiler's next

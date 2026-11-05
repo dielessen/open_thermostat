@@ -23,7 +23,11 @@ struct LearnedContext {
     const char* outdoorSource = nullptr;                  // "boiler", "ha" or nullptr (none)
     uint64_t now = 0;                                     // uptime ms
     const ArrivalLearner* arrival = nullptr;              // rc.4: the arrival feedback (FlowPolicy::arrival())
+    const FreeHeat* freeHeat = nullptr;                   // rc.5 (P3): "free_heat" per room (FlowPolicy::freeHeat())
 };
+// rc.5 (P3): the budget of fw/telemetry/learned/<id> (TELEMETRIEBUDGET.nl.md; the tests, fuzz_room_plan
+// and the soak check it), counted as if the room id had its maximum of 32 characters.
+inline constexpr size_t learnedRoomBytes = 1100; // rc.5: a judged morning, long reasons and free heat with a 32-character id (the rc.4 soak saw 1018 B at 1000); above 1024 B the message only counts as "large", the hard limit is 1536
 // A gas meter counts as connected while its last total is at most 2 h old
 // (DSMR 4 meters report gas once an hour).
 inline constexpr uint64_t gasMeterFreshMs = 2 * 3600000ull;
@@ -57,21 +61,39 @@ inline cJSON* learnedJson(const FlowLearner& learner, const RoomPlan& plan, cons
     cJSON* root = learner.json();
     if (!root) return nullptr;
     if (!addLearnedInputs(root, learner, c) || !addGasCalibration(root, learner, c)) { cJSON_Delete(root); return nullptr; }
+    // rc.5 (P3): each room's "free_heat" (the page's per-room learned detail).
+    const cJSON* rooms = cJSON_GetObjectItemCaseSensitive(root, "rooms");
+    size_t i = 0;
+    for (cJSON* r = c.freeHeat && cJSON_IsArray(rooms) ? rooms->child : nullptr; r; r = r->next, ++i)
+        if (!c.freeHeat->addJson(r, i)) { cJSON_Delete(root); return nullptr; }
     if (!c.utc || !c.temperatures) return root;
     cJSON* plans = WarmupPlanner::json(learner, plan, *c.utc, c.temperatures, c.outdoorCentiC, c.arrival);
     if (!plans || !cJSON_AddItemToObject(root, "plans", plans)) { cJSON_Delete(plans); cJSON_Delete(root); return nullptr; }
     return root;
 }
 
-// "ha": {"input_age_s": seconds since the last accepted ha/heating_input (null:
-// none this boot), "broker_connected": bool}, for the rooms page banner.
-inline bool addHaLink(cJSON* root, std::optional<uint64_t> lastInputMs, uint64_t now, bool brokerConnected) {
+// "ha": {"input_age_s": seconds since the last accepted ha/heating_input (any kind, since
+// rc.5 also contacts and presence; null: none this boot), "broker_connected": bool}, for
+// the rooms page banner. P22, only once
+// there is something to say: "last_rejected": {"reason", "age_s"} of the last refused
+// message (HeatingInputRoute::Rejection) and "resubscribed_s": seconds since the E32
+// subscribed ha/heating_input again after 15 silent minutes (HaInputSilence).
+inline bool addHaLink(cJSON* root, std::optional<uint64_t> lastInputMs, uint64_t now, bool brokerConnected,
+                      const char* rejectedReason = nullptr, uint64_t rejectedAtMs = 0,
+                      std::optional<uint64_t> resubscribedMs = std::nullopt) {
     cJSON* ha = cJSON_AddObjectToObject(root, "ha");
     if (!ha) return false;
     const bool known = lastInputMs && *lastInputMs <= now;
     if (!(known ? cJSON_AddNumberToObject(ha, "input_age_s", double((now - *lastInputMs) / 1000))
                 : cJSON_AddNullToObject(ha, "input_age_s"))) return false;
-    return cJSON_AddBoolToObject(ha, "broker_connected", brokerConnected) != nullptr;
+    if (!cJSON_AddBoolToObject(ha, "broker_connected", brokerConnected)) return false;
+    if (rejectedReason && rejectedAtMs <= now) {
+        cJSON* rejected = cJSON_AddObjectToObject(ha, "last_rejected");
+        if (!rejected || !cJSON_AddStringToObject(rejected, "reason", rejectedReason)
+            || !cJSON_AddNumberToObject(rejected, "age_s", double((now - rejectedAtMs) / 1000))) return false;
+    }
+    return !(resubscribedMs && *resubscribedMs <= now)
+        || cJSON_AddNumberToObject(ha, "resubscribed_s", double((now - *resubscribedMs) / 1000)) != nullptr;
 }
 
 // "burner": {"starts_last_hour","heating_starts_last_hour","short_cycling","activity"};
@@ -189,13 +211,24 @@ inline std::string learnedRoomTelemetry(const FlowLearner& learner, const RoomPl
     if (!learned || !cJSON_AddNumberToObject(root.get(), "schema", 1) || !cJSON_AddStringToObject(root.get(), "id", plan.rooms[room].id.c_str())
         || !cJSON_AddItemToObject(root.get(), "learned", learned)) { cJSON_Delete(learned); return {}; }
     compactLearnedRoom(learned);
+    if (c.freeHeat && !c.freeHeat->addJson(learned, room)) return {}; // rc.5 (P3), in "learned"
     cJSON* p = c.utc && c.temperatures ? WarmupPlanner::roomJson(learner, plan, room, *c.utc, c.temperatures[room], c.outdoorCentiC, c.arrival) : nullptr;
     if (p) { if (!cJSON_AddItemToObject(root.get(), "plan", p)) { cJSON_Delete(p); return {}; } compactPlanRoom(p); }
     else if (c.utc && c.temperatures) return {};          // no memory
     else if (!cJSON_AddNullToObject(root.get(), "plan")) return {};
-    char* text = cJSON_PrintUnformatted(root.get());
-    std::string out = text ? text : "";
-    cJSON_free(text);
+    const auto print = [&] {
+        char* text = cJSON_PrintUnformatted(root.get());
+        std::string out = text ? text : "";
+        cJSON_free(text);
+        return out;
+    };
+    auto out = print();
+    // rc.5 (P3): "free_heat" only while the payload keeps its budget with any room id; else it stays
+    // out of this message (the page has it in /status/heating).
+    if (c.freeHeat && out.size() + 32 - std::min<size_t>(32, plan.rooms[room].id.size()) > learnedRoomBytes) {
+        cJSON_DeleteItemFromObjectCaseSensitive(learned, "free_heat");
+        out = print();
+    }
     return out;
 }
 

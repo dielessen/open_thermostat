@@ -97,7 +97,9 @@ window.EMSDevicesPage=(()=>{
         if(!r||!/^[a-z][a-z0-9_]{0,79}$/.test(r.id)||typeof r.unit!=='string'||r.unit.length>16||!number(r.source_type)||r.source_type>65535||!number(r.age_ms)
           ||!(r.value===null||typeof r.value==='boolean'||typeof r.value==='number'&&Number.isFinite(r.value)))return new Map();
         rows.push([r.id,{value:typeof r.value==='boolean'?(r.value?1:0):r.value,unit:r.unit,state:r.value===null?'invalid':'valid',
-          quality:'reported',source_type:r.source_type,source_address:d.address,age_ms:r.age_ms,reference:true}]);
+          quality:'reported',source_type:r.source_type,source_address:d.address,age_ms:r.age_ms,reference:true,
+          // Sent only when asked (0xE6/0xEA settings, records, uptime): kept, with when it was read.
+          request_only:r.request_only===true,observed_at_ms:number(r.observed_at_ms)?r.observed_at_ms:null}]);
       }
       result.set(d.address,rows);
     }
@@ -304,6 +306,10 @@ window.EMSDevicesPage=(()=>{
           identifyButtons.set(d.address,button);diagnostic.append(button);
         }
         for(const button of identifyButtons.values())button.disabled=!actions.canIdentify?.();}
+      // Explains the remark of the boiler's request-only settings while one is listed.
+      const settingsNote=get('ems-request-only');
+      if(settingsNote)settingsNote.hidden=![...Object.values(snapshot.boiler.fields),...[...withEntities.values()].flat().map(([,v])=>v)]
+        .some(v=>v.request_only===true&&v.state!=='unknown');
       const ids=new Set(devices.map(d=>d.address));
       for(const [id,r] of records)if(!ids.has(id)){r.box.remove();records.delete(id);}
       if(!ids.size){list.replaceChildren(el('p',text(snapshot.enabled?'No EMS device reports received yet.':'EMS reception is disabled.')));return;}
@@ -343,7 +349,8 @@ window.EMSDevicesPage=(()=>{
           if(!row){
             row=el('tr');row.dataset.field=id;
             const name=el('td',description(id));name.append(el('code',reference.aliases[id]||id));
-            row.append(name,el('td',undefined,'ems-value'),el('td'),el('td'));r.rowCache.set(id,row);
+            const shown=el('td',undefined,'ems-value');shown.append(el('span'),el('small',undefined,'ems-read'));
+            row.append(name,shown,el('td'),el('td'));r.rowCache.set(id,row);
           }
           let value=v.state==='not_reported'?text('Not reported'):'—';
           if(v.value!==null){value=v.unit==='bool'?text(v.value?'On':'Off'):typeof v.value==='number'?format.format(v.value):v.value;const unit=Object.hasOwn(units,v.unit)?units[v.unit]:v.unit;if(unit)value+=' '+unit;}
@@ -354,7 +361,9 @@ window.EMSDevicesPage=(()=>{
             row.dataset.help=helpFor;cells[0].querySelector('.ems-help')?.remove();
             const help=helpFor&&settingHelp(helpFor);if(help)cells[0].append(help);
           }
-          update(cells[1],measurementFresh?value:'—');
+          update(cells[1].firstChild,measurementFresh?value:'—');
+          // A setting the boiler sends only when asked stays shown, with when it was read.
+          update(cells[1].lastChild,measurementFresh?BoilerData.readRemark(v):'');
           // A fresh reported value needs no status text; only exceptions are shown.
           update(cells[3],!measurementFresh?text('Snapshot unavailable'):[['valid','not_reported'].includes(v.state)?'':text(states[v.state]),
             v.quality==='reported'?'':text(quality[v.quality])].filter(Boolean).join(' · '));

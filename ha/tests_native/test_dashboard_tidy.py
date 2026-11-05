@@ -2,21 +2,34 @@
 "0,0 °C" request, no bare "98 %", an inactive room without a dial, whole names and no gap under "Now".
 
 Shaped like the live installation: the living room follows a thermostat and a Bluetooth sensor, the
-bathroom is inactive with a working source of its own (it stays off and is never switched on here).
+bathroom is inactive with a working source of its own (it stays off and is never switched on here); the
+boiler fields of the owner's boiler, the gas, the daily summary, today's hot water and what the boiler does.
 """
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
+from custom_components.open_thermostat import dashboard as module
 from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
+from custom_components.open_thermostat.room_overview import BOILER_NOW_CARD_TYPE, HOUSE_CARD_TYPE
 from test_dashboard_heating import installation, walk
+from test_dashboard_redesign import LIVE_FIELDS
 
 PLAN = {"rooms": [
     {"id": "woonkamer", "state": "active", "sources": [{"type": "ha", "id": "climate.tado_woonkamer"},
                                                        {"type": "ble", "id": "a4c138a3e8db"}]},
     {"id": "badkamer", "state": "inactive", "sources": [{"type": "ha", "id": "climate.thermostaat_badkamer"}]}]}
+# The hub sensors of the owner's E32 and integration that the Boiler, Learning and Diagnostics views draw (rc.5):
+# what the boiler does, the gas (split into tapping and keeping warm), the daily summary, today's hot water, the
+# advice, the E32 itself, the energy and hot water counters (empty on this boiler) and the hot water capability.
+HUB_SENSORS = ("boiler_activity", "heating_gas", "hot_water_gas", "tapping_gas", "keep_warm_gas", "daily_summary",
+               "daily_burner_time", "daily_burner_starts", "daily_missed_comfort", "dhw_taps_today",
+               "dhw_keep_warm_today", "dhw_burner_time_today", "heating_advice", "memory_free", "memory_min_free",
+               "cpu_temperature", "uptime", "energy_v2", "energy_heating_v2", "energy_warm_water_v2",
+               "warm_water_usage_v2", "burner_observed_time_v2", "dhw_capabilities")
 
 
 def known(entity_id):
@@ -29,7 +42,8 @@ def live(hass, language="en"):
     for room_id in ("woonkamer", "badkamer"):
         device = devices.async_get_device_by_identifier(("open_thermostat", f"fixture_e32_room_{room_id}"), e.entry_id)
         for domain, key in (("climate", "thermostat"), ("sensor", "learning"), ("sensor", "flow_advice"),
-                            ("sensor", "heating_start"), ("sensor", "warm_on_time"), ("sensor", "overshoot")):
+                            ("sensor", "heating_start"), ("sensor", "warm_on_time"), ("sensor", "overshoot"),
+                            ("sensor", "reason")):
             rooms[room_id][key] = entities.async_get_or_create(
                 domain, "open_thermostat", f"fixture_e32_room_{room_id}_{key}", config_entry=e, device_id=device.id,
                 suggested_object_id=f"{room_id}_{key}").entity_id
@@ -37,14 +51,24 @@ def live(hass, language="en"):
     hub["heating_problem"] = entities.async_get_or_create(
         "binary_sensor", "open_thermostat", "fixture_hub_heating_problem", config_entry=e, device_id=product.id,
         suggested_object_id="heating_problem").entity_id
-    # Yesterday's scoreboard (E32 rc.4).
-    for key in ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day"):
+    # The house mode (E32 beta.23) and the outdoor temperature set under Energy and outdoor temperature (rc.5: the
+    # Overview's House card, as in the owner's sketch).
+    hub["house_mode"] = entities.async_get_or_create("select", "open_thermostat", "fixture_house_mode", config_entry=e,
+                                                     device_id=product.id, suggested_object_id="house_mode").entity_id
+    hass.config_entries.async_update_entry(e, options={**e.options, "energy_outdoor_entity": "sensor.buitentemperatuur"})
+    # Yesterday's scoreboard (E32 rc.4); what the E32 knows, the boiler's response and the learned overview (rc.5).
+    for key in ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day",
+                "knowledge", "boiler_response", "learned_overview", *HUB_SENSORS):
         hub[key] = entities.async_get_or_create("sensor", "open_thermostat", f"fixture_hub_{key}", config_entry=e,
                                                 device_id=product.id, suggested_object_id=key).entity_id
+    for name in LIVE_FIELDS:
+        fields[name] = entities.async_get_or_create("sensor", "open_thermostat", f"fixture_boiler_fields_v1_{name}",
+                                                    config_entry=e, device_id=product.id,
+                                                    suggested_object_id=f"boiler_{name}").entity_id
     flow = {key: entities.async_get_or_create(domain, "open_thermostat", f"fixture_flow_{key}", config_entry=e,
                                               device_id=product.id, suggested_object_id=f"flow_{key}").entity_id
             for domain, key in (("sensor", "source"), ("switch", "weather_curve"),
-                                ("select", "curve_design_flow_c"), ("switch", "apply_learned"))}
+                                ("select", "curve_design_flow_c"), ("switch", "apply_learned"), ("sensor", "curve"))}
     hass.states.async_set("climate.thermostaat_badkamer", "heat", {"current_temperature": 18.4, "temperature": 19})
     hass.data["open_thermostat"][e.entry_id]["heating_hub"].plan = SimpleNamespace(
         plan=PLAN, room=lambda room_id: next((r for r in PLAN["rooms"] if r["id"] == room_id), None))
@@ -63,40 +87,52 @@ async def test_boiler_values_are_hidden_while_they_have_none_instead_of_showing_
     overview, boiler = config["views"][0], next(v for v in config["views"] if v["path"] == "boiler")
     values = [fields[k] for k in ("measured_flow_temperature", "measured_dhw_temperature",
                                   "measured_return_temperature", "reported_burner_modulation", "pressure")]
-    # The boiler's values are all in the Boiler view, as rows that appear once they have a value; never on the Overview.
+    # The boiler's values are all in the Boiler view, as rows that appear once they have a value; never on the Overview,
+    # except the water temperature to heating that the house card (rc.5) says in its strip ("Heating · water 41 °C").
     rows = {row["row"]["entity"]: row for card in view_cards(boiler) if card["type"] == "entities"
             for row in card["entities"] if row.get("type") == "conditional"}
     for entity_id in values:
         assert rows[entity_id]["conditions"] == [known(entity_id)], entity_id
-    assert not any(entity_id in json.dumps(overview) for entity_id in values)
-    # The display code in words: hidden as long as the boiler reports no code.
-    words = [c for c in view_cards(boiler) if c["type"] == "markdown" and "'meaning'" in c["content"]]
-    assert [c["visibility"] for c in words] == [[known(fields["display_code"])]]
-    # The "Heating" problem tile is shown only while there is a problem, with its reason.
-    status = next(c for c in section(overview, "House") if c.get("entity") == hub["heating_problem"])
-    assert status["name"] == "Heating" and status["state_content"] == ["reason"]
-    assert status["visibility"] == [{"condition": "state", "entity": hub["heating_problem"], "state": "on"}]
+    house = next(c for c in view_cards(overview) if c["type"] == HOUSE_CARD_TYPE)
+    assert house["flow"] == fields["measured_flow_temperature"]
+    others = [c for c in view_cards(overview) if c["type"] != HOUSE_CARD_TYPE]
+    assert not any(entity_id in json.dumps(others) for entity_id in values)
+    # The display code in words: the Now card's (frontend/boiler-now-card.js), which says it only while the code has a
+    # value; the section shows while one of its values has one (here the code among them).
+    now = section(boiler, "Now")
+    assert [c["type"] for c in now] == ["heading", BOILER_NOW_CARD_TYPE] and now[1]["code"] == fields["display_code"]
+    assert known(fields["display_code"]) in next(s for s in boiler["sections"] if s["cards"] is now)["visibility"][0]["conditions"]
+    assert not any(c["type"] == "markdown" and "'meaning'" in c["content"] for c in view_cards(boiler))
+    # The problem is the house card's (its strip turns red with the reason only while there is one); no tile of its own.
+    assert house["problem"] == hub["heating_problem"]
+    assert not any(c.get("entity") == hub["heating_problem"] for c in view_cards(overview))
 
 
 @pytest.mark.asyncio
 async def test_the_boiler_request_says_no_request_instead_of_zero_degrees(hass):
-    """One card whose text follows the E32: "Boiler request: 54,0 °C" or nothing but "No room wants heat"."""
+    """One card whose text follows the E32: "Boiler request 54 °C" or "No boiler request", never "0 °C".
+
+    rc.5: the house card reads the request (frontend/house-card.js; the words are checked in
+    test/ha-house-card-browser.cjs); the markdown card stays only for a house card without its sensors."""
     from homeassistant.helpers.template import Template
+    from custom_components.open_thermostat.dashboard import TEXT, _wanting_card
     config, rooms, sensors, hub, fields, flow = live(hass)
-    wanting = section(config["views"][0], "House")[1]
-    assert wanting["type"] == "markdown" and hub["heat_request"] in wanting["content"]
-    assert "visibility" not in wanting  # no card that comes and goes
+    house = config["views"][0]["sections"][0]["cards"][0]  # alone on top of the Overview (rc.5, the owner's sketch)
+    assert house["type"] == HOUSE_CARD_TYPE and house["request"] == hub["heat_request"]
+    assert "visibility" not in house  # no card that comes and goes
     hass.states.async_set(hub["heat_request"], "0", {"rooms": []})
-    assert "0,0" not in Template(wanting["content"], hass).async_render()
-    nl, *_ = live(hass, "nl")
-    assert "Geen ruimte vraagt warmte" in json.dumps(nl, ensure_ascii=False)
+    wanting = _wanting_card(TEXT["nl"], hub["heat_request"])
+    assert Template(wanting["content"], hass).async_render() == "### Geen ruimte vraagt warmte"
+    texts = json.loads((Path(module.__file__).parent / "translations/nl.json").read_text(encoding="utf-8"))
+    card = texts["entity"]["sensor"]["heat_request"]["state_attributes"]["card"]["state"]
+    assert (card["no_request"], card["request"]) == ("Geen ketelvraag", "Ketelvraag {flow} °C")
 
 
 @pytest.mark.asyncio
 async def test_the_comparison_is_a_link_that_explains_it_not_a_bare_percentage(hass):
     config, rooms, sensors, hub, fields, flow = live(hass)
     learning = next(v for v in config["views"] if v["path"] == "learned")
-    control = section(learning, "Boiler control")
+    control = section(learning, "Who controls the boiler")
     assert hub["shadow_agreement_today"] not in [c.get("entity") for c in control]
     link = next(c for c in control if c.get("heading") == "E32 compared with your thermostat")
     assert link["tap_action"]["navigation_path"].endswith("/comparison")
@@ -162,14 +198,15 @@ async def test_long_choices_get_the_whole_width_and_sections_fill_the_gaps(hass)
     learning = next(v for v in config["views"] if v["path"] == "learned")
     assert learning["dense_section_placement"] is True
     settings = section(learning, "Smart warm-up and weather compensation")
-    # The settings carry their entities' own long names (as on the device page) and a long choice:
-    # every tile takes the whole width, none is cut short.
-    tiles = [c for c in settings if c["type"] == "tile"]
-    assert [c["entity"] for c in tiles] == [flow[k] for k in ("apply_learned", "weather_curve", "curve_design_flow_c",
-                                                              "source")]
-    assert all(c["grid_options"] == {"columns": 12} for c in tiles)
-    assert [c["name"] for c in tiles] == ["Smart warm-up", "Weather compensation",
-                                          "Water temperature in hard frost (−10 °C)", "Water temperature set by"]
+    # The settings carry their entities' own long names (as on the device page) and a long choice: rows of one card
+    # across the whole width (the owner's sketch, rc.5), none cut short. What sets the water temperature now is no
+    # setting (its long state cut a row's name short on a phone): it stays on the E32 device.
+    rows, = [c["entities"] for c in settings if c["type"] == "entities"]
+    assert not any(c["type"] == "tile" for c in settings)
+    assert [row["entity"] for row in rows] == [flow[k] for k in ("apply_learned", "weather_curve", "curve_design_flow_c")]
+    assert [row["name"] for row in rows] == ["Smart warm-up", "Weather compensation",
+                                             "Water temperature in hard frost (−10 °C)"]
+    assert flow["source"] not in json.dumps(learning)
 
 
 @pytest.mark.asyncio
@@ -183,4 +220,10 @@ async def test_rows_in_entities_cards_are_named_by_the_entity_alone(hass):
     plain = [row["row"] if row.get("type") == "conditional" else row for row in rows]
     # The entity's own name (no device name in front) or a name this dashboard chose, written out.
     assert all(row.get("name", {"type": "entity"}) == {"type": "entity"} or isinstance(row["name"], str) for row in plain)
-    assert all(row["conditions"] == [known(row["row"]["entity"])] for row in rows if row.get("type") == "conditional")
+    # (The boiler's maintenance message also hides while it says there is none; the House card's "Plan" row for the
+    # holidays shows with the house mode, rc.5.)
+    hidden = {fields["maintenance_message"]: ["none"]}
+    owner = lambda row: row["row"].get("entity") or hub["house_mode"]  # noqa: E731
+    assert all(row["conditions"] == [{**known(owner(row)), "state_not": [
+        "unavailable", "unknown", *hidden.get(owner(row), [])]}] for row in rows if row.get("type") == "conditional")
+    assert [row["row"]["type"] for row in rows if "entity" not in row.get("row", row)] == ["button"]

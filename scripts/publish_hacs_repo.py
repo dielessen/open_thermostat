@@ -19,10 +19,11 @@ created with that origin.
 
 The commits end with a Co-Authored-By line only when --co-author "Name <email>" (or OT_CO_AUTHOR) is given. The
 front page shows the version being published as its example of a test version, and the screenshots of the newest
-complete set in docs/img/screenshots (--example-version and --screenshots override both).
+complete sets in docs/img/screenshots: the E32 pages with the week card (--screenshots) and the dashboard
+(--dashboard-screenshots, the ha-dashboard-*.png pictures of tools/dev/ha-demo); --example-version overrides the version.
 
 Usage: python -I scripts/publish_hacs_repo.py <version, e.g. 1.0.0rc1> <path of the HACS repo clone> [--push]
-           [--co-author "Name <email>"] [--screenshots rc4] [--example-version 1.0.0rc1]
+           [--co-author "Name <email>"] [--screenshots rc4] [--dashboard-screenshots rc5] [--example-version 1.0.0rc1]
        python -I scripts/publish_hacs_repo.py --readme-only <path of the HACS repo clone> [--push] [same options]
 """
 import argparse
@@ -44,11 +45,14 @@ DOMAIN = "open_thermostat"
 MINIMUM_HA = "2026.10.0"
 PROJECT_MARKERS = ("platformio.ini", "ha/config", "src")  # present in the main repository, never in the HACS one
 SCREENSHOTS = ("ha-week-card", "e32-home-learned", "e32-overview", "e32-rooms", "e32-boiler", "e32-overview-phone-dark")
+# The generated Home Assistant dashboard (rc.5), photographed in a real Home Assistant by tools/dev/ha-demo; its own
+# set, because the E32 pages above and the dashboard are renewed at different times.
+DASHBOARD = ("ha-dashboard", "ha-dashboard-boiler", "ha-dashboard-learning", "ha-dashboard-phone-dark")
 
 # The front page of the HACS repository. Images and links are absolute (the main repository's main
 # branch), so they work on GitHub and inside HACS. {source}, {source_raw} (raw files on main) and
-# {ha}, {example} (the version of a test release) and {shots} (the screenshot set, e.g. rc4) are filled in by
-# str.format: write a literal brace as {{ or }}.
+# {ha}, {example} (the version of a test release), {shots} (the screenshot set of the E32 pages and the week card,
+# e.g. rc4) and {dash} (the dashboard set, e.g. rc5) are filled in by str.format: write a literal brace as {{ or }}.
 # One plain <img>: HACS shows <picture>/<source> as text.
 README = """<p align="center">
   <img src="{source_raw}/docs/brand/logo.svg" alt="OpenThermostat" width="420">
@@ -105,6 +109,8 @@ program when Home Assistant is offline.
 
 These use made-up example data, not a real home.
 
+![The OpenThermostat dashboard in Home Assistant: the house card, the rooms, today and the house]({source_raw}/docs/img/screenshots/ha-dashboard-{dash}.png)
+
 ![The week planner card in Home Assistant]({source_raw}/docs/img/screenshots/ha-week-card-{shots}.png)
 
 ![What the thermostat has learned, per room]({source_raw}/docs/img/screenshots/e32-home-learned-{shots}.png)
@@ -112,12 +118,17 @@ These use made-up example data, not a real home.
 <details>
 <summary>More screenshots</summary>
 
+![The Boiler tab: what the boiler does now, then what you need first]({source_raw}/docs/img/screenshots/ha-dashboard-boiler-{dash}.png)
+
+![The Learning tab: what the E32 knows, the heating curve and yesterday in figures]({source_raw}/docs/img/screenshots/ha-dashboard-learning-{dash}.png)
+
 ![The E32 Overview with rooms and the boiler]({source_raw}/docs/img/screenshots/e32-overview-{shots}.png)
 
 ![A room with its week program on the E32]({source_raw}/docs/img/screenshots/e32-rooms-{shots}.png)
 
 ![The E32 Boiler page]({source_raw}/docs/img/screenshots/e32-boiler-{shots}.png)
 
+<img src="{source_raw}/docs/img/screenshots/ha-dashboard-phone-dark-{dash}.png" alt="The dashboard on a phone in the dark theme" width="320">
 <img src="{source_raw}/docs/img/screenshots/e32-overview-phone-dark-{shots}.png" alt="The E32 Overview on a phone in the dark theme" width="320">
 
 </details>
@@ -235,13 +246,13 @@ def co_author_trailer(value):
     return "\n\nCo-Authored-By: " + value.strip()
 
 
-def screenshot_sets(directory):
-    """The suffixes (rc2, rc4 ...) for which every screenshot of the front page exists in `directory`."""
+def screenshot_sets(directory, names=SCREENSHOTS):
+    """The suffixes (rc2, rc4 ...) for which every screenshot in `names` exists in `directory`."""
     directory = Path(directory)
     found = []
-    for path in directory.glob(f"{SCREENSHOTS[0]}-*.png"):
-        suffix = path.stem[len(SCREENSHOTS[0]) + 1:]
-        if all((directory / f"{name}-{suffix}.png").exists() for name in SCREENSHOTS):
+    for path in directory.glob(f"{names[0]}-*.png"):
+        suffix = path.stem[len(names[0]) + 1:]
+        if all((directory / f"{name}-{suffix}.png").exists() for name in names):
             found.append(suffix)
 
     def order(suffix):
@@ -250,24 +261,24 @@ def screenshot_sets(directory):
     return sorted(found, key=order)
 
 
-def default_screenshots():
-    sets = screenshot_sets(Path(__file__).resolve().parents[1] / "docs" / "img" / "screenshots")
+def default_screenshots(names=SCREENSHOTS, option="--screenshots"):
+    sets = screenshot_sets(Path(__file__).resolve().parents[1] / "docs" / "img" / "screenshots", names)
     if not sets:
-        sys.exit("no complete screenshot set in docs/img/screenshots; give --screenshots")
+        sys.exit(f"no complete screenshot set {names[0]}-*.png in docs/img/screenshots; give {option}")
     return sets[-1]
 
 
-def write_front_page(repo, example_version, screenshots):
+def write_front_page(repo, example_version, screenshots, dashboard):
     """README.md and hacs.json: the files HACS and GitHub show for the repository."""
     (repo / "hacs.json").write_text(json.dumps({"name": "OpenThermostat", "homeassistant": MINIMUM_HA,
                                                 "render_readme": True,
                                                 "hide_default_branch": True}, indent=2) + "\n", encoding="utf-8", newline="\n")
     readme = README.format(source=SOURCE, source_raw=SOURCE.replace("https://github.com/", "https://raw.githubusercontent.com/") + "/main",
-                           ha=MINIMUM_HA, example=example_version, shots=screenshots)
+                           ha=MINIMUM_HA, example=example_version, shots=screenshots, dash=dashboard)
     (repo / "README.md").write_text(readme, encoding="utf-8", newline="\n")
 
 
-def readme_only(repo, push, trailer, example_version=None, screenshots=None):
+def readme_only(repo, push, trailer, example_version=None, screenshots=None, dashboard=None):
     if not (repo / ".git").exists():
         sys.exit(f"{repo} is not a clone of the HACS repository")
     check_clone(repo)
@@ -276,7 +287,8 @@ def readme_only(repo, push, trailer, example_version=None, screenshots=None):
             example_version = json.loads((repo / "custom_components" / DOMAIN / "manifest.json").read_text(encoding="utf-8"))["version"]
         except (OSError, ValueError, KeyError):
             sys.exit("the clone has no released package to take the example version from; give --example-version")
-    write_front_page(repo, example_version, screenshots or default_screenshots())
+    write_front_page(repo, example_version, screenshots or default_screenshots(),
+                     dashboard or default_screenshots(DASHBOARD, "--dashboard-screenshots"))
     git(repo, "add", "--", "README.md", "hacs.json")
     if git(repo, "diff", "--cached", "--name-only"):
         git(repo, "commit", "-q", "-m", "README: refresh the front page from the main repository\n\n"
@@ -290,7 +302,7 @@ def readme_only(repo, push, trailer, example_version=None, screenshots=None):
         print("pushed main")
 
 
-def publish(version, repo, push, trailer, example_version=None, screenshots=None, download=fetch):
+def publish(version, repo, push, trailer, example_version=None, screenshots=None, download=fetch, dashboard=None):
     base = f"{SOURCE}/releases/download/ha-v{version}"
     name = f"OpenThermostat-HA-{version}.zip"
     package = download(f"{base}/{name}")
@@ -303,6 +315,7 @@ def publish(version, repo, push, trailer, example_version=None, screenshots=None
     if manifest["version"] != version:
         sys.exit(f"manifest version {manifest['version']} is not {version}")
     screenshots = screenshots or default_screenshots()
+    dashboard = dashboard or default_screenshots(DASHBOARD, "--dashboard-screenshots")
     if (repo / ".git").exists():
         check_clone(repo)
     elif repo.exists() and any(repo.iterdir()):
@@ -320,7 +333,7 @@ def publish(version, repo, push, trailer, example_version=None, screenshots=None
         out = repo / member
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(archive.read(member))
-    write_front_page(repo, example_version or version, screenshots)
+    write_front_page(repo, example_version or version, screenshots, dashboard)
     workflow = repo / ".github" / "workflows" / "release.yml"
     workflow.parent.mkdir(parents=True, exist_ok=True)
     workflow.write_text(WORKFLOW, encoding="utf-8", newline="\n")
@@ -342,17 +355,19 @@ def main(argv=None):
     parser.add_argument("--readme-only", action="store_true")
     parser.add_argument("--push", action="store_true")
     parser.add_argument("--co-author", default=os.environ.get("OT_CO_AUTHOR"), help='"Name <email>" for the commits (or OT_CO_AUTHOR)')
-    parser.add_argument("--screenshots", help="the screenshot set of the front page, e.g. rc4 (default: the newest complete set)")
+    parser.add_argument("--screenshots", help="the screenshot set of the E32 pages and the week card, e.g. rc4 (default: the newest complete set)")
+    parser.add_argument("--dashboard-screenshots", help="the screenshot set of the dashboard (ha-dashboard-*), e.g. rc5 (default: the newest complete set)")
     parser.add_argument("--example-version", help="the test version the front page names as an example (default: the published version)")
     args = parser.parse_args(argv)
     trailer = co_author_trailer(args.co_author)
     if args.readme_only:
         if len(args.arguments) != 1:
             sys.exit(__doc__)
-        return readme_only(Path(args.arguments[0]), args.push, trailer, args.example_version, args.screenshots)
+        return readme_only(Path(args.arguments[0]), args.push, trailer, args.example_version, args.screenshots, args.dashboard_screenshots)
     if len(args.arguments) != 2 or not re.fullmatch(r"\d+\.\d+\.\d+((a|b|rc)\d+)?", args.arguments[0]):
         sys.exit(__doc__)
-    return publish(args.arguments[0], Path(args.arguments[1]), args.push, trailer, args.example_version, args.screenshots)
+    return publish(args.arguments[0], Path(args.arguments[1]), args.push, trailer, args.example_version, args.screenshots,
+                   dashboard=args.dashboard_screenshots)
 
 
 if __name__ == "__main__":

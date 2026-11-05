@@ -48,7 +48,7 @@ class HacsFrontPageTest(unittest.TestCase):
     def test_hacs_json_hides_the_default_branch(self):
         # Every release is a pre-release; without this HACS offers the main-branch commit as an update.
         with tempfile.TemporaryDirectory() as tmp:
-            publish_hacs_repo.write_front_page(Path(tmp), "1.0.0rc5", "rc4")
+            publish_hacs_repo.write_front_page(Path(tmp), "1.0.0rc5", "rc4", "rc5")
             hacs = json.loads((Path(tmp) / "hacs.json").read_text(encoding="utf-8"))
         self.assertIs(hacs["hide_default_branch"], True)
         self.assertEqual(hacs["name"], "OpenThermostat")
@@ -57,19 +57,25 @@ class HacsFrontPageTest(unittest.TestCase):
     def test_front_page_takes_its_example_version_and_screenshots_from_the_arguments(self):
         # R5-17: nothing of an earlier release is written in the template.
         with tempfile.TemporaryDirectory() as tmp:
-            publish_hacs_repo.write_front_page(Path(tmp), "1.0.0rc5", "rc4")
+            publish_hacs_repo.write_front_page(Path(tmp), "1.0.0rc5", "rc4", "rc5")
             readme = (Path(tmp) / "README.md").read_text(encoding="utf-8")
         self.assertIn("(such as `1.0.0rc5`)", readme)
         for name in publish_hacs_repo.SCREENSHOTS:
             self.assertIn(f"/docs/img/screenshots/{name}-rc4.png", readme)
+        for name in publish_hacs_repo.DASHBOARD:
+            self.assertIn(f"/docs/img/screenshots/{name}-rc5.png", readme)
         self.assertNotIn("rc2", readme)
         self.assertNotIn("{", readme.replace("{{", "").replace("}}", ""), "an unfilled placeholder")
         self.assertNotIn("\r", readme)
 
     def test_the_screenshots_of_the_front_page_exist_in_the_project(self):
-        sets = publish_hacs_repo.screenshot_sets(Path(__file__).resolve().parents[1] / "docs" / "img" / "screenshots")
+        directory = Path(__file__).resolve().parents[1] / "docs" / "img" / "screenshots"
+        sets = publish_hacs_repo.screenshot_sets(directory)
         self.assertTrue(sets, "no complete screenshot set")
         self.assertEqual(publish_hacs_repo.default_screenshots(), sets[-1])
+        dashboard = publish_hacs_repo.screenshot_sets(directory, publish_hacs_repo.DASHBOARD)
+        self.assertTrue(dashboard, "no complete dashboard screenshot set")
+        self.assertEqual(publish_hacs_repo.default_screenshots(publish_hacs_repo.DASHBOARD), dashboard[-1])
 
     def test_the_newest_complete_screenshot_set_wins(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -79,6 +85,7 @@ class HacsFrontPageTest(unittest.TestCase):
                 for name in names:
                     (Path(tmp) / f"{name}-{suffix}.png").write_bytes(b"x")
             self.assertEqual(publish_hacs_repo.screenshot_sets(tmp), ["beta18", "rc2", "rc4", "rc10"])
+            self.assertEqual(publish_hacs_repo.screenshot_sets(tmp, publish_hacs_repo.DASHBOARD), [], "its own set")
 
 
 class CoAuthorTest(unittest.TestCase):
@@ -114,7 +121,7 @@ class CloneGuardTest(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "not the HACS repository clone"):
                 publish_hacs_repo.check_clone(repo)
             with self.assertRaises(SystemExit):
-                publish_hacs_repo.readme_only(repo, False, "", "1.0.0rc5", "rc4")
+                publish_hacs_repo.readme_only(repo, False, "", "1.0.0rc5", "rc4", "rc5")
             self.assertEqual((repo / "README.md").read_text(encoding="utf-8"), "old\n")
 
     def test_a_clone_without_origin_is_refused(self):
@@ -129,7 +136,7 @@ class CloneGuardTest(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "main project"):
             publish_hacs_repo.check_clone(repo)
         with self.assertRaisesRegex(SystemExit, "main project"):
-            publish_hacs_repo.readme_only(repo, False, "", "1.0.0rc5", "rc4")
+            publish_hacs_repo.readme_only(repo, False, "", "1.0.0rc5", "rc4", "rc5")
         self.assertEqual((repo / "README.md").read_text(encoding="utf-8"), "old\n")
 
     def test_branch_and_uncommitted_changes_are_checked(self):
@@ -161,7 +168,7 @@ class PublishTest(unittest.TestCase):
         return self.files[url.rsplit("/", 1)[1]]
 
     def publish(self, repo, trailer="", **kw):
-        publish_hacs_repo.publish(self.VERSION, repo, False, trailer, screenshots="rc4", download=self.download, **kw)
+        publish_hacs_repo.publish(self.VERSION, repo, False, trailer, screenshots="rc4", dashboard="rc5", download=self.download, **kw)
 
     def test_a_new_folder_gets_the_package_the_front_page_and_a_tag(self):
         repo = self.root / "clone"
@@ -212,12 +219,12 @@ class PublishTest(unittest.TestCase):
         (repo / "README.md").write_text("changed on the web\n", encoding="utf-8")
         git(repo, "commit", "-q", "-am", "web edit")
         publish_hacs_repo.readme_only(repo, False, publish_hacs_repo.co_author_trailer("Some Session <session@example.invalid>"),
-                                      screenshots="rc4")
+                                      screenshots="rc4", dashboard="rc5")
         self.assertIn("(such as `1.0.0rc5`)", (repo / "README.md").read_text(encoding="utf-8"))
         self.assertTrue(git(repo, "log", "-1", "--format=%B").startswith("README: refresh the front page"))
         self.assertTrue(git(repo, "log", "-1", "--format=%B").endswith(TRAILER))
         head = git(repo, "rev-parse", "HEAD")
-        publish_hacs_repo.readme_only(repo, False, "", screenshots="rc4")
+        publish_hacs_repo.readme_only(repo, False, "", screenshots="rc4", dashboard="rc5")
         self.assertEqual(git(repo, "rev-parse", "HEAD"), head)
 
 

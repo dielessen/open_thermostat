@@ -150,6 +150,46 @@
       "bytes": 45062,
       "sha256": "fd7b26c4b7f32cd2b266af2186bfb9e0bd06ccc9b6f997969c59d9fb8a68f981",
       "scope": "E32 web interface of release-1.0 (92a9d03, 1.0 rc.2 in preparation) rendered locally in headless Chromium with fictitious demonstration data (mocked HTTP responses); not a live device; cropped to the Now panel"
+    },
+    {
+      "file": "ha-dashboard-rc5.png",
+      "version": "HA 1.0.0rc6 (release-1.0 e10bdee1)",
+      "date": "2026-11-05",
+      "width": 1280,
+      "height": 900,
+      "bytes": 44937,
+      "sha256": "b434697190f1094fff555db9b2de829d518c45c878ee4e74a12a83784af9fdbb",
+      "scope": "Generated Home Assistant dashboard of HA 1.0.0rc6 (release-1.0 e10bdee1) in a real Home Assistant Core 2026.10.4 started by tools/dev/ha-demo with a fake E32 and fictitious demonstration data in an isolated namespace; no real E32, broker or Home Assistant instance; demo user, no private dashboards; the Overview at 1280 px with the demo's sidebar, the whole view"
+    },
+    {
+      "file": "ha-dashboard-boiler-rc5.png",
+      "version": "HA 1.0.0rc6 (release-1.0 e10bdee1)",
+      "date": "2026-11-05",
+      "width": 1280,
+      "height": 1400,
+      "bytes": 60129,
+      "sha256": "88ec750410b5dbebbaddd5b86af8870217b1e64eeb8af8a0dc2f9fe05ed20b36",
+      "scope": "Generated Home Assistant dashboard of HA 1.0.0rc6 (release-1.0 e10bdee1) in a real Home Assistant Core 2026.10.4 started by tools/dev/ha-demo with a fake E32 and fictitious demonstration data in an isolated namespace; no real E32, broker or Home Assistant instance; demo user, no private dashboards; the Boiler tab at 1280 px, cropped to the top 1400 px (the Now card, today and this week, hot water, gas and burner hours per day, what the boiler does)"
+    },
+    {
+      "file": "ha-dashboard-learning-rc5.png",
+      "version": "HA 1.0.0rc6 (release-1.0 e10bdee1)",
+      "date": "2026-11-05",
+      "width": 1280,
+      "height": 1180,
+      "bytes": 74492,
+      "sha256": "4dd84dd778166510358dbb753576ec450277f258b9361757503d21693f85e2d7",
+      "scope": "Generated Home Assistant dashboard of HA 1.0.0rc6 (release-1.0 e10bdee1) in a real Home Assistant Core 2026.10.4 started by tools/dev/ha-demo with a fake E32 and fictitious demonstration data in an isolated namespace; no real E32, broker or Home Assistant instance; demo user, no private dashboards; the Learning and settings tab at 1280 px, cropped to the top 1180 px (what the E32 knows, water temperature by outdoor temperature, what stood out, yesterday in figures, missed comfort per day)"
+    },
+    {
+      "file": "ha-dashboard-phone-dark-rc5.png",
+      "version": "HA 1.0.0rc6 (release-1.0 e10bdee1)",
+      "date": "2026-11-05",
+      "width": 780,
+      "height": 2596,
+      "bytes": 72561,
+      "sha256": "0698248370484be118aff74cd7b933996cda430d7c0ce942206c985807ba3b5e",
+      "scope": "Generated Home Assistant dashboard of HA 1.0.0rc6 (release-1.0 e10bdee1) in a real Home Assistant Core 2026.10.4 started by tools/dev/ha-demo with a fake E32 and fictitious demonstration data in an isolated namespace; no real E32, broker or Home Assistant instance; demo user, no private dashboards; the Overview at 390 px phone width at 2x, dark theme, full length"
     }
   ],
   "privacy_review": "Product panels only; no tokens, server addresses, user profile/sidebar or unrelated dashboards. Screenshots visually inspected before publication.",

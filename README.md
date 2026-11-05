@@ -20,7 +20,7 @@ HACS (switch **Pre-release** on) and restart Home Assistant. Then press
 confirm the takeover again: a firmware update clears it
 ([update steps](docs/INSTALL.md#13-updates)).
 
-![The E32 Overview page with rooms, their last 24 hours and the boiler](docs/img/screenshots/e32-overview-rc2.png)
+![The OpenThermostat dashboard in Home Assistant: the house card with what the boiler does, the rooms, today and the house](docs/img/screenshots/ha-dashboard-rc5.png)
 
 ## What you need
 
@@ -130,25 +130,42 @@ git clone --branch v1.0.0-e32v2-rc.1 https://github.com/dielessen/open_thermosta
 
 These use made-up example data, not a real home.
 
-![What the thermostat has learned, per room](docs/img/screenshots/e32-home-learned-rc2.png)
+The Boiler tab in Home Assistant: what the boiler does now, then what you
+need first.
+
+![The Boiler tab: the Now card with the water to the heating and back, the burner power and today's starts, then today and this week, hot water and gas per day](docs/img/screenshots/ha-dashboard-boiler-rc5.png)
 
 <details>
 <summary>More screenshots</summary>
+
+The Learning tab: what the E32 knows, the water temperature by outdoor
+temperature, what stood out and yesterday in figures.
+
+![The Learning tab: what the E32 knows, the heating curve, what stood out and yesterday in figures](docs/img/screenshots/ha-dashboard-learning-rc5.png)
 
 The week planner card in Home Assistant:
 
 ![The week planner card in Home Assistant](docs/img/screenshots/ha-week-card-rc2.png)
 
+The E32's own pages: what the thermostat has learned, per room:
+
+![What the thermostat has learned, per room](docs/img/screenshots/e32-home-learned-rc2.png)
+
+The E32 Overview with the rooms, their last 24 hours and the boiler:
+
+![The E32 Overview page with rooms, their last 24 hours and the boiler](docs/img/screenshots/e32-overview-rc2.png)
+
 A room with its week program on the E32:
 
 ![The E32 Rooms page with a room's week program](docs/img/screenshots/e32-rooms-rc2.png)
 
-The boiler page:
+The E32 boiler page:
 
 ![The E32 Boiler page with current values and hot water today](docs/img/screenshots/e32-boiler-rc2.png)
 
-On a phone, in the dark theme:
+On a phone, in the dark theme: the dashboard and the E32 Overview.
 
+<img src="docs/img/screenshots/ha-dashboard-phone-dark-rc5.png" alt="The dashboard Overview on a phone in the dark theme" width="320">
 <img src="docs/img/screenshots/e32-overview-phone-dark-rc2.png" alt="The E32 Overview on a phone in the dark theme" width="320">
 
 </details>

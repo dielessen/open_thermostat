@@ -291,7 +291,7 @@ TODAY_CASES = {
                     "Woonkamer is gepauzeerd: er staat een raam of deur open.",
                     "Woonkamer: wstrzymane, otwarte okno lub drzwi."),
     "holiday": ("Woonkamer is on holiday until 9 Nov; it is warm again when you are back.",
-                "Woonkamer is met vakantie t/m 9 nov; bij thuiskomst is het weer warm.",
+                "Woonkamer is met vakantie tot 9 nov; bij thuiskomst is het weer warm.",
                 "Woonkamer: urlop do 9 lis; po powrocie będzie ciepło."),
     "away_return": ("Woonkamer is warming up for your return.", "Woonkamer warmt op voor je thuiskomst.",
                     "Woonkamer: nagrzewanie na Twój powrót."),

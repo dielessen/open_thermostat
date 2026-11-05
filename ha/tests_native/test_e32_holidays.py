@@ -296,7 +296,7 @@ async def test_the_overview_names_the_next_holiday(hass):
     render = lambda language: Template(_holiday_card(TEXT[language], select)["content"], hass).async_render(  # noqa: E731
         strict=True)
     assert render("en") == "Holiday from 20 Dec to 3 Jan"
-    assert render("nl") == "Vakantie vanaf 20 dec t/m 3 jan"
+    assert render("nl") == "Vakantie vanaf 20 dec tot 3 jan"
     assert render("pl") == "Urlop od 20 gru do 3 sty"
     # A one-day holiday (rc7, A2's leftovers): "Holiday on 20 Dec", not "from 20 Dec to 20 Dec".
     one = (first[0], first[0] + 6 * 3600)
@@ -319,7 +319,7 @@ async def test_the_overview_names_the_next_holiday(hass):
     hass.states.async_set(select, "auto", {"holidays": [{"from": dt_util.utc_from_timestamp(first[0]).isoformat(),
                                                          "until": dt_util.utc_from_timestamp(first[1]).isoformat()}]})
     assert Template(_holiday_card(TEXT["nl"], select)["content"], hass).async_render(strict=True) == (
-        "Vakantie vanaf 20 dec t/m 3 jan")
+        "Vakantie vanaf 20 dec tot 3 jan")
     assert _holiday_card(TEXT["en"], None) is None and _holiday_card(TEXT["en"], select)["show_empty"] is False
 
 

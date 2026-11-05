@@ -2304,7 +2304,7 @@
             "name": "Przerwa po utrzymaniu (min)"
           },
           "ceiling_c": {
-            "name": "Blisko temperatury docelowej E32 zadaje najwyżej (°C)"
+            "name": "Blisko temperatury docelowej E32 żąda najwyżej (°C)"
           },
           "absorbed_kw": {
             "name": "Ciepło pobierane przez dom (kW)"
@@ -2389,7 +2389,7 @@
             "name": "Temperatura wody na linii teraz (°C)"
           },
           "flow_c": {
-            "name": "Kompensacja pogodowa zadaje (°C)"
+            "name": "Kompensacja pogodowa żąda (°C)"
           }
         }
       },

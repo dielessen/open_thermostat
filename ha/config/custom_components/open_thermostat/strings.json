@@ -4027,6 +4027,37 @@
         }
       },
       "description": "{name}: the E32 clock uses {e32}, Home Assistant uses {home}. Week programs would switch at the wrong time. Choose Fix to set the E32 to {home}. The E32 restarts once."
+    },
+    "e32_room_source_missing": {
+      "title": "Choose a new temperature source for {room}",
+      "description": "{room} reads its temperature from {source}, which no longer exists in Home Assistant: it was renamed or removed. Until you choose another one, {room} relies on its other temperature sources, if it has any; without one it does not ask for heat.\n\nSelect Fix to choose a thermostat or temperature sensor, or open Configure → Rooms → {room}. This message goes away by itself if {source} comes back.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Choose a temperature source for {room}",
+            "description": "Choose the thermostat or temperature sensor that measures the temperature in {room}. Only the temperature source changes; the room's other settings and week program stay.",
+            "data": {
+              "source": "Temperature source"
+            },
+            "data_description": {
+              "source": "A thermostat that measures the room temperature, or a temperature sensor."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "The E32 cannot use {source}: entity IDs may have up to 80 characters.",
+          "e32_source_wrong_domain": "{source} cannot be used here. Choose a thermostat or a temperature sensor.",
+          "e32_source_not_found": "{source} does not exist in Home Assistant.",
+          "e32_source_no_temperature": "{source} reports no current temperature. Choose a thermostat that measures the room temperature, or a temperature sensor.",
+          "e32_source_not_celsius": "{source} does not report a temperature (°C or °F). Choose a temperature sensor.",
+          "save_failed": "The E32 did not save the room plan. Check that the E32 is on and connected, then try again."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Connect the E32 first (Configure → E32 connection) so Home Assistant can edit its room plan.",
+          "e32_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again.",
+          "room_missing": "This room is no longer in the E32 room plan."
+        }
+      }
     }
   },
   "services": {

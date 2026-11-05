@@ -2275,5 +2275,8 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     watch = hub.input_watch = HeatingInputWatch(hass, entry, hub, heating_input_link(hass, entry, hub), resend)
     entry.async_on_unload(async_track_time_interval(hass, watch.check, INPUT_CHECK))
     entry.async_on_unload(watch.stop)
+    if is_product(entry) and hub.plan is not None:  # a renamed source follows; a removed one gets a repair (R2-4)
+        from .room_plan import RoomSourceWatch
+        entry.async_on_unload(RoomSourceWatch(hass, entry, hub).start())
     energy.reconfigure()
     entry.async_on_unload(energy.stop)

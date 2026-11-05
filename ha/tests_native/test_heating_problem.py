@@ -397,3 +397,42 @@ def test_a_new_installation_waiting_for_its_first_takeover_is_no_problem():
     tracker3.observe(hub3, clock3())
     clock3.now += AWAITING_CONFIRMATION_SECONDS
     assert problems(tracker3, hub3, clock3) == ["awaiting_confirmation"]
+
+
+@pytest.mark.asyncio
+async def test_a_room_without_a_measurement_is_pointed_to_its_home_assistant_source(hass):
+    """R2-4 (1.0.0rc7): a room that measures with a Home Assistant thermostat or sensor is not told to check a
+    battery and a distance that do not apply; the advice names its source(s), from the E32 room plan."""
+    from homeassistant.helpers import entity_registry as er
+    from test_v1_native import entry
+    e = entry(hass)
+    clock = Clock()
+    hub = HeatingHub("fixture", clock=clock)
+    plan = {"rooms": [{"id": "woonkamer", "sources": [{"type": "ha", "id": "climate.tado_woonkamer"},
+                                                       {"type": "ha", "id": "sensor.gone"},
+                                                       {"type": "ble", "id": "a4c138a3e8db"}]},
+                      {"id": "zolder", "sources": [{"type": "ble", "id": "a4c138a3e8dc"}]}]}
+    hub.plan = SimpleNamespace(room=lambda room_id: next((r for r in plan["rooms"] if r["id"] == room_id), None))
+    hass.states.async_set("climate.tado_woonkamer", "heat", {"friendly_name": "Tado Woonkamer"})
+    sensor = HeatingProblemSensor(e, hub)
+    sensor.hass = hass
+    assert sensor._room_sources("woonkamer") == "Tado Woonkamer, sensor.gone"  # a source without a state: its ID
+    assert sensor._room_sources("zolder") is None  # Bluetooth only: the battery and distance advice
+    er.async_get(hass).async_get_or_create("sensor", "demo", "gone", suggested_object_id="gone",
+                                           original_name="Badkamer sensor")
+    assert sensor._room_sources("woonkamer") == "Tado Woonkamer, Badkamer sensor"
+    lost = [{"id": "woonkamer", "name": "Woonkamer", "state": "active", "status": "lost"},
+            {"id": "zolder", "name": "Zolder", "state": "active", "status": "lost"}]
+    tracker = ProblemTracker(clock())
+    hub.update(status(lost))
+    tracker.observe(hub, clock())
+    clock.now += ROOM_LOST_SECONDS + MIN
+    tracker.observe(hub, clock())
+    found = tracker.problems(hub, clock(), sources=sensor._room_sources)
+    assert render(found, "en") == [
+        "Woonkamer: no temperature measurement for more than 30 minutes, so this room does not ask for heat. Check "
+        "Tado Woonkamer, Badkamer sensor in Home Assistant; for a Bluetooth sensor, its battery and distance to the E32.",
+        TEXT["en"]["room_without_measurement"].format(room="Zolder")]
+    assert "Controleer Tado Woonkamer, Badkamer sensor in Home Assistant; bij een Bluetooth-sensor" in render(found, "nl")[0]
+    assert "Sprawdź Tado Woonkamer, Badkamer sensor w Home Assistant" in render(found, "pl")[0]
+    assert set(TEXT["pl"]) == set(TEXT["en"])

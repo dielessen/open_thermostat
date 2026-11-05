@@ -67,6 +67,9 @@ TEXT = {
     "en": {
         "room_without_measurement": "{room}: no temperature measurement for more than 30 minutes, so this room "
                                     "does not ask for heat. Check the sensor's battery and distance.",
+        "room_without_measurement_source": "{room}: no temperature measurement for more than 30 minutes, so this "
+                                           "room does not ask for heat. Check {source} in Home Assistant; for a "
+                                           "Bluetooth sensor, its battery and distance to the E32.",
         "e32_offline": "The E32 has not reported for more than 10 minutes. Check its power and Wi-Fi.",
         "awaiting_confirmation": "The E32 is waiting for you to confirm that it may control the boiler; it is not "
                                  "heating until you do. Open the E32 Rooms page → Active control.",
@@ -93,6 +96,9 @@ TEXT = {
     "nl": {
         "room_without_measurement": "{room}: al meer dan 30 minuten geen temperatuurmeting, dus deze ruimte "
                                     "vraagt geen warmte. Controleer de batterij en de afstand van de sensor.",
+        "room_without_measurement_source": "{room}: al meer dan 30 minuten geen temperatuurmeting, dus deze ruimte "
+                                           "vraagt geen warmte. Controleer {source} in Home Assistant; bij een "
+                                           "Bluetooth-sensor de batterij en de afstand tot de E32.",
         "e32_offline": "De E32 meldt zich al meer dan 10 minuten niet. Controleer de stroom en de wifi.",
         "awaiting_confirmation": "De E32 wacht tot je bevestigt dat hij de ketel mag regelen; tot dan verwarmt hij "
                                  "niet. Open op de E32 de pagina Ruimtes → Actieve regeling.",
@@ -119,6 +125,9 @@ TEXT = {
     "pl": {
         "room_without_measurement": "{room}: brak pomiaru temperatury od ponad 30 minut, więc to pomieszczenie "
                                     "nie żąda ciepła. Sprawdź baterię i odległość czujnika.",
+        "room_without_measurement_source": "{room}: brak pomiaru temperatury od ponad 30 minut, więc to "
+                                           "pomieszczenie nie żąda ciepła. Sprawdź {source} w Home Assistant; w "
+                                           "przypadku czujnika Bluetooth baterię i odległość od E32.",
         "e32_offline": "E32 nie odzywa się od ponad 10 minut. Sprawdź jego zasilanie i Wi-Fi.",
         "awaiting_confirmation": "E32 czeka, aż potwierdzisz, że może sterować kotłem; do tego czasu nie grzeje. "
                                  "Otwórz na E32 stronę Rooms → Active control.",
@@ -234,8 +243,12 @@ class ProblemTracker:
         elif self.awaiting is None:
             self.awaiting = now
 
-    def problems(self, hub, now, advice_items=()):
-        """[(id, placeholders)] of the current problems, most important first."""
+    def problems(self, hub, now, advice_items=(), sources=None):
+        """[(id, placeholders)] of the current problems, most important first.
+
+        ``sources(room_id)``: the names of a room's Home Assistant sources, or None (Bluetooth only, unknown):
+        the advice for a room without a measurement then points to them, not to a battery alone.
+        """
         result = []
         last = getattr(hub, "last_seen", None)
         if last is not None or self.expect_telemetry:
@@ -253,7 +266,10 @@ class ProblemTracker:
             for room_id, since in self.rooms.items():
                 if now - since > ROOM_LOST_SECONDS:
                     room = hub.rooms.get(room_id) or {"id": room_id}
-                    result.append(("room_without_measurement", {"room": label(room), "room_id": room_id}))
+                    values = {"room": label(room), "room_id": room_id}
+                    if (names := sources(room_id) if sources is not None else None):
+                        values["source"] = names
+                    result.append(("room_without_measurement", values))
             for room_id, since in self.slow.items():
                 if now - since >= ROOM_SLOW_SECONDS:
                     room = hub.rooms.get(room_id) or {"id": room_id}
@@ -320,7 +336,8 @@ def render(problems, lang):
     """The plain-language reasons in a language (English, Dutch or Polish; English otherwise)."""
     from .heating_advice import fmt
     texts = TEXT.get(lang, TEXT["en"])
-    return [texts[key + "_thermostat" if values.get("thermostat") else key].format(
+    return [texts[key + "_thermostat" if values.get("thermostat") else key + "_source" if values.get("source")
+                  else key].format(
         **{name: fmt(value, lang) if name in ("pressure", "margin") else value for name, value in values.items()})
         for key, values in problems]
 
@@ -381,6 +398,21 @@ class HeatingProblemSensor(BinarySensorEntity):
         ready = getattr(runtime, "transport_ready", None)
         return ready if type(ready) is bool else None
 
+    def _room_sources(self, room_id):
+        """The names of the room's Home Assistant sources in its E32 plan, or None (Bluetooth only, not read)."""
+        hass, link = getattr(self, "hass", None), getattr(self.hub, "plan", None)
+        room = link.room(room_id) if hass is not None and link is not None else None
+        ids = [s.get("id") for s in (room or {}).get("sources", []) if s.get("type") == "ha" and s.get("id")]
+        if not ids:
+            return None
+        from homeassistant.helpers import entity_registry as er
+        names = []
+        for entity_id in ids:
+            state, item = hass.states.get(entity_id), er.async_get(hass).async_get(entity_id)
+            name = state.name if state is not None else (item.name or item.original_name) if item is not None else None
+            names.append(name if type(name) is str and name else entity_id)
+        return ", ".join(names)
+
     def _advice_items(self):
         hass = getattr(self, "hass", None)
         advice = hass.data.get(DOMAIN, {}).get(self.entry.entry_id, {}).get("heating_advice") if hass else None
@@ -390,7 +422,7 @@ class HeatingProblemSensor(BinarySensorEntity):
     def evaluate(self, _now=None):
         now = self.hub.clock()
         self.tracker.observe(self.hub, now, self._session_ready())
-        self.current = self.tracker.problems(self.hub, now, self._advice_items())
+        self.current = self.tracker.problems(self.hub, now, self._advice_items(), self._room_sources)
         from .e32_reconfirm import reconfirm_required, update_reconfirm_issue
         if getattr(self, "hass", None) is not None:
             update_reconfirm_issue(self.hass, self.entry, self.hub)

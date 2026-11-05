@@ -4027,6 +4027,37 @@
         }
       },
       "description": "{name}: zegar E32 używa {e32}, Home Assistant używa {home}. Programy tygodniowe przełączałyby się o złej porze. Wybierz Napraw, aby ustawić E32 na {home}. E32 uruchomi się raz ponownie."
+    },
+    "e32_room_source_missing": {
+      "title": "Wybierz nowe źródło temperatury dla {room}",
+      "description": "{room} odczytuje temperaturę z {source}, a ta encja już nie istnieje w Home Assistant: zmieniono jej nazwę lub ją usunięto. Dopóki nie wybierzesz innej, {room} korzysta z pozostałych źródeł temperatury, jeśli je ma; bez źródła nie żąda ciepła.\n\nWybierz Napraw, aby wybrać termostat lub czujnik temperatury, albo otwórz Konfiguruj → Pomieszczenia → {room}. Komunikat zniknie sam, jeśli {source} wróci.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Wybierz źródło temperatury dla {room}",
+            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
+            "data": {
+              "source": "Źródło temperatury"
+            },
+            "data_description": {
+              "source": "Termostat mierzący temperaturę pomieszczenia lub czujnik temperatury."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "E32 nie może użyć {source}: identyfikatory encji mogą mieć najwyżej 80 znaków.",
+          "e32_source_wrong_domain": "Nie można tu użyć {source}. Wybierz termostat lub czujnik temperatury.",
+          "e32_source_not_found": "{source} nie istnieje w Home Assistant.",
+          "e32_source_no_temperature": "{source} nie podaje bieżącej temperatury. Wybierz termostat mierzący temperaturę pomieszczenia lub czujnik temperatury.",
+          "e32_source_not_celsius": "{source} nie podaje temperatury (°C lub °F). Wybierz czujnik temperatury.",
+          "save_failed": "E32 nie zapisał planu pomieszczeń. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Najpierw połącz E32 (Konfiguruj → Połączenie z E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
+          "e32_unreachable": "Nie można połączyć się z E32. Sprawdź, czy jest włączony i połączony z siecią, i spróbuj ponownie.",
+          "room_missing": "Tego pomieszczenia nie ma już w planie pomieszczeń E32."
+        }
+      }
     }
   },
   "services": {

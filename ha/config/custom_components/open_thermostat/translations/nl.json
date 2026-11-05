@@ -4027,6 +4027,37 @@
         }
       },
       "description": "{name}: de klok van de E32 gebruikt {e32}, Home Assistant gebruikt {home}. Weekprogramma's zouden op het verkeerde moment schakelen. Kies Oplossen om de E32 op {home} te zetten. De E32 start één keer opnieuw op."
+    },
+    "e32_room_source_missing": {
+      "title": "Kies een nieuwe temperatuurbron voor {room}",
+      "description": "{room} leest zijn temperatuur van {source}, en die bestaat niet meer in Home Assistant: hij is hernoemd of verwijderd. Tot je een andere kiest, gebruikt {room} zijn andere temperatuurbronnen, als hij die heeft; zonder bron vraagt hij geen warmte.\n\nKies Repareren om een thermostaat of temperatuursensor te kiezen, of open Configureren → Ruimtes → {room}. Deze melding verdwijnt vanzelf als {source} terugkomt.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Kies een temperatuurbron voor {room}",
+            "description": "Kies de thermostaat of temperatuursensor die de temperatuur in {room} meet. Alleen de temperatuurbron verandert; de andere instellingen en het weekprogramma van de ruimte blijven.",
+            "data": {
+              "source": "Temperatuurbron"
+            },
+            "data_description": {
+              "source": "Een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "De E32 kan {source} niet gebruiken: entiteit-ID's mogen hoogstens 80 tekens hebben.",
+          "e32_source_wrong_domain": "{source} kan hier niet gebruikt worden. Kies een thermostaat of temperatuursensor.",
+          "e32_source_not_found": "{source} bestaat niet in Home Assistant.",
+          "e32_source_no_temperature": "{source} meldt geen actuele temperatuur. Kies een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor.",
+          "e32_source_not_celsius": "{source} meldt geen temperatuur (°C of °F). Kies een temperatuursensor.",
+          "save_failed": "De E32 heeft het ruimteplan niet opgeslagen. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Verbind eerst de E32 (Configureren → E32-verbinding) zodat Home Assistant het ruimteplan kan bewerken.",
+          "e32_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is en probeer het opnieuw.",
+          "room_missing": "Deze ruimte staat niet meer in het ruimteplan van de E32."
+        }
+      }
     }
   },
   "services": {

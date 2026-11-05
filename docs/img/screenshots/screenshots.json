@@ -247,8 +247,8 @@
       "date": "2026-11-05",
       "width": 1000,
       "height": 1234,
-      "bytes": 43250,
-      "sha256": "7834af5d58b2be08742d910bd6e683c195f52cbf425376982ffa7ca6b6c9bd10",
+      "bytes": 42801,
+      "sha256": "3cae3350809cb210c673c958a800b049cd329f1b9f09dbaa8025273e3f72384b",
       "scope": "Home Assistant week planner card (e32-week-card.js and week-editor.js) with a synthetic hass object; ha-card stand-in with the default light card style; no Home Assistant instance; rendered in headless Chromium with fictitious demonstration data; not a live capture"
     }
   ],

@@ -244,6 +244,7 @@ const SHOTS = {
       document.head.append(style);
       const card = document.createElement('openthermostat-e32-week'); card.setConfig({entry_id: 'entry'}); document.querySelector('main').append(card);
       card.hass = {language: 'en', config: {unit_system: {temperature: '°C'}}, locale: {language: 'en'}, themes: {darkMode: false},
+        states: {'climate.tado_woonkamer': {attributes: {friendly_name: 'tado Woonkamer'}}},
         callWS: async r => { if (r.type === 'open_thermostat/e32_week/get') return {revision: 3, levels_supported: true, rooms}; throw {code: 'unexpected'}; }};
     }, {rooms: plan().rooms});
     await page.locator('openthermostat-e32-week .wpe-seg').first().waitFor({timeout: 15000}); await page.waitForTimeout(800);

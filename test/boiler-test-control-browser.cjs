@@ -1,5 +1,6 @@
 // Shipped root/auth/fragment, fixture HTTP only; native service/policy tested separately.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
 const out=path.resolve(process.env.OPENTHERMOSTAT_BOILER_CONTROL_EVIDENCE||'out/boiler-control-browser');
@@ -132,7 +133,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.waitForTimeout(1300);
   assert.equal(requests.some(r=>r.method==='POST'),false,'nothing prepares or starts heating');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(out,`CONTROL-${width}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`CONTROL-${width}.png`),fullPage:true});
   assert.deepEqual(errors,[]);
   for(const language of ['nl','en']) {
    update({phase:'idle',owned:false,available:false,blocked_reason:'profile_missing',limits:null,

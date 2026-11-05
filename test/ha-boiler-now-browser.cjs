@@ -9,6 +9,7 @@
 // 5 minutes and when the day changes, nothing after the card left the page. English, Dutch and Polish; light and dark;
 // desktop, a tablet (the narrowest four-column card), phone and a narrow phone (no sideways scroll, nothing cut). Screenshots go to the evidence directory for the visual check.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),component=path.join(root,'ha/config/custom_components/open_thermostat');
 const source=fs.readFileSync(path.join(component,'frontend/boiler-now-card.js'));
@@ -279,8 +280,8 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
    assert(value.left>=arcBox.right&&value.top<arcBox.bottom&&value.bottom>arcBox.top,`${name}: the number beside the arc`);
    assert(arcBox.left>=box.left&&value.right<=box.right,`${name}: arc and number inside the figure`);
   }
-  await page.screenshot({path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
-  for(const name of ['heating','water','idle','fault'])await card(name).screenshot({path:path.join(out,`${lang}-${width}-${theme}-${name}.png`)});
+  await shot(page,{path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
+  for(const name of ['heating','water','idle','fault'])await shot(card(name),{path:path.join(out,`${lang}-${width}-${theme}-${name}.png`)});
   // A tap (or Enter) on a figure opens its entity's history; the focus stays over a redraw.
   await figure('heating','return').click();
   await figure('heating','flow').focus();await page.keyboard.press('Enter');

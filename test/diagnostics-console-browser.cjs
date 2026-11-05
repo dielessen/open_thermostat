@@ -1,5 +1,6 @@
 // Diagnostics console on the System log page: real page/auth/language scripts, isolated HTTP fixtures.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.env.OPTH_LOG_EVIDENCE||'out/diagnostics-console/browser');
 const CSRF='a'.repeat(64);
@@ -105,7 +106,7 @@ const CSRF='a'.repeat(64);
   await page.locator('#diag-restart:enabled').waitFor();
   assert.equal(requests.filter(r=>r.path==='/updates/reboot').length,0);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
-  await page.screenshot({path:path.join(output,lang+'-'+width+'.png'),fullPage:true});
+  await shot(page,{path:path.join(output,lang+'-'+width+'.png'),fullPage:true});
   assert(posts().every(r=>r.path==='/diagnostics/sessions/end-idle'&&r.csrf===CSRF));
   assert(!requests.some(r=>r.origin!=='http://opth.test'));assert.deepEqual(errors,[]);
   results.push({lang,width,result:'PASS'});await page.close();

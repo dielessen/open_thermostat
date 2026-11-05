@@ -2,6 +2,7 @@
 // fixture HTTP): the meaning large with the raw code small, a fault as a warning, a lockout as
 // an error, the chosen boiler model's own table, an unknown code never guessed.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(process.env.OPENTHERMOSTAT_DISPLAY_CODE_EVIDENCE||path.join(__dirname,'../out/display-code-browser'));
 function status(code,cause){return {controlMode:'shadow',ems:{heatingActive:false,warmWaterActive:false,currentFlowTemperature:432,pressure:14,currentBurnerPower:0,displayCode:code,...(cause===undefined?{}:{serviceCode:cause})},
@@ -41,7 +42,7 @@ function status(code,cause){return {controlMode:'shadow',ems:{heatingActive:fals
   const size=await code.evaluate(node=>[parseFloat(getComputedStyle(node.querySelector('[data-code-meaning]')).fontSize),parseFloat(getComputedStyle(node.querySelector('[data-code-raw]')).fontSize)]);
   assert(size[0]>size[1],'the meaning is larger than the raw code');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(out,language+'-fault.png'),fullPage:true});
+  await shot(page,{path:path.join(out,language+'-fault.png'),fullPage:true});
   // One poll: stamp the status this test publishes, let the page time pass, then wait until the page has applied
   // that very status. (A fixed 50 ms pause was not enough for the answer to cross Chromium, the route handler and
   // the render on a loaded machine, so the next assertion read the previous state: R5-02.) lastLoadedStatus is
@@ -101,7 +102,7 @@ function status(code,cause){return {controlMode:'shadow',ems:{heatingActive:fals
   // No code at all: no box.
   current=status('--');await poll();
   assert.equal(await page.locator('.pd-boiler .pd-code').count(),0);
-  await page.screenshot({path:path.join(out,language+'-none.png'),fullPage:true});
+  await shot(page,{path:path.join(out,language+'-none.png'),fullPage:true});
   assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
   await page.close();
  }}finally{await browser.close();}

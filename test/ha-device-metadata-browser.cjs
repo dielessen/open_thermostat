@@ -1,5 +1,6 @@
 // Shipped HA editor in Chromium; synthetic authenticated WS, never live HA.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 const output=path.resolve(process.env.OPENTHERMOSTAT_METADATA_EVIDENCE||path.join(root,'out/ha-metadata-browser'));
@@ -64,7 +65,7 @@ const metadata={bridge:{version:'2.14.2',zigbee_herdsman_converters_version:'26.
   await read().click();await card.locator('.metadata-versions').filter({hasText:'26.115.1'}).waitFor();
   assert.match(await card.locator('.device-metadata').innerText(),/MQTT/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(output,`${viewportName}-${language}.png`),fullPage:true});
+  await shot(page,{path:path.join(output,`${viewportName}-${language}.png`),fullPage:true});
   await page.evaluate(()=>window.mode='failure');await read().click();
   await card.getByText(nl?'Deze informatie kon niet worden vastgesteld.':'This information could not be established.',{exact:false}).waitFor();
   assert.equal(await card.locator('#name').inputValue(),'Fixture room');

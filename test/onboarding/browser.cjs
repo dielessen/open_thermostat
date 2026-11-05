@@ -1,5 +1,6 @@
 // Run the shipped setup UI in Chromium; API responses are explicit simulations.
 const {chromium}=require('playwright-core');
+const shot=require('../helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..');
 let passed=0; const pass=name=>{passed++;console.log('PASS '+name);};
@@ -65,7 +66,7 @@ let passed=0; const pass=name=>{passed++;console.log('PASS '+name);};
   sim.connected=false;sim.closing=false;await page.waitForFunction(()=>document.getElementById('status').textContent.includes('weggevallen'));
   assert.equal(await page.locator('#handoff').isHidden(),true);pass('post-save station loss retracts stale success link');
   sim.connected=true;await page.waitForFunction(()=>!document.getElementById('handoff').hidden);
-  if(process.env.ONBOARDING_SCREENSHOT)await page.screenshot({path:process.env.ONBOARDING_SCREENSHOT,fullPage:true});
+  if(process.env.ONBOARDING_SCREENSHOT)await shot(page,{path:process.env.ONBOARDING_SCREENSHOT,fullPage:true});
   await page.waitForFunction(()=>document.getElementById('transition').textContent.includes('seconden'));
   assert.equal(sim.finishes,2);assert.equal(await page.locator('#scan').isDisabled(),true);
   await page.clock.fastForward(11000);await page.waitForURL('http://192.168.1.90/');

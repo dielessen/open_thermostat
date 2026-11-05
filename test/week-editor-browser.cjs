@@ -1,6 +1,7 @@
 // The shipped week planner in Chromium with touch, mouse and keyboard: alone, on the E32 rooms page
 // (simulated HTTP) and in the Home Assistant card (synthetic hass). No device, no live writes.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),assets=path.join(root,'data/html');
 const frontend=path.join(root,'ha/config/custom_components/open_thermostat/frontend');
@@ -103,7 +104,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll');
    const comfort=await main.locator('.wpe-seg.lv-comfort').first().evaluate(e=>getComputedStyle(e).backgroundColor);
    assert.equal(comfort,theme==='dark'?'rgb(217, 89, 38)':'rgb(235, 104, 52)');
-   await page.screenshot({path:path.join(output,`planner-${width}-${lang}-${theme}.png`),fullPage:true});
+   await shot(page,{path:path.join(output,`planner-${width}-${lang}-${theme}.png`),fullPage:true});
    await page.evaluate(()=>{document.querySelector('.wpe').dataset.theme='light';});
    assert.equal(await main.locator('.wpe-seg.lv-comfort').first().evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(235, 104, 52)','a host theme wins over the system');
    assert.deepEqual(errors,[]);await client.detach();await page.close();
@@ -143,7 +144,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    assert.equal(await planner.getByRole('button',{name:'Comfort warmer'}).isVisible(),true,'Dutch planner');
    // Levels come from the program: 20.5 comfort, 18 night, 19.5 eco; the template uses them.
    await planner.locator('select').selectOption({label:'Werkdagen en weekend'});
-   await page.screenshot({path:path.join(output,`e32-rooms-${width}.png`),fullPage:true});
+   await shot(page,{path:path.join(output,`e32-rooms-${width}.png`),fullPage:true});
    await saved();
    assert.deepEqual(posts.at(-1).rooms[0].schedule,template(levelsOf(2050,1950,1800)));
    assert.equal(posts.at(-1).revision,4);
@@ -216,7 +217,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    const sizes=await page.evaluate(()=>[...card.shadowRoot.querySelectorAll('button,select,input')].filter(e=>e.offsetParent&&!e.classList.contains('wpe-seg')).map(e=>{const b=e.getBoundingClientRect();return [e.textContent||e.getAttribute('aria-label'),b.width,b.height];}));
    for(const [name,w,h] of sizes)assert(w>=44&&h>=44,name+' '+w+'x'+h);
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll');
-   await page.screenshot({path:path.join(output,`ha-card-${width}-${lang}.png`),fullPage:true});
+   await shot(page,{path:path.join(output,`ha-card-${width}-${lang}.png`),fullPage:true});
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha',width,lang,dark});
   }
   // 4. Home Assistant in imperial units: °F on screen and in the text view, the saved program stays in °C.
@@ -249,7 +250,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await card.getByRole('button',{name:L.save}).click();
    await card.getByText(L.saved).waitFor();
    assert.deepEqual((await page.evaluate(()=>calls.at(-1))).schedule,[...Array(5)].map(()=>[[390,2111],[1320,1600]]).concat([[],[]]));
-   await page.screenshot({path:path.join(output,`ha-card-fahrenheit-${lang}.png`),fullPage:true});
+   await shot(page,{path:path.join(output,`ha-card-fahrenheit-${lang}.png`),fullPage:true});
    // Opening the card asks Home Assistant for the plan it holds; only Reload reads the E32 itself.
    const gets=()=>page.evaluate(()=>calls.filter(c=>c.type==='open_thermostat/e32_week/get'));
    assert.equal('fresh' in (await gets())[0],false,'opening the card costs the E32 no sign-in');
@@ -266,7 +267,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    let {page,errors}=await haCard(390,lang,false,false,{getFail:'not_ready'}),card=page.locator('openthermostat-e32-week');
    await card.getByText(W.wait).waitFor();await card.getByText(W.why).waitFor();
    assert.equal(await page.evaluate(()=>card._retry!==null),true,'a retry is scheduled');
-   await page.screenshot({path:path.join(output,`ha-card-waiting-${lang}.png`),fullPage:true});
+   await shot(page,{path:path.join(output,`ha-card-waiting-${lang}.png`),fullPage:true});
    assert.equal(await card.getByRole('button',{name:W.reload}).isVisible(),true,'the user can also try at once');
    // Off screen (another view): no timer; back on screen: it tries again at once and shows the planner.
    await page.evaluate(()=>card.remove());assert.equal(await page.evaluate(()=>card._retry),null,'no timer after removal');
@@ -275,7 +276,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    assert.deepEqual(errors,[]);await page.close();
    ({page,errors}=await haCard(390,lang,false,false,{cardUrl:'/open_thermostat/e32-week-card-0.0.0.js'}));card=page.locator('openthermostat-e32-week');
    await card.locator('.wpe-seg').first().waitFor();await card.getByText(W.outdated).waitFor();
-   await page.screenshot({path:path.join(output,`ha-card-outdated-${lang}.png`),fullPage:true});
+   await shot(page,{path:path.join(output,`ha-card-outdated-${lang}.png`),fullPage:true});
    assert.deepEqual(errors,[]);await page.close();
    ({page,errors}=await haCard(390,lang,false,false,{cardUrl:'/card.js'}));card=page.locator('openthermostat-e32-week');
    await card.locator('.wpe-seg').first().waitFor();assert.equal(await card.getByText(W.outdated).count(),0,'the served module: no notice');

@@ -1,5 +1,6 @@
 // Real shipped EN/NL UI, isolated HTTP. No device/installation claim.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
 const out=path.resolve(process.env.OPENTHERMOSTAT_LANGUAGE_EVIDENCE||'out/ui-language-browser');
@@ -41,7 +42,7 @@ const out=path.resolve(process.env.OPENTHERMOSTAT_LANGUAGE_EVIDENCE||'out/ui-lan
   assert.deepEqual(writes,[{path:'/config/boiler-display',body:{model:'nefit-ecomline-classic'}}]);
   await page.evaluate(()=>loadNativePage('about'));await page.locator('.ot-about').waitFor();
   assert.match(await page.locator('.ot-about-badge').innerText(),new RegExp(choose('In development & testing','In ontwikkeling en test')));
-  await page.screenshot({path:path.join(out,language+'-'+width+'.png'),fullPage:true});
+  await shot(page,{path:path.join(out,language+'-'+width+'.png'),fullPage:true});
   await page.goto('http://opth.test/login.html');
   assert.equal(await page.locator('#sign-in h1').innerText(),choose('Sign in','Aanmelden'));
   assert.equal(await page.locator('#username').inputValue(),'admin');

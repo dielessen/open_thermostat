@@ -1,6 +1,7 @@
 // Backup and restore panel on the network page (data/html/backup.js) against a
 // simulated E32 over isolated HTTP. No device actions; all values are fixtures.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),vm=require('node:vm'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
 const config={hostname:'Fixture',interface_mode:'wifi',listenPort:80,emsEnabled:false,emsForwarderEnabled:false,rtcEnabled:false,
@@ -112,7 +113,7 @@ const summary={valid:true,fingerprint:'f'.repeat(64),restart:true,secrets_sealed
   assert.doesNotMatch(shown,/\[object Object\]|min_on_s|Burner rest between starts|Rust van de brander/);
   if(lang==='nl')assert.doesNotMatch(shown,/will change|Device name|Wi-Fi is not changed/);
   await apply.click();await page.waitForFunction(l=>new RegExp(l==='nl'?'Instellingen teruggezet':'Settings restored').test(document.getElementById('RestoreStatus').textContent),lang);
-  if(process.env.OT_BACKUP_SHOT)await panel.screenshot({path:path.join(process.env.OT_BACKUP_SHOT,`backup-${lang}-${width}.png`)});
+  if(process.env.OT_BACKUP_SHOT)await shot(panel,{path:path.join(process.env.OT_BACKUP_SHOT,`backup-${lang}-${width}.png`)});
   const applied=posts.at(-1);assert.equal(applied.action,'apply');assert.equal(applied.fingerprint,'f'.repeat(64));assert.equal(applied.passphrase,'correct horse');
   assert.match(await restore.innerText(),lang==='nl'?/ongeveer 10 seconden/:/about 10 seconds/);
   assert.equal(await apply.isDisabled(),true,'a restore is applied once');

@@ -6,6 +6,7 @@
 // light, Dutch on a phone in dark.
 // Screenshots go to the evidence directory for the visual check. Waits on element state only.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),assets=path.join(root,'data/html');
 const out=path.resolve(process.env.OPENTHERMOSTAT_HOUSE_INSIGHT_EVIDENCE||path.join(root,'out/house-insight-20261104'));
@@ -126,7 +127,7 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ')
   assert(facts.some(([k,v])=>k===words.learnedRow[0]&&v===words.learnedRow[1]),JSON.stringify(facts));
   // Phone width first: nothing scrolls sideways; the panel follows the theme.
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
-  await learned.screenshot({path:path.join(out,`${lang}-${width}-${scheme}-learning.png`)});
+  await shot(learned,{path:path.join(out,`${lang}-${width}-${scheme}-learning.png`)});
   // The boiler only inside "insight" says the same.
   status=fixture();delete status.boiler;await push();
   assert.equal(await knows.isVisible(),true);assert.equal(await knows.locator('[data-boiler-line]').innerText(),words.boiler);

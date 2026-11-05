@@ -1,5 +1,6 @@
 // Real UI/auth wrapper; isolated HTTP only. No broker/device traffic.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(__dirname,'../out/boiler-settings-browser');
 function metadata(){return {schema:1,boot_id:'000000000000002a',revision:0,available:true,active:false,transport_fault:false,
@@ -65,7 +66,7 @@ const devices={enabled:true,inventory:{schema:1,capacity:16,untracked_frames:0,d
   assert.equal(await page.locator('#ems-setting-exclusive').isChecked(),false);assert.equal(posts.length,before);
   // Ordinary explicit preparation submits exactly once, and admission is not readback.
   await reset();await prepare();before=posts.length;
-  await page.screenshot({path:path.join(output,`${lang}-${width}.png`),fullPage:true});
+  await shot(page,{path:path.join(output,`${lang}-${width}.png`),fullPage:true});
   await button.evaluate(b=>{b.click();b.click();});await note.filter({hasText:lang==='nl'?'geaccepteerd':'accepted'}).waitFor();await settled();
   assert.equal(posts.length,before+1);assert.equal(posts.at(-1).value,45);assert.equal(posts.at(-1).revision,1);
   await refresh();assert(!(await note.innerText()).includes(lang==='nl'?'is van de ketel teruggelezen':'was read back'));

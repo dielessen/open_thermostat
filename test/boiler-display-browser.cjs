@@ -1,5 +1,6 @@
 // Real shipped root/settings/SVG; isolated authenticated HTTP and device storage.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
 const output=path.resolve(process.env.OPENTHERMOSTAT_BOILER_DISPLAY_EVIDENCE||path.join(__dirname,'../out/boiler-display-browser'));
@@ -58,7 +59,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   assert.match(await page.locator('#boiler-home img').getAttribute('src'),/^data:image\/svg\+xml/);
   await page.waitForFunction(()=>document.querySelector('#boiler-home img')?.naturalWidth>0);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,JSON.stringify(await page.evaluate(()=>({viewport:innerWidth,overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent.slice(0,100)})).slice(0,12)}))));
-  await page.screenshot({path:path.join(output,name+'.png'),fullPage:true});
+  await shot(page,{path:path.join(output,name+'.png'),fullPage:true});
   // A full page reload reads the saved device setting, with no localStorage.
   await page.goto('http://opth.test/');await page.getByRole('heading',{name:'Nefit Ecomline Classic HRC 22H',exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>localStorage.length),0);

@@ -1,5 +1,6 @@
 // The shipped three-step workflow, simulated HTTP only. Never contacts hardware.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(__dirname,'../out/boiler-configuration-browser');
 const limits={minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,operator_lease_ms:5000};
@@ -86,7 +87,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   const prepare=page.locator('[data-test-prepare]'),start=page.locator('[data-test-start]');
   await page.waitForFunction(()=>document.querySelector('[data-read-configuration]').hidden);
   assert.equal(await prepare.isVisible(),false);assert.equal(await start.isVisible(),false);assert.equal(await confirm.isChecked(),true);
-  await page.screenshot({path:path.join(out,`READ-COMPLETE-${lang}-${width}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`READ-COMPLETE-${lang}-${width}.png`),fullPage:true});
   assert.equal(posts.filter(r=>/\/(prepare|start)$/.test(r.p)).length,0,'Nothing prepares or starts heating');
   // A new page never inherits the old operator declaration or starts heating.
   state=initial();heatReason='heating_setting_unavailable';read={...read,active:false,available:true,phase:'idle'};

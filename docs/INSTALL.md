@@ -1283,7 +1283,10 @@ not start properly or did not reach the network within 10 minutes. Check
 that the router and the MQTT broker were available, then try again.
 **System → Firmware update → Update diagnostics** and the system log show
 what happened. If Home Assistant says the E32 did not report the new version
-in time, check the version on the E32 itself before trying again.
+in time, check the version on the E32 itself before trying again. A failed
+installation from Home Assistant now says in words where it stopped
+(downloading, checking the file, sending it to the E32, or the E32 not
+confirming the new version).
 
 ### Something else
 

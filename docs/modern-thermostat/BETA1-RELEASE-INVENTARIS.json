@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "8b0da611c591e64475f2676f3fec177d5ff2145d87f9156a9dd585c9f502c3f4"
+          "sha256": "ba9beeaa7f752f1eb79f68d21c3cfe983e5205c4bc3ad6220bca7ea1c661ade0"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "2dc637244d462392c38431f3de2c2b09b6e74f8f0fb8aa3119feec4ed71cf8a6"
+          "sha256": "dc80531ee8dabf29cd8326a096e881f1a6a9c8a87b03f14975986330d316e7d1"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -59,11 +59,11 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "a7f9f7fd1081b62153198ed5bbbbd973ebdbadb59905f432b7234ed40059c371"
+          "sha256": "c4b3a237e47d79f8f41677804b844bb33890cb35781434b36f406b14891f5ced"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "343e7f4431def644bc28c3424478667767394af1b893ca8948f9f4c754a17856"
+          "sha256": "cd5b7db2d1b8318aa26942b5da6e6c7dbe7609bdd0636a73b069440d6330cb50"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "0528834fc1e5047fed4dad64a0590297bd625475a17a5176f79bf187ceb2fefb"
+          "sha256": "35c1f3c1a0035b26e8b6a002770f024365aa8a4a355d3965f801c807f5b3d9ef"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "69543a039c1432dbe26a654478e0122db5680bdf1cfbbe1c76ed0aeae3d6d514"
+          "sha256": "cebd6ebcd3afbefdc9ca8bcc9601c05696d7ba38bd0d5eb123e3eee792ab55d6"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "9a20721f28358fcd66a4e7684bb8a8532d5499c62910b5acdcb6b5ff15e7ae01"
+          "sha256": "23dcaf94fb5e1ffa552447a0ce0eb26163a06fa210d1548598f9cfd94b6389b0"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -219,7 +219,7 @@
         },
         {
           "path": "release.json",
-          "sha256": "9c19c26f73a125eb5ad5b5b404fbf1b5d9decc20f55ba23338f07e26e76076f3"
+          "sha256": "f8b5c1b9264fb6ce92a2dfa29a970e374343cdaf059ac540f887cfdbdeb4fb17"
         },
         {
           "path": "docs/SWITCHOVER.md",
@@ -227,11 +227,11 @@
         },
         {
           "path": "docs/USER-GUIDE.md",
-          "sha256": "105f93964822836f5980d318f253b992ddf4e00f7c83ec1c6297526167918446"
+          "sha256": "33102a975cbfc61351471147b2b18f6413dd9108ce32c92451e015b33c1b55bf"
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
-          "sha256": "ab6f25cb98c65062d4a365edeabd906cdbf5084aa2992eb030de58c46978d825"
+          "sha256": "e566df6b07edb35ec4fba08c8fb7ecdd94f5a2fb93f49e9f89a665a65f222b90"
         },
         {
           "path": "test/fuzz/README.md",
@@ -287,7 +287,7 @@
         },
         {
           "path": "test/fuzz/fuzz_room_plan.cpp",
-          "sha256": "800762861f8c0c6ad7594190acdbe41ebfded974adfa00fcbbdbe14254544567"
+          "sha256": "07f878fbec784ae60bebf46ab1bd32aa62c00f8374ed042ba1ef382e242986f9"
         },
         {
           "path": "test/fuzz/fuzz_shadow.cpp",
@@ -299,15 +299,15 @@
         },
         {
           "path": "test/soak/README.md",
-          "sha256": "e13c18ea63ee73f3de0ccdf913aa703fc0246b240136cc0fb57149b195998c76"
+          "sha256": "2b7e1322fe52db43f09023d6cec3704e9d5d5a8f4844e767180989d4749a15c6"
         },
         {
           "path": "test/soak/run.sh",
-          "sha256": "65a7ef1aaa603df27f99fcc2572afbef417276729180f1820f75663c14cc98d6"
+          "sha256": "601be614e649c7b14d88d7ab7f84fadc93cb39259e8e2ecd4a30234d1dfb693c"
         },
         {
           "path": "test/soak/soak.cpp",
-          "sha256": "19d23b24f50a4d301a88a8f4c7449ac3c8c8666eba47751bacf709f31c8e8687"
+          "sha256": "f0aee5ff9175808bd02735c2b601579b197e804a34ad34439584fa6bb5499275"
         },
         {
           "path": "test/time-zone-picker.test.cjs",
@@ -315,7 +315,7 @@
         },
         {
           "path": "docs/INSTALL.md",
-          "sha256": "34eae86292687a6944ff8b1ac634ead4731e0d58de65a190463320b7d2f257c2"
+          "sha256": "7ea1f2115aec8dbaf311df94323bd3a6584d7e07b7df9c01b87039222d7e5b47"
         },
         {
           "path": "scripts/e32v2_literal_reach.py",
@@ -363,7 +363,7 @@
         },
         {
           "path": "scripts/final_check.sh",
-          "sha256": "43e3900ffbe04b06d0c382ae51e5cb431f85e928274199c09ba2638cff2936e7"
+          "sha256": "adcef20ef24a5fc7ad104c7a45c81ccf86a69cbf0a6de9eb3a5c7a2beccb14bf"
         },
         {
           "path": "scripts/test_browser_suite.py",
@@ -375,7 +375,7 @@
         },
         {
           "path": "test/browser-tests.txt",
-          "sha256": "7a8818f45597936f341a10b38325a0fa4310fc8f96469e3356543ccc6f484911"
+          "sha256": "edb90b8fa62598967ee81349c94a7fe9cd017e9ade3ada82449f811d353f49f8"
         },
         {
           "path": "test/diagnostics-console-browser.cjs",
@@ -411,7 +411,7 @@
         },
         {
           "path": "data/html/house.html",
-          "sha256": "eb99ae1b5c003e3a3b7fa20d272f8ad64ea4401a74633d66c7319b69b5a3261e"
+          "sha256": "2eebe9b29867d8c029b40038861c5fa81937b1caa742119410a3d1fa9db635ac"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_house.py",
@@ -467,7 +467,7 @@
         },
         {
           "path": "docs/modern-thermostat/INSTALLATIE-TEST.nl.md",
-          "sha256": "68ddbc018e2e9613dc13e80bb4f370656e27ca96a0e31179993556c894fb4e5a"
+          "sha256": "b29035a2174e8f02d9f2dd5e3bb0fb8d0681c2e146f435e19b88a8f57f787dd1"
         },
         {
           "path": "docs/modern-thermostat/LEREN-ANALYSE.nl.md",
@@ -535,7 +535,7 @@
         },
         {
           "path": "docs/INSTALL-CHECK.md",
-          "sha256": "0eaa9b72e37571ad627258a266b90bd26990b8fd7cbcea30ac7690507e0385f6"
+          "sha256": "3527322edbd76bf4601dccddfe801204487fb963e4b7821f8ba656678cae3668"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md",
@@ -619,11 +619,11 @@
         },
         {
           "path": "docs/UX-GLOSSARY.md",
-          "sha256": "85396a1adfb3f2bf819b9580609f0cf07507158759f01b09e9f1af6bfe541246"
+          "sha256": "228a04447839d906f5cf71ed283bbb217e535367ca3c05ea2af727273f7fbe0e"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/learned_overview.py",
-          "sha256": "d4794ccdc6c25ae4c7342f766513ec1d745bfb4cc37973dea876af36c7954365"
+          "sha256": "b1d29850e31c12d831d4cba2ad375a35a97e50614af966367836992ca03bd13c"
         },
         {
           "path": "test/house-learned-browser.cjs",
@@ -631,7 +631,7 @@
         },
         {
           "path": "docs/FIELD-TESTER.md",
-          "sha256": "ea9b060e1104e1d29eb6e0c33386d137088830b302e10f8ace1a2f01a7306f95"
+          "sha256": "41d491fbf1c97ab280f9829c8230cbff4e09d12bf3d2ec78b7d6c0a44393ac4f"
         },
         {
           "path": "docs/modern-thermostat/RC2-KANDIDAAT.json",
@@ -667,7 +667,7 @@
         },
         {
           "path": "tools/replay/README.md",
-          "sha256": "d590e4023788a9bc89131662cf0415c485b07b34b0ebbc767c0847d4951987c4"
+          "sha256": "8603d957b2e0503d461775d7943e39dfe42d305125a1b28482fdc813248c8c42"
         },
         {
           "path": "tools/replay/from_ha.py",
@@ -679,7 +679,7 @@
         },
         {
           "path": "tools/replay/replay.cpp",
-          "sha256": "fea1cc05971a108627693a58414abe6760308dd90195ad11f6a6d38b18aadceb"
+          "sha256": "1aa9a2d3669c301e5fb0351892bcf3f99d68eb441840c31d45ee936243a533ca"
         },
         {
           "path": "tools/replay/run.sh",
@@ -687,7 +687,7 @@
         },
         {
           "path": "tools/replay/test_replay.py",
-          "sha256": "b965eb41c3ec83c19b36723c5e5a9a9dddd9870666d127b220954a1e1eed88c4"
+          "sha256": "d6842dbd71b954f60f4f728ff46625c253271c67333c5fc2bd3c7a55cfdb78de"
         },
         {
           "path": "docs/modern-thermostat/RC1-UPDATE-GAP-20261102.json",
@@ -763,7 +763,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/room-status-card.js",
-          "sha256": "334c4a4fc5fcf7b7affef311c361f5d98e8199c7e1f9c18463fa18904d6845e2"
+          "sha256": "4ad82005263cda2f59fc5e38dbb8c01c7a7e146cc5b6d9ef97eb554d29ebed43"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/options_house_heating.py",
@@ -775,15 +775,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_overview.py",
-          "sha256": "35a5db0cffc3ad38809e5deadba03e672c1640230e9e83789bda5d83f0de4254"
+          "sha256": "dd85b5f098569fbae23492794168f3762b1b76b9074a4da48ce04df4d39c8415"
         },
         {
           "path": "test/dashboard-views-browser.cjs",
-          "sha256": "3da3a7d4bd51c1ab3991e79ceda417daec9ee37eb2c115c69e6b521e2ea55340"
+          "sha256": "5574cd702b12983aea292cb279ff8a8156e3308adcab949434537fd4e6dac25a"
         },
         {
           "path": "test/ha-room-status-card-browser.cjs",
-          "sha256": "42520f18d2532f8374912de54afca91e523095d7f5e040aaeb897e7f59c5dc47"
+          "sha256": "17e08af1008461cb7c9ddcfb1adf3e586fa15bb4f5063ca9c7a5feb8db789144"
         },
         {
           "path": "docs/modern-thermostat/LEREN-PLAN-RC4.nl.md",
@@ -803,7 +803,7 @@
         },
         {
           "path": "tools/dev/README.md",
-          "sha256": "ef66b09ee338dd4afc37217da273de446bb115f9ab0fe02f787ba1e1bd4c0c58"
+          "sha256": "bfea5d02d02eed56bbe616423e2d8ba75a42dea394961b839ca83da8cbe2c7fe"
         },
         {
           "path": "tools/dev/ci_wait.py",
@@ -831,15 +831,15 @@
         },
         {
           "path": "scripts/publish_github_release.py",
-          "sha256": "48a766271b3e25737481d5c6d6961d57fa4bb05d878a727b713b5e3710d3a89a"
+          "sha256": "4f6d6246a8c334f81de6a012f3dde5ee27c933e4fd37b0a16958b45dbf8d0337"
         },
         {
           "path": "scripts/test_publish_github_release.py",
-          "sha256": "c25b35b897a412d13c70f8f27ce90653b810c099aa7f30b28bd6044930c23f39"
+          "sha256": "618b4648973083d392c9a7018afbee0f0391cdd63271f49a533f11071f9632f7"
         },
         {
           "path": "tools/acceptance/INSTALL-STEPS.nl.md",
-          "sha256": "42dc53017f6e5862bf7f60f9bbd13f8752380aad7023825080f3fb04ad54670c"
+          "sha256": "543671904e4af50f48ae45c39374deafed125f35af6a794f6586b5c82bdf3907"
         },
         {
           "path": "tools/acceptance/acceptance.py",
@@ -863,7 +863,7 @@
         },
         {
           "path": "tools/acceptance/install-config.json",
-          "sha256": "cf25f786b49b76bb0cb774cb2a537aa57f0aa487ce077310f7f78d5c8d953d3a"
+          "sha256": "ba2065a5ac5a4d642604366029746a9b93544b0cb9df1c41e24441b192b9cfb4"
         },
         {
           "path": "tools/acceptance/mqtt_listen.py",
@@ -887,7 +887,7 @@
         },
         {
           "path": "tools/dev/manual/make_pdf.py",
-          "sha256": "4b3685db5eda092ff45aa14d3966c5161de420a2195be23f76c995fdbc370cfd"
+          "sha256": "3583533c3e28371a89d03cfc8c98b4423359c32e5073a98a1ced2ccc1b348d63"
         },
         {
           "path": "tools/dev/prepare_rc4.py",
@@ -899,7 +899,7 @@
         },
         {
           "path": "tools/dev/test_prepare_rc4.py",
-          "sha256": "91d4368497c141929198e35aa85f9ff288ce5824d6742d75097bba6e4dc261b0"
+          "sha256": "3f62ddf993b8bce792af6545ae4c575a117f1358186cdcd3b06ea0697a9f79e5"
         },
         {
           "path": "data/html/display-codes-nl.js",
@@ -952,6 +952,142 @@
         {
           "path": "test/pages-r3-browser.cjs",
           "sha256": "b6e4a406847bb0c8434dc98b329585a6810033e27cb1626de2d69ac8a19ac944"
+        },
+        {
+          "path": "docs/modern-thermostat/HA-RC6-NOTES-DRAFT.en.md",
+          "sha256": "8bf08c934e3c5dd87f9b4445c9463d21222603a68dcdf759b48f71c05b1e5fb1"
+        },
+        {
+          "path": "docs/modern-thermostat/RC4-UPDATE-GAP-20261105.json",
+          "sha256": "2ed15107a5c1caab424d287a416e13a1b13c34c7ef2f35be707f1c98a91359f9"
+        },
+        {
+          "path": "docs/modern-thermostat/RC5-DASHBOARD-SPEC.md",
+          "sha256": "0cfa3ff21c28a8f53b96a70d5e8a47f60e95e1d7eb70d3e4370357e26a6cc547"
+        },
+        {
+          "path": "docs/modern-thermostat/RC5-KANDIDAAT.json",
+          "sha256": "0cc05bfc81d19f92293007eae1eb92798f0c626972035421829e98e3fdc7a44e"
+        },
+        {
+          "path": "docs/modern-thermostat/RC5-OWNER-INSTRUCTION-20261105.json",
+          "sha256": "21499e2cbcd5a9953bdb34103042ceaf4fd45202cde9808a632790f125e258b6"
+        },
+        {
+          "path": "docs/modern-thermostat/RC5-PLAN.md",
+          "sha256": "06f526fdb1d7f1a4d1dc79918408c4cc140bef1bd260d3aca11edc08e119d225"
+        },
+        {
+          "path": "docs/modern-thermostat/RC5-PUBLICATION-EXCEPTION-20261105.json",
+          "sha256": "0ead8844161fe407c8f8a65c3e75fc01ea3dfaa09529688bd5e5454e50384c7e"
+        },
+        {
+          "path": "docs/modern-thermostat/RELEASE-1.0-RC5-NOTES-DRAFT.en.md",
+          "sha256": "b5ab66f4e05851c3d01713c6344bfa50f5e6f048f92760834506bdbb8e37d1e4"
+        },
+        {
+          "path": "docs/modern-thermostat/TESTAVOND-T1-T12.nl.md",
+          "sha256": "80f539f7d82bee4b5640c564459aa7c192a76d339f6995ed59d249502cd86d28"
+        },
+        {
+          "path": "docs/modern-thermostat/TESTER-PAKKET.nl.md",
+          "sha256": "60bc4c3ff7c4759115ef8f7b3847583f3f351c487966446fa2c57dac60a8ca89"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/frontend/boiler-now-card.js",
+          "sha256": "6e73eade0871fae877484eedecfa20f76906f8c6cc7df95e71dcae047040c543"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/frontend/heating-curve-card.js",
+          "sha256": "d2a3a023fd42a21a8bdf0fd0c63f14474ba2838375808caaf716081ac22d2b26"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/frontend/house-card.js",
+          "sha256": "053146bf1a3927099fd87a5fb4724bd3a68914a1aa62db418ef5cc94aeded8f3"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/insight.py",
+          "sha256": "1d10eee12232f6700c9ad3ed38b0d8e3312a4edd08bbe19d2a12cb31b32ee41f"
+        },
+        {
+          "path": "test/ha-boiler-now-browser.cjs",
+          "sha256": "588a2a9c22f442f5dcc859fc3996fa7109371e110697817cd5ae33e9fa2ba550"
+        },
+        {
+          "path": "test/ha-house-card-browser.cjs",
+          "sha256": "5d135b356883a22056fa3b4f0ba1e94b0cac76d1dd7c1f449958a9ae87daa28d"
+        },
+        {
+          "path": "test/ha-learning-cards-browser.cjs",
+          "sha256": "99e376252ca53fa2d2ebcc7794e3e92fcb6bc0e0f968c1d141d551c3fddd6019"
+        },
+        {
+          "path": "test/house-curve-browser.cjs",
+          "sha256": "b3b71191650bcc0504644d3eb71ad87b9cf2f9391b667db86be6f1b8e598fcf4"
+        },
+        {
+          "path": "test/house-insight-browser.cjs",
+          "sha256": "a18462257c9cbc5c841b9d3312a19ba3a04034dbcf10782e78d2577774dc3579"
+        },
+        {
+          "path": "tools/dev/ha-demo/README.md",
+          "sha256": "69bbb18effa8f592e4d7dd5329f895eef9845e6e05950479c5dcc0df22aa47cd"
+        },
+        {
+          "path": "tools/dev/ha-demo/demo.py",
+          "sha256": "98376f6c06071bd35aeb1ac1414e7d8a4b48a3463df86a4ca452656cb1da9c81"
+        },
+        {
+          "path": "tools/dev/ha-demo/deps.py",
+          "sha256": "77838fc2361ab473e77111c4b648ece10c5a77e86f60fe216684e1b6cc8516d6"
+        },
+        {
+          "path": "tools/dev/ha-demo/e32_split.py",
+          "sha256": "d8002f8730228f2915f1e6c750a60058c554f10eb5a3fd3403f5d52fc8275b5e"
+        },
+        {
+          "path": "tools/dev/ha-demo/fake_e32.py",
+          "sha256": "3897d6036ce7cfb3a3883cceff1bc3fecd5d21109bff63bcbab63543125f668e"
+        },
+        {
+          "path": "tools/dev/ha-demo/hass_api.py",
+          "sha256": "e807db73d2c05c1def6db5317722d034e436194166a29db38c0b3c9d5e7b9ffe"
+        },
+        {
+          "path": "tools/dev/ha-demo/history.py",
+          "sha256": "c5c5b43b05e8a94734b0e9120a0dd046494b0661367d9cc2420af6a4742dd7c5"
+        },
+        {
+          "path": "tools/dev/ha-demo/procs.py",
+          "sha256": "18d8645025a85c0e6c0fb9b7a4f5974a217cfc4d132ab6daadbe53d4550d4d82"
+        },
+        {
+          "path": "tools/dev/ha-demo/run.sh",
+          "sha256": "73b8df332caae6941e20a58317d749827d3e2e5cef7a16a4556328dc167112fc"
+        },
+        {
+          "path": "tools/dev/ha-demo/scenario.py",
+          "sha256": "382806d2f0a6251e021b76b3b23da13a5f5f1e7387849007aa814aec886046ff"
+        },
+        {
+          "path": "tools/dev/ha-demo/shoot.cjs",
+          "sha256": "a7373a2db4f46a8c3d84a585b926bf5a4c19da452e5bdec309eb1245e4359202"
+        },
+        {
+          "path": "tools/dev/prepare_rc5.py",
+          "sha256": "a7cdc5add0174609a1170ba29797c8b1a7df76810b0d8f517dec75f2e48f2516"
+        },
+        {
+          "path": "tools/dev/test_prepare_rc5.py",
+          "sha256": "689132de1f9df44e520e8bdf8e6d9abb897abcbc0a68ce085b3d0a24bfddca4c"
+        },
+        {
+          "path": "tools/replay/score.py",
+          "sha256": "8868b49bc021d25e4facb3f8ad51ca117228bdd5259b61a98a57f3a7dbe1c304"
+        },
+        {
+          "path": "tools/replay/synth.py",
+          "sha256": "cbbbdea867435c610cc4806bf9c6881787376ac88d3b89600c077afffd26f78d"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -1453,7 +1589,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "2dc637244d462392c38431f3de2c2b09b6e74f8f0fb8aa3119feec4ed71cf8a6"
+          "sha256": "dc80531ee8dabf29cd8326a096e881f1a6a9c8a87b03f14975986330d316e7d1"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -1473,7 +1609,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "a5d7ca588d38e759474e7f68e9be083b0a3e61f6f25a1047436fb230ebb4815a"
+          "sha256": "49b90c036969af63fafcbebce8c45a476192238c5fca63081816b1a1afa25d70"
         },
         {
           "path": "data/html/device-restart.js",
@@ -1561,15 +1697,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "64aba23418f0395fda0bc39d7bbf241011f633d20e1e9900a1ab07db4ff843bf"
+          "sha256": "c8b4cc836aa3fad860652f70617a4c22b3f8efa7c8fc79006bc0f2e5cb870035"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "64aba23418f0395fda0bc39d7bbf241011f633d20e1e9900a1ab07db4ff843bf"
+          "sha256": "c8b4cc836aa3fad860652f70617a4c22b3f8efa7c8fc79006bc0f2e5cb870035"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "6bf8647d8091d384557815d00c33f3939ba6b2ec11692d810744b590d6a89190"
+          "sha256": "0689a1ef0dad4527b3075a7ca96b681e1caad51940b4e7a3dbd978ad7c52e728"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -1601,7 +1737,7 @@
         },
         {
           "path": "test/root_status_render.test.cjs",
-          "sha256": "609cc23b69872e195e87097b782edb18eba6bc92279e8016c3786718859e5198"
+          "sha256": "f99d2c356ac2c035f8eaa273d46e49e328f09686ad7f900e4d4065300791e471"
         },
         {
           "path": "test/test_native/test_http_access.cpp",
@@ -1621,7 +1757,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "39f7902f8443bcfb374bf2278ebc15d0eb169f67d4b36df70a64a7eaf2c7dc92"
+          "sha256": "9c3812f9c917d87e7e0c3e187fbc011f03e41f7a12066fa7feea7347f5ea9fda"
         },
         {
           "path": "data/html/ui-language.js",
@@ -1749,7 +1885,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/icons.json",
-          "sha256": "7ef610e6be3af46ffba0f4ea039f78622f1b81633e21429b34692d1eeed24eb4"
+          "sha256": "1082fecc433c20a85c09ebef66844d1446eccd0d7d902d65831b03071e23bcf2"
         },
         {
           "path": "ha/tests_native/test_boiler_field_names.py",
@@ -1757,7 +1893,7 @@
         },
         {
           "path": "ha/tests_native/test_dashboard_heating.py",
-          "sha256": "27cadd9fe408a22c5bb76a3e2d0d382b1e76c5d5fa1e093ca758caa0794f296b"
+          "sha256": "6c4cb2c4a2da2c82828be4cab38fb9c318dfe96a42449c1d5f1c8795943eccf2"
         },
         {
           "path": "ha/tests_native/test_plain_language.py",
@@ -1769,7 +1905,7 @@
         },
         {
           "path": "data/html/ui-messages-pages.js",
-          "sha256": "d35ccde6ae7107b71582adbfa422491831faa9e55a8af09ac978e46730f10b37"
+          "sha256": "85f505e8d425de3a4676db9485ab7e254e2a173d230ac1621fc2ddbad388e022"
         },
         {
           "path": "ha/tests_native/test_polish_translation.py",
@@ -1880,7 +2016,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_groups.py",
-          "sha256": "615a105dd5dbddcb3f531fe1ccc1ecfc8c77779e496cd0c8eed1538422841ccb"
+          "sha256": "5b65ab2f9c0f6569deef8a45d74c884a2a8be724c57390a839a3f0e82a7d20b2"
         },
         {
           "path": "ha/tests_native/test_e32_room_plan_link.py",
@@ -1900,7 +2036,7 @@
         },
         {
           "path": "ha/tests_native/test_room_groups.py",
-          "sha256": "c362f7e2db6def74d285755b32cc71c778095d08375f24b51398bf7ab4a060b3"
+          "sha256": "5c6e5bf0879e1007cfd86627094c5c8c85263498c18712be81514726f93c9b77"
         },
         {
           "path": "ha/tests_native/test_room_plan_link_interop.py",
@@ -1921,7 +2057,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "b9b3a6d207450e2fa34afa6f113326dda9420b0536987a4650f310b5178dde76"
+          "sha256": "df8d55afecfc8b368d8c16409d21043fc3d8f86d97c566f06c7c1b0fab91edb9"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
@@ -1937,11 +2073,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_week.py",
-          "sha256": "4f293eec08b41dab10acf0fe2e1743149c5cbe2ed23541e370451223a408def2"
+          "sha256": "6191b3d6e466cd0c45192a335b3ba44c71c97225c2f2279067a5deacaece9da8"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/e32-week-card.js",
-          "sha256": "b904efd69df93b0061117996b0659120738393b595993cfc218c2d77e2d27cda"
+          "sha256": "2fe00afc222548774601f66400138cbf0d405c27422bbf1d6710352c4e6a6c42"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-editor.js",
@@ -1949,11 +2085,11 @@
         },
         {
           "path": "ha/tests_native/test_e32_week.py",
-          "sha256": "100eda52b94b8abd13e6255a87cc7728d8796924bdedd5396a9510c91d93485e"
+          "sha256": "9adda9e00e27e8a16023bc19b808e15a93f167b8eb1e8656bfcd3e9fd104151d"
         },
         {
           "path": "test/week-editor-browser.cjs",
-          "sha256": "7b04f82739540c79669d6c1e9e6d4be63bb61c1133d82c14932133ff84c502c0"
+          "sha256": "d7a087a2394a9f6720835fb2105a321abd9edb2d67ab01e9840a034a117329cd"
         },
         {
           "path": "test/week-editor.test.cjs",
@@ -2147,7 +2283,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "2dc637244d462392c38431f3de2c2b09b6e74f8f0fb8aa3119feec4ed71cf8a6"
+          "sha256": "dc80531ee8dabf29cd8326a096e881f1a6a9c8a87b03f14975986330d316e7d1"
         },
         {
           "path": "platformio.ini",
@@ -2167,11 +2303,11 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "a5d7ca588d38e759474e7f68e9be083b0a3e61f6f25a1047436fb230ebb4815a"
+          "sha256": "49b90c036969af63fafcbebce8c45a476192238c5fca63081816b1a1afa25d70"
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "39f7902f8443bcfb374bf2278ebc15d0eb169f67d4b36df70a64a7eaf2c7dc92"
+          "sha256": "9c3812f9c917d87e7e0c3e187fbc011f03e41f7a12066fa7feea7347f5ea9fda"
         },
         {
           "path": "data/html/system-log.js",
@@ -2251,7 +2387,7 @@
         },
         {
           "path": "src/control/ModernTransport.h",
-          "sha256": "f878d4ef3e7034015fa0f0c1ea87539896a0b5741702290c4974d9b35767a417"
+          "sha256": "5a67ef3bd5760153fb8c25b2ef97020c5c5cd1ec67f81a73d9a046a9adc141a3"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_diagnostics.py",
@@ -2275,15 +2411,15 @@
         },
         {
           "path": "data/html/ems-devices.js",
-          "sha256": "e051803efce7568723972c8f9ce27a20cf2af90e26d0489f5e641c655098435e"
+          "sha256": "e8952c21d32e9eac334487e8ce80681936d562989fb8cddaecdccb7dfad25ad4"
         },
         {
           "path": "data/html/ems_devices.html",
-          "sha256": "8f957eeae0c59f1df9b450f91a27065561c0350a45deb9b0d0a42c96e61f9a6d"
+          "sha256": "f37d240816033a233a9728f889071c88c26ffd7539959e13d1795bba989eebdd"
         },
         {
           "path": "test/ems-devices-browser.cjs",
-          "sha256": "7ae71dc0ac08878dbdf979f51da9d5459ffca1e0d324015a6eb6f62015222795"
+          "sha256": "6917eebc7229aea3afdac3ff5c762c7a5edd2e3ed9344e9e546d0609eb769da4"
         },
         {
           "path": "docs/modern-thermostat/EMS-APPARATEN.nl.md",
@@ -2547,7 +2683,7 @@
         },
         {
           "path": "data/html/boiler-data.js",
-          "sha256": "35ca227c3339ed3e43fefaed60cd9cd1139f2b154f9a2ce55cf8d4528ba5be08"
+          "sha256": "e4a30381c8fd255a0847bbafa251743acf2287193d7c373b3209cfb17e593b73"
         },
         {
           "path": "data/html/ems-metadata.js",
@@ -2559,7 +2695,7 @@
         },
         {
           "path": "test/boiler-data.test.cjs",
-          "sha256": "27da26ed3f0b4ba0617ad747704da4db71c8907fcb91ee4fdca7bf3065b7dfdf"
+          "sha256": "ec0c48a2af7dd14ba4a36e77e27584620542d4321b443dc1957884a424378ef2"
         },
         {
           "path": "src/diagnostics/ResponseBuffer.h",
@@ -2711,11 +2847,11 @@
         },
         {
           "path": "docs/modern-thermostat/TELEMETRIEBUDGET.nl.md",
-          "sha256": "4d530fd2bcc1d3453fa83c6fd2d02dc5d36f45afdb80ae0572de394be93c388c"
+          "sha256": "5934ba0962eae23131f7ec71c198f6c852036b7008ee49442d3d04be51bce061"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/support_diagnostics.py",
-          "sha256": "1494ef67da1ef007de1118540b7a56ba4dadf5e0314d3634e97a91f32e51841b"
+          "sha256": "87ed9ea4218fa09c67311d214e92792269fe4a8c2619d7361ae33bb9d05334fb"
         },
         {
           "path": "ha/tests_native/e32_telemetry.py",
@@ -2723,7 +2859,7 @@
         },
         {
           "path": "ha/tests_native/test_e32_telemetry_topics.py",
-          "sha256": "c1b55b6f543b20841d769dec4895852a0aa636a12c281e25d3c92af53b176050"
+          "sha256": "f54806d82465199b5311841c4b74897a3d5ca6e45fd49af588d55e534e97a92f"
         },
         {
           "path": "ha/tests_native/test_session_recovery.py",
@@ -2735,11 +2871,11 @@
         },
         {
           "path": "src/control/BoilerStateTelemetry.h",
-          "sha256": "689a2995fe491c9c01bf05c6909e61b8a9e6488c1a9df4b6455acf2b686977c7"
+          "sha256": "c1664f57e791ebd2b965083b92bffd9be587e932fafc4b04638c88987a516f80"
         },
         {
           "path": "src/control/HeatingStateTopics.h",
-          "sha256": "434e9c9743b399626d3f7d71759c515d12c5781ae3816c415f6c2272888d2150"
+          "sha256": "99d82019f3f564a26e0178072e335451254f376d78a2d957c64b4e34cbad1f86"
         },
         {
           "path": "src/control/MqttOutbox.h",
@@ -2747,11 +2883,11 @@
         },
         {
           "path": "src/control/TelemetryPolicy.h",
-          "sha256": "97f2649a8cc563ee45b6aeed7ebac7b8d39ff0be09f87c8084b9f16735aa4101"
+          "sha256": "aab148612fc87c51d4ecc8c76f488e56381566970608db1c211ce4be7c028146"
         },
         {
           "path": "src/control/TelemetryPublisher.h",
-          "sha256": "c569fe0589d0c4162a3e1aeab2f3e081f52840eddd260f727a5718adb3198301"
+          "sha256": "b938279a3e00eb7cc808fd8828cf3f6b03af82a8bce38a82375c2d29e73c8242"
         },
         {
           "path": "test/soak/slow_wifi.h",
@@ -2759,7 +2895,7 @@
         },
         {
           "path": "test/test_native/test_heating_state_topics.cpp",
-          "sha256": "100282e0fe48b177ccd1831b355fc6975717e074099ab337c179ae76882e11e2"
+          "sha256": "8959d9595e26246adca82682e71f3111dc14c6fabc6b891994b7279f5619df57"
         },
         {
           "path": "test/test_native/test_mqtt_outbox.cpp",
@@ -2771,7 +2907,7 @@
         },
         {
           "path": "test/test_native/test_telemetry_publisher.cpp",
-          "sha256": "8ab1471da9434ebd6f810ad362fa3ee155d8ab2832b4e0a3a14b08f6f71037a0"
+          "sha256": "8cb2953382969b8f326803a4563af6f7c87304be32ae7a338faa5316e872bd30"
         },
         {
           "path": "src/diagnostics/DiagnosticsQuery.h",
@@ -2797,7 +2933,7 @@
       "files": [
         {
           "path": "src/EMS/ClassicBoilerMonitor.h",
-          "sha256": "50d2e9afbd9015fd07a25a1b100052e52f28567ad72ca904859f701cf5637785"
+          "sha256": "e88041c62b0f50864338958d00e44297fc57985e030a2443abf6a614994ea1bb"
         },
         {
           "path": "src/EMS/BoilerCapabilities.h",
@@ -2869,19 +3005,19 @@
         },
         {
           "path": "src/EMS/EmsEntityCatalog.h",
-          "sha256": "c388a44e7250a825a5cfcf8d560bb4251824265825236332c258b6241b9b6288"
+          "sha256": "3573a0d3002d2ef24c7cd0667cd827fd7e45287e7facb2673034f7db5cb8caac"
         },
         {
           "path": "test/test_native/test_ems_entity_catalog.cpp",
-          "sha256": "30def8aadaa4cf086980a22fbbd0bb3b37a486cfc6712594d37a34fcee393150"
+          "sha256": "30155ddbeec57a5be7442535180626a1852f6a24e71d419936d544f72ad71682"
         },
         {
           "path": "src/EMS/EmsEntityTable.h",
-          "sha256": "7ec20a0c77fa0b1c31bb0023595db9ddadfdc7224b5ee744be8ff756a0f7ff2e"
+          "sha256": "9c0fd11b396d83b6e02fa75efde091e507bf4c5ba0295e73811d26a7eeba3d40"
         },
         {
           "path": "scripts/generate_ems_fields.py",
-          "sha256": "3081b83443005b65e72881ac52e0a414cb44e49cd7f175ef1916ad2d5a5d1f2a"
+          "sha256": "a891f9a8b824be0c6b7d0fc0fabcc14e8d3fa5d5c7e10c22237bb1976c4837f6"
         },
         {
           "path": "ha/tests_native/test_boiler_catalog_fields.py",
@@ -3166,7 +3302,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
-          "sha256": "36d4ac5e73f39169b1b4cbdb3d7a3ec8de0c213d9b90f8d545fdc268e4851abf"
+          "sha256": "3a760f03cc268e5d3d054b00f6d319bd4424c4681842e7e23f59973407d6aa09"
         },
         {
           "path": "ha/tests_native/test_actuator_command_lifetime.py",
@@ -3418,11 +3554,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/heating_link.py",
-          "sha256": "69edb1be4325b9429fefa7e8003fb67b25164899f066589beb0fcbeaa3cdd979"
+          "sha256": "0d80fff5bed9cdc12c562966584b12c5f5bc99ff72aed56cc18578f341a7e4f5"
         },
         {
           "path": "ha/tests_native/test_heating_link.py",
-          "sha256": "7e179a37947bbad7b51e47436cb3dd04ade57f0e8bb5d05fb8b0cc4ded4ad3a5"
+          "sha256": "e464132810b47a7d206c4ff256acdf8827f601526a4fe616373aad0ef707b518"
         },
         {
           "path": "src/control/RoomSchedule.h",
@@ -3490,11 +3626,11 @@
         },
         {
           "path": "src/control/HeatingInput.h",
-          "sha256": "85550c79bbd2946b2e505eb41813e0260c126b84fd3b2921a7a8abd2c8f7c234"
+          "sha256": "497e6eab5b438a78b45dd5b0487ace816af8af13b94e407b9cbd855c093ea1fe"
         },
         {
           "path": "src/control/HeatingTelemetry.h",
-          "sha256": "5743b145591a5a260bd55f057417a170a1064ce347e901952e0f734487cf0429"
+          "sha256": "9439e5b02d5d1672ccf51fa1666e333949d65c65c5883ff19e9b280c105cf213"
         },
         {
           "path": "test/fixtures/dhw-episodes-hrc22.txt",
@@ -3510,7 +3646,7 @@
         },
         {
           "path": "test/test_native/test_boiler_cycles.cpp",
-          "sha256": "1635a133d06303fb721106fb6af6f35fe31d366b5b8bfa6e902aebe2d5b47e37"
+          "sha256": "c35665ac1487f39b5f4c431af6f759c33f7107e2443f2e65c7846a19eb49262f"
         },
         {
           "path": "test/test_native/test_dhw_episodes.cpp",
@@ -3522,11 +3658,11 @@
         },
         {
           "path": "test/test_native/test_heating_telemetry.cpp",
-          "sha256": "827eb010b8e37bd421f4d7a72cbedffc3fdb73c86aaa14cc5d551c0b3cd1a6dd"
+          "sha256": "0f8ee1601a1207c1d6e89cd0b9be57841313258ae023bc6ed4f18d45d7803958"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_flow.py",
-          "sha256": "ff9d196a4ead8ae74c078fc7acc6959dc3073fd24c5923533eb583e3b409fe10"
+          "sha256": "583f4e98db2374d617f72a03f3b30a865023f0cf711b94e0de7e42fed3da48a5"
         },
         {
           "path": "ha/tests_native/test_ble_device_name.py",
@@ -3534,7 +3670,7 @@
         },
         {
           "path": "ha/tests_native/test_e32_flow.py",
-          "sha256": "e7efd234f90c4e42d25ad2bf43da243b152b70475c94dcb18d7044261dee46f1"
+          "sha256": "e32a01b15d065f5c172a7ebf387059eae90835e313661d849fb8d7530ddc65a2"
         },
         {
           "path": "ha/tests_native/test_menu_structure.py",
@@ -3546,7 +3682,7 @@
         },
         {
           "path": "src/control/FlowPolicy.h",
-          "sha256": "98160b066f5ddbfbb1603bd0a40997b6b35738eac04bd5393e23b8ec277ab033"
+          "sha256": "2fecece648a14790a8e449cc09846f3a7f78e9d5c9d27b97e8a0f18b2f966ce5"
         },
         {
           "path": "src/control/HandoverConfirmation.h",
@@ -3558,7 +3694,7 @@
         },
         {
           "path": "test/test_native/test_flow_policy.cpp",
-          "sha256": "f36618530e8ea99388cf1fca1b0f6b44922a99291ee550f283447e8704bebb20"
+          "sha256": "c495dca3bd2ed830b8d196007185b8162ad44e40977addc073da216adbbf669b"
         },
         {
           "path": "test/test_native/test_handover_confirmation.cpp",
@@ -3586,7 +3722,7 @@
         },
         {
           "path": "ha/tests_native/test_card_modules.py",
-          "sha256": "b8a145b60e529a749e4ef474b8d541cdd9505d70d7f529912c3dcb3f96c0a409"
+          "sha256": "ff51f4776a5f5e9d0f35173bd22af3f8bd3c0c88b39f412d6dfd9ad86c7f4829"
         },
         {
           "path": "ha/tests_native/test_config_storage_backoff.py",
@@ -3594,7 +3730,7 @@
         },
         {
           "path": "ha/tests_native/test_dashboard_tidy.py",
-          "sha256": "fd8d82fc40fdabc128d20139b165b84fd282bf7886f710814fe32283f9125a0c"
+          "sha256": "b97eddf06a4cc477c8b2a3bb28ff2455ee7ebb80a81d3de8b72eed0d4ccbbc20"
         },
         {
           "path": "ha/tests_native/test_e32_sign_in_errors.py",
@@ -3634,11 +3770,11 @@
         },
         {
           "path": "ha/tests_native/test_dashboard_redesign.py",
-          "sha256": "c2e919c7e92c8df66492b6747a291067d18f63d2bdb743bbbc65371acdeef3b8"
+          "sha256": "d2bf489074614ca6d5cdcaee226aced199bb5d5d3eae65eaa8c7c80a1e5bef4e"
         },
         {
           "path": "ha/tests_native/test_value_presentation.py",
-          "sha256": "6cc836cf4a477a2931ec7a340a1b32117ddf39f082aa1206e7efd283e4e45b77"
+          "sha256": "0b7798495aafcf0ea92c18a897ef1bed18bb47799d1716f6dbd2993c0a30ac3d"
         },
         {
           "path": "ha/tests_native/test_room_window_contacts.py",
@@ -3698,7 +3834,7 @@
         },
         {
           "path": "ha/tests_native/test_dashboard_display_code.py",
-          "sha256": "0f1bf2dcb1ab02c2d7c231aaa802f8704340cb4789856d65c843505e4de7a0d6"
+          "sha256": "5ed8594912bbe01875509a97dc113c875696edeac662f2a5465897c835ef9673"
         },
         {
           "path": "ha/tests_native/test_display_codes.py",
@@ -3730,11 +3866,11 @@
         },
         {
           "path": "ha/tests_native/test_dashboard_daily_summary.py",
-          "sha256": "0d85def769abc28a846be0570a9a9a4c3439787e0ff925608ccb075e534eb5fe"
+          "sha256": "c32c3f92a56384090ae6c0f13035defebb8e5f44e1d421b4c87ac0bbe0f674eb"
         },
         {
           "path": "ha/tests_native/test_dhw_keep_warm.py",
-          "sha256": "ffd386cb47a1350582ebc267b42678e48510dc5b2858149f0ce11acd57849aaa"
+          "sha256": "6921c2b0ac39a114d97694707162159bb85c671509b487ea4d10251d39e3f009"
         },
         {
           "path": "ha/tests_native/test_e32_reconfirm.py",
@@ -3822,7 +3958,7 @@
         },
         {
           "path": "tools/switchover/release_ready.py",
-          "sha256": "6e2af0f97165114ac49bda8a0609a776835e0d3c44921871f47308d4eb092ea6"
+          "sha256": "61672105aa2c212c289a5b2e21cbf0224adabbde177520143d512bb8cd0c21ea"
         },
         {
           "path": "tools/switchover/replay_export.py",
@@ -3830,7 +3966,7 @@
         },
         {
           "path": "tools/switchover/test_release_ready.py",
-          "sha256": "03de1bcdef9aee4afa6b76f8e15467065005935a91ed718fb88bf94deef85a36"
+          "sha256": "484279d7b69b03d6b5ee285d4b6465fbaed4c6dc980fda4e6040e7b18a6bcce3"
         },
         {
           "path": "tools/switchover/test_replay_tools.py",
@@ -3862,7 +3998,7 @@
         },
         {
           "path": "test/test_native/test_control_tuning.cpp",
-          "sha256": "2628d41f4592375c6c4b7f2aa4f1f14be296e8853d2a3a3d4c934d2e5584951b"
+          "sha256": "bcac114a2487ecd8b30ae454607b083001dbfaca1fa532bc2d6a565b96a1452b"
         },
         {
           "path": "test/test_native/test_printed_json.cpp",
@@ -3890,11 +4026,11 @@
         },
         {
           "path": "ha/tests_native/test_gui_review_rc2.py",
-          "sha256": "a2d7ccc84f7e778bb5cab8f9189863b988048d356c5d20c407f48c557ee8bf7f"
+          "sha256": "93b868cdeb815e0a22c526c7c9bf1579adb2622a8f1d35e67b91168a20bddd54"
         },
         {
           "path": "ha/tests_native/test_polish_dashboard.py",
-          "sha256": "de3177ab58289db5be060ffe5355c505dc223ba8fd89db8363051688a5ab76ca"
+          "sha256": "1dc578442b2c28234114bcf3abc86a29da7ea3dc5138fd9d2d22d6a01db4bd36"
         },
         {
           "path": "ha/tests_native/test_takeover_route_texts.py",
@@ -3910,7 +4046,7 @@
         },
         {
           "path": "src/control/LearnedState.h",
-          "sha256": "03cc76f51052972c89759f899331c0f46bdf35a82b95f61d45848bab74d1d127"
+          "sha256": "8a2a833cd92f95a0f4bd21ab8d48dcf1f8cf156b711db518223e366fe77a32d6"
         },
         {
           "path": "src/control/NewPlanDefault.h",
@@ -3938,7 +4074,7 @@
         },
         {
           "path": "test/test_native/test_learned_state.cpp",
-          "sha256": "07f31227492bfb4faed65ddbd021f6898029a30fc60d42af569d42677ea9eefe"
+          "sha256": "d0cf5a54f3fc77d61196d37a6f29eb7b85586738c770fbef5a58ace0f45c8368"
         },
         {
           "path": "test/test_native/test_takeover_test.cpp",
@@ -3946,7 +4082,7 @@
         },
         {
           "path": "ha/tests_native/test_comparison_only_in_trial_run.py",
-          "sha256": "a58fca99b4dcf35a3645aa06c999501c11f4f931bc05e52fa90bf69913d37e57"
+          "sha256": "82edc83802b4c538e0ad15db500c257a45ed21cec090dfe1f87117868f2eccb2"
         },
         {
           "path": "ha/tests_native/test_e32_bluetooth.py",
@@ -3978,7 +4114,7 @@
         },
         {
           "path": "ha/tests_native/test_dashboard_layout.py",
-          "sha256": "3bb8dcb2bd9ea12ed4f8b3e07bb32ebd9dd60b0e4db27cc4cdbcae31fac39985"
+          "sha256": "27ad343de2514c27fe6dddb9a98c3039fc62236fc4c1c6bca870dbb85854ef45"
         },
         {
           "path": "ha/tests_native/test_repairs_plain_language.py",
@@ -3986,19 +4122,19 @@
         },
         {
           "path": "ha/tests_native/test_room_overview.py",
-          "sha256": "8bbf1c458821061be82fbc2bbcf41e3a6371f3813044863173d257831fa043f7"
+          "sha256": "d17c7d4818aac5b867a153c7b5245ad9b64523370188b182aa79fc78e543e822"
         },
         {
           "path": "test/fixtures/ha-dashboard-views.json",
-          "sha256": "d1183bfd81ab1ff926feeb6788ab5121ef62473b4e56b9012e69a1b69c531291"
+          "sha256": "e81d19a33d8470cf92bd02509f81f7f7b47f4a50e9971ce4e175cd0cfe0a12d6"
         },
         {
           "path": "ha/tests_native/test_e32_holidays.py",
-          "sha256": "f687c687c5a1c89e72d40aeff853ef3edd67f85d924beaeab61e84d3bce316f2"
+          "sha256": "755ded1e5c448ca72848aa721e5e21467a1711ea1e6ee3c23fe198c4c583b3d6"
         },
         {
           "path": "ha/tests_native/test_scoreboard.py",
-          "sha256": "1080245869693184b696f1662814a4d999a717555148bb6ecd69046ebd1028d4"
+          "sha256": "2df38b55f55c5e7f3533069ce5cabf323285509260fefaba58d10e440d054dcd"
         },
         {
           "path": "src/control/ArrivalLearner.h",
@@ -4014,7 +4150,7 @@
         },
         {
           "path": "src/control/Scoreboard.h",
-          "sha256": "6e5bb96e84d5a1565310717aa9a0505e0d4baa2094743990dab65823cc637ac8"
+          "sha256": "8ddbce0b082da5cd4707aa8a5adc85f5c599157fca52128d18285338b1cba203"
         },
         {
           "path": "test/test_native/test_arrival_learner.cpp",
@@ -4034,7 +4170,99 @@
         },
         {
           "path": "test/test_native/test_scoreboard.cpp",
-          "sha256": "fc3a5759aff0af88d2b4f12c7d16124e2d7e299e54170e11b2bdfeb6982ecf74"
+          "sha256": "a6cf58832a35a3995b997be57b921392165e02652a6d281d9079cb8f07874a35"
+        },
+        {
+          "path": "ha/tests_native/test_dashboard_boiler_now.py",
+          "sha256": "781039681dd533daa044970c623f1366784ac5ef96dd3fd95e2d80ae45598f56"
+        },
+        {
+          "path": "ha/tests_native/test_dashboard_house.py",
+          "sha256": "056154e9d3b05c4ddb25260b0d1c63483f1a1f756d1d85c3bdc466aafc6f9da3"
+        },
+        {
+          "path": "ha/tests_native/test_dashboard_learning_sketch.py",
+          "sha256": "ec04d756012a48227fda2b934ab3534140da159e74b5a8443e8f222947273c6e"
+        },
+        {
+          "path": "ha/tests_native/test_dashboard_overview_sketch.py",
+          "sha256": "f4a284cac0601a72c02291c55446b7cc9900dc44f520063fe8164329fabc1a59"
+        },
+        {
+          "path": "ha/tests_native/test_heating_input_link.py",
+          "sha256": "d0df6a3538e9263eb8a144c127c820d474337a9e8381ca7ff5519f72fd7113e3"
+        },
+        {
+          "path": "ha/tests_native/test_insight.py",
+          "sha256": "3c8a72bc2b3f4750dfda0034ca207821e81732ebce358290fdfd8f75f30c955e"
+        },
+        {
+          "path": "ha/tests_native/test_learning_cards.py",
+          "sha256": "797cae52e43487e06e8b08e17b6fcf59bc8553f14b7a8bf72e3944d713c14c22"
+        },
+        {
+          "path": "src/control/BoilerResponse.h",
+          "sha256": "a4d421088b4e5d3a57c75a616dce7398de5e1507e83d64ffd923961bdd7647f4"
+        },
+        {
+          "path": "src/control/FreeHeat.h",
+          "sha256": "cee7f2063779e67fa83e0a93c25f1fb93480c39ba84d837f4bcf6ebb3c657a2f"
+        },
+        {
+          "path": "src/control/HaInputSilence.h",
+          "sha256": "4d5fbf4a86b5f1091ee774f722ae91eec02dac22de598a91d3090b8541b23c9d"
+        },
+        {
+          "path": "src/control/HouseModel.h",
+          "sha256": "d959a728329e74420d8685aa1455e542a79ba27093c873ae4f1c9ce77709d3ab"
+        },
+        {
+          "path": "src/control/Insights.h",
+          "sha256": "be86608c5640c12d5099b0cfbbede3754f09e7b89d49916620bed3245adf269e"
+        },
+        {
+          "path": "src/control/Knowledge.h",
+          "sha256": "3e42e400871438342331e80c31fb91d577888140ef9e49a99eaf93701227a71e"
+        },
+        {
+          "path": "src/control/RestFloor.h",
+          "sha256": "9c57454cf4b965987c777b182a1ab8dabfc5a7586adb2c7a926b6d2192e8595a"
+        },
+        {
+          "path": "test/test_native/include/BoilerResponseWidest.h",
+          "sha256": "3d1c23b84c121f648bb21d74c245bd3accb60ec710f62d8fae53f416951af563"
+        },
+        {
+          "path": "test/test_native/include/SyntheticHouse.h",
+          "sha256": "b372590fbed79410b23126b017a715b07076c8700e99edba0a49ae176ed72d04"
+        },
+        {
+          "path": "test/test_native/test_boiler_request_only.cpp",
+          "sha256": "0740c90dec00e502d3872a45db45dfbcef534c784abc8587c06355658523a5a7"
+        },
+        {
+          "path": "test/test_native/test_boiler_response.cpp",
+          "sha256": "e9b57eace23b6fb878742aad328dd6f148b5f518d66f161d8eb563ce2c75fb4a"
+        },
+        {
+          "path": "test/test_native/test_free_heat.cpp",
+          "sha256": "178c2724dcf5e1e86cbc48b512ede2cc8bb676e85cc7e138acb3506cf1d2c882"
+        },
+        {
+          "path": "test/test_native/test_heating_input_link.cpp",
+          "sha256": "f7a517f21b9bad8f218a7a473a94ae05acdc0b0457c36fed33e4d458477c2212"
+        },
+        {
+          "path": "test/test_native/test_house_model.cpp",
+          "sha256": "17686fed43fd4f4e8e6fc75cba7d03b8cde24187aada1c3b30641ab5cc5ee6ef"
+        },
+        {
+          "path": "test/test_native/test_insights.cpp",
+          "sha256": "dfebb14eb32db467bb793b6ab35dc81c5580573182bf0cabccb33e06d2826f41"
+        },
+        {
+          "path": "test/test_native/test_knowledge.cpp",
+          "sha256": "913125c48e35fc9771652887d34d55c0b980b479aaf9a32369328680e6f74c06"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."
@@ -4122,7 +4350,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/dashboard.py",
-          "sha256": "473bdb1a45e12ea88720ddc9d5f27fea067afabf3404cd1b6666d8cb1129a921"
+          "sha256": "98071b10bdf3683523547e6ef13d455d726f4ea6bf73293f7130624663b63510"
         },
         {
           "path": "src/control/MetricsTelemetry.h",
@@ -4134,15 +4362,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/boiler_fields.py",
-          "sha256": "4eb59643e42cd274a8b7a044513aff710f82bd2f6a7da491cbea78bef23e2b40"
+          "sha256": "4aceceeb4ab756a1dbd73ba61e9bc56426b5d4410acf6e3a523365eb551dcb0b"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_boiler_fields.py",
-          "sha256": "e42ccd51487d7a578465a1c53d304f880b3e9878aa31132cffa62cbebcb5e22b"
+          "sha256": "b8c1ea5ba97a7c47925cba69f0b99d4690fd4268a3e57722027cfd0873ec8bcc"
         },
         {
           "path": "ha/tests_native/test_boiler_fields.py",
-          "sha256": "00e4670fabec326fd04d57e5ce7ced94d613efa14810f46d306baf0697eaaaad"
+          "sha256": "7c35ab2fadc8dbfd9f962052fdee243749a1b2ee2a425aa7fe871ee2e6393e10"
         },
         {
           "path": "ha/tests_native/test_boiler_fields_interop.py",
@@ -4162,11 +4390,11 @@
         },
         {
           "path": "src/MQTT.h",
-          "sha256": "174048c5123edf0c98202e2d45ac6afccd107e6b88b80df660b39e9099d57e70"
+          "sha256": "2f3f50730967d71f75d5a806627b2bebefaa9cddd6f41dfee6d814df83d7b0ad"
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "d760d132ff70bbda44623f37034778012cffb1acc2f860741a99fee0507b0bb1"
+          "sha256": "0c73673dc36397dcbcec2614f7f639d4636124be0eb77f8e5946d6afcf2f5357"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
@@ -4186,7 +4414,7 @@
         },
         {
           "path": "ha/tests_native/test_metrics_presentation.py",
-          "sha256": "455ac56ab25395266dc668390b74a56d8f5e27adaad3099050ab0b881a29edc7"
+          "sha256": "62e13d77f7e26396759aa0bab2587a66db492ee7f709de735d503934150db52c"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/services.yaml",
@@ -4218,7 +4446,7 @@
         },
         {
           "path": "ha/tests_native/test_energy_use.py",
-          "sha256": "b77d7b7272b1aa958079a4939dc5ac8ede7a0db0bd32a88a627880f788a3e1a4"
+          "sha256": "40ed2117d3cee645ab7b8994ab714745b73633f9a365d0c7eb8697b1bd9e353a"
         },
         {
           "path": "ha/tests_native/test_weekly_summary.py",
@@ -4418,7 +4646,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_comfort.py",
-          "sha256": "dae97676a0eec222e2de55671f101d4c2918b60944636e2579e3b2ef01dd9cbd"
+          "sha256": "b33f6029da002ad84046bfe8db4b2d01ba73791f8203f80dcee50d06c86f06ed"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/switch.py",
@@ -4434,7 +4662,7 @@
         },
         {
           "path": "src/control/RoomOverrides.h",
-          "sha256": "0647b5add1e20ce4dde9285215548fe338162da707d9a5e77a7ccc004986ddfa"
+          "sha256": "15c20557e674a8a0eb0f5b5f13f4aa05db76084e0b26727b2b3be16c7bd2d929"
         },
         {
           "path": "test/e32-comfort-browser.cjs",
@@ -4524,11 +4752,11 @@
         },
         {
           "path": "src/control/FlowLearner.h",
-          "sha256": "a55d2e927329599c0cb0ecbef1c2edb597a290529230de533bc876a9daccd31a"
+          "sha256": "678492cb5b3f3d076654e9bd4da34b0941f5e5b0fd0f4d61717bec9b2c6eaa9d"
         },
         {
           "path": "src/control/WarmupPlanner.h",
-          "sha256": "b11619d65bc24e9a97bda065d098cd2bf3ef8f79da735d8b68f6cfe3f5ecf86b"
+          "sha256": "632833fa72fda1e10b1b288f8751e13c42e7f935f111095e73cc2cd1535add56"
         },
         {
           "path": "test/test_native/test_flow_learner.cpp",
@@ -4613,7 +4841,7 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "c5a2f014961c522f822b8ff198b85703997d253f311ac7cc07a9aafb8ca6b2dc"
+          "sha256": "bc21b8751fac37e08c6bf0e9642112265f06b19e2376984cbf89fd5646496fec"
         },
         {
           "path": "src/EmsController.h",
@@ -4725,7 +4953,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "d760d132ff70bbda44623f37034778012cffb1acc2f860741a99fee0507b0bb1"
+          "sha256": "0c73673dc36397dcbcec2614f7f639d4636124be0eb77f8e5946d6afcf2f5357"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",

@@ -27,7 +27,7 @@
    for heating and the degree-days. It reads states only.
 
    The words are the integration's translations (strings.json entity.sensor.heat_request.state_attributes.card,
-   the sensors' own names, and the room's sentence entity.sensor.room_reason as on the room status card), so every
+   the Yesterday figures' own short labels there too, and the room's sentence entity.sensor.room_reason as on the room status card), so every
    viewer reads them in their own Home Assistant language; English is only the last resort. The band wears Home
    Assistant's theme colours (deep orange, blue, grey, the error colour) darkened until white words on it read at
    4.5:1 at least, in the light and the dark theme; the day strip and the gas line wear the same hues, a little
@@ -46,11 +46,10 @@ const TEXT = {title: 'Your house', heating: 'Heating', status_heating: 'Heating 
  last_hour: '{n} in the last hour', would_ask: 'E32 would ask {flow} °C', no_wish: 'The E32 would not ask for heat',
  tap_open: 'Hot water: tap open', keeping_warm: 'Keeping hot water warm', gas_estimate: 'Gas today (estimate)',
  no_warmup: 'no warm-up yesterday', late_hours: '{h} h {m} min late', early_hours: '{h} h {m} min early',
- not_warm: 'not warm within 3 h'};
+ not_warm: 'not warm within 3 h', yesterday_starts: 'Burner starts per heating hour',
+ yesterday_heating: 'Heating energy (estimate)', warm_on_time: '{room}: warm on time'};
 // The warm-on-time sensor's value for a room that did not get warm within 3 hours (the firmware's ArrivalLearner cap).
 const NOT_WARM_MIN = 180;
-// The scoreboard sensors' own names (strings.json entity.sensor.<key>.name), English as the last resort.
-const NAMES = {burner_starts_per_heating_hour: 'Burner starts per heating hour (yesterday)', heating_gas_yesterday: 'Heating energy yesterday (estimate)'};
 const DASH = '—';  // a figure not known yet: the same in every language
 const NBSP = '\u00a0';
 // What the boiler does (boiler_activity, heating_link.BOILER_ACTIVITIES): the kind in the strip and the status tone.
@@ -215,7 +214,11 @@ const clockMoment = (hass, value, now = Date.now()) => {
  const days = clockDay(hass, ms) - clockDay(hass, now), time = clockTime(hass, ms);
  if (days === 0) return time;
  if (Math.abs(days) === 1) {
-  try { return new Intl.RelativeTimeFormat(clockLocale(hass), {numeric: 'auto'}).format(days, 'day') + ' ' + time; } catch (e) { /* older browser */ }
+  try {
+   const word = new Intl.RelativeTimeFormat(clockLocale(hass), {numeric: 'auto'}).format(days, 'day');
+   // Polish "do"/"od"/"na" would need the genitive ("do jutra"): the time first keeps every sentence right ("do 06:30 jutro").
+   return /^pl\b/.test(clockLocale(hass)) ? time + ' ' + word : word + ' ' + time;
+  } catch (e) { /* older browser */ }
  }
  try { return new Date(ms).toLocaleString(clockLocale(hass), {weekday: 'short', day: 'numeric', month: 'short', ...clockOptions(hass)}); }
  catch (e) { return new Date(ms).toISOString().slice(0, 16).replace('T', ' '); }
@@ -866,7 +869,9 @@ class OpenThermostatYesterday extends OpenThermostatCard {
    // The firmware records a room that did not get warm within 3 hours after the switch as 180 min late (ArrivalLearner):
    // that is no lateness to count, so it says so, muted as "no warm-up yesterday".
    const never = minutes !== null && minutes >= NOT_WARM_MIN;
-   add('room', c.room.entity, this.t('warm', {room: c.room.name || room.attributes?.friendly_name || c.room.entity}),
+   // A room that was not warm (no warm-up, or not within 3 hours) is labelled with the question, not "was warm".
+   const name = c.room.name || room.attributes?.friendly_name || c.room.entity;
+   add('room', c.room.entity, this.t(none || never ? 'warm_on_time' : 'warm', {room: name}),
     none ? this.t('no_warmup') : never ? this.t('not_warm') : m === null ? null : m > 0 ? (long ? this.t('late_hours', long) : this.t('late', {m: num}))
      : m < 0 ? (long ? this.t('early_hours', long) : this.t('early', {m: num})) : this.t('on_time'), none || never);
   }
@@ -875,10 +880,10 @@ class OpenThermostatYesterday extends OpenThermostatCard {
    add(key, entity, label, num === null ? null : num + (unit ? NBSP + unit : ''));
   };
   const starts = this.st(c.starts), gas = this.st(c.gas), degrees = this.st(c.degree_days);
-  if (starts) plain('starts', c.starts, this.word('burner_starts_per_heating_hour.name') || NAMES.burner_starts_per_heating_hour, value(starts));
+  if (starts) plain('starts', c.starts, this.t('yesterday_starts'), value(starts));
   if (gas) {
    const unit = gas.attributes?.unit_of_measurement;
-   plain('gas', c.gas, this.word('heating_gas_yesterday.name') || NAMES.heating_gas_yesterday, value(gas), typeof unit === 'string' ? unit : '');
+   plain('gas', c.gas, this.t('yesterday_heating'), value(gas), typeof unit === 'string' ? unit : '');
   }
   if (degrees) plain('degree_days', c.degree_days, this.t('degree_days'), numeric(degrees.attributes?.degree_days));
   const card = make('ha-card', hass.themes?.darkMode ? {class: 'dark'} : {}), wrap = make('div', {class: 'wrap'});

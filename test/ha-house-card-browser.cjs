@@ -473,11 +473,14 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
    fill(W.week,{values:[2.1,2.6,1.9,2.4,3.0,2.2,2.0].map(v=>n(v,1)).join('; ')+NB+'m³'}));
   // A holiday ten days on ends on a date; a temporary target tomorrow morning says "tomorrow"; neither repeats its target.
   const line=key=>words['component.open_thermostat.entity.sensor.room_reason.state_attributes.line.state.'+key];
-  const [far,tomorrow]=await page.evaluate(([end,next,lang])=>[
-   new Date(end).toLocaleString(lang,{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Amsterdam'}),
-   new Intl.RelativeTimeFormat(lang,{numeric:'auto'}).format(1,'day')+' '+
-    new Date(next).toLocaleTimeString(lang,{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Amsterdam'})],[HOLIDAY_END,TOMORROW_7,lang]);
+  // Polish puts the time first ("do 07:00 jutro"): "do"/"od"/"na" would need the genitive ("do jutra").
+  const [far,tomorrow]=await page.evaluate(([end,next,lang])=>{const word=new Intl.RelativeTimeFormat(lang,{numeric:'auto'}).format(1,'day'),
+   time=new Date(next).toLocaleTimeString(lang,{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Amsterdam'});
+   return [new Date(end).toLocaleString(lang,{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Amsterdam'}),
+    lang==='pl'?time+' '+word:word+' '+time];},[HOLIDAY_END,TOMORROW_7,lang]);
   assert.match(far,/14/,'the date');
+  if(lang==='pl')assert.equal(tomorrow,'07:00 jutro');
+  if(lang==='nl')assert.equal(tomorrow,'morgen 07:00');
   assert.equal(await card('holiday').locator('.why').textContent(),fill(line('holiday'),{until:far,target:'15'}));
   assert.equal(await card('temporary').locator('.why').textContent(),fill(line('temporary_until'),{until:tomorrow,target:'22'}));
 
@@ -487,17 +490,26 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   const figures=async name=>yesterday(name).locator('.figure').evaluateAll(f=>f.map(x=>[x.dataset.figure,x.querySelector('.label').textContent,
    x.querySelector('.value').textContent,x.classList.contains('p2')]));
   assert.deepEqual(await figures('full'),[['room',fill(W.warm,{room:'Woonkamer'}),fill(W.early,{m:'4'}),false],
-   ['starts',sensorName('burner_starts_per_heating_hour'),n(1.3,1),false],['gas',sensorName('heating_gas_yesterday'),n(18.2,1)+NB+'kWh',false],
+   ['starts',W.yesterday_starts,n(1.3,1),false],['gas',W.yesterday_heating,n(18.2,1)+NB+'kWh',false],
    ['degree_days',W.degree_days,n(9.2,1),false]]);
   assert.deepEqual(await figures('late'),[['room',fill(W.warm,{room:'Badkamer'}),fill(W.late,{m:'12'}),false],
-   ['starts',sensorName('burner_starts_per_heating_hour'),'—',false],['gas',sensorName('heating_gas_yesterday'),n(18.2,1)+NB+'kWh',true]]);
+   ['starts',W.yesterday_starts,'—',false],['gas',W.yesterday_heating,n(18.2,1)+NB+'kWh',true]]);
+  // The card's own short labels (its heading says "yesterday"): never the sensors' names, "(yesterday)" or "(total)".
+  assert.deepEqual([W.yesterday_starts,W.yesterday_heating,W.degree_days],{en:['Burner starts per heating hour','Heating energy (estimate)','Degree-days'],
+   nl:['Branderstarts per stookuur','Energie voor verwarmen (schatting)','Graaddagen'],
+   pl:['Starty palnika na godzinę grzania','Energia na ogrzewanie (szacunek)','Stopniodni']}[lang]);
+  const ylabels=await page.locator('openthermostat-yesterday').evaluateAll(cards=>cards.flatMap(c=>[...c.shadowRoot.querySelectorAll('.label')].map(l=>l.textContent)));
+  for(const label of ylabels)assert.doesNotMatch(label,/\((yesterday|gisteren|wczoraj|total|totaal|łącznie)\)/i,label);
+  assert(!ylabels.includes(sensorName('burner_starts_per_heating_hour'))||sensorName('burner_starts_per_heating_hour')===W.yesterday_starts);
   assert.deepEqual(await figures('on_time'),[['room',fill(W.warm,{room:'Slaapkamer'}),W.on_time,true]]);
   // No warm-up yesterday in words, muted (not "—" under "was warm"); 72 minutes as an hour and 12 minutes.
-  assert.deepEqual(await figures('none'),[['room',fill(W.warm,{room:'Zolder'}),W.no_warmup,true]]);
+  // A room that was not warm is labelled with the question ("Zolder: warm on time"), never "was warm" over "not warm".
+  assert.deepEqual(await figures('none'),[['room',fill(W.warm_on_time,{room:'Zolder'}),W.no_warmup,true]]);
+  assert.equal(W.warm_on_time,{en:'{room}: warm on time',nl:'{room}: op tijd warm',pl:'{room}: ciepło na czas'}[lang]);
   assert.equal(await yesterday('none').locator('.value').evaluate(v=>v.classList.contains('unknown')),true);
   assert.deepEqual(await figures('long'),[['room',fill(W.warm,{room:'Hal'}),fill(W.late_hours,{h:'1',m:'12'}),true]]);
   // 180 min is the firmware's "not warm within 3 hours": said in words, muted; 179 min is still a lateness.
-  assert.deepEqual(await figures('never'),[['room',fill(W.warm,{room:'Kelder'}),W.not_warm,true]]);
+  assert.deepEqual(await figures('never'),[['room',fill(W.warm_on_time,{room:'Kelder'}),W.not_warm,true]]);
   assert.equal(await yesterday('never').locator('.value').evaluate(v=>v.classList.contains('unknown')),true);
   assert.deepEqual(await figures('almost'),[['room',fill(W.warm,{room:'Zolder'}),fill(W.late_hours,{h:'2',m:'59'}),true]]);
   assert.equal(await yesterday('almost').locator('.value').evaluate(v=>v.classList.contains('unknown')),false);

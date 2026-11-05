@@ -339,10 +339,14 @@ def test_the_card_texts_are_in_every_language_with_the_same_placeholders():
         "brander {n} %", "code {code}", "boiler {t} °C", "{n} in het laatste uur")
     assert (english["burner"], english["water"], pl["burner"], pl["code"]) == (
         "burner {n} %", "water {t} °C", "palnik {n} %", "kod {code}")
-    # The Yesterday figures are labelled by their sensors' own names; the card's English last resort is the same.
-    names = dict(re.findall(r"(\w+): '([^']*)'", re.search(r"const NAMES = \{(.*?)\};", CARD, re.S)[1]))
-    sensors = json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))["entity"]["sensor"]
-    assert names == {key: sensors[key]["name"] for key in ("burner_starts_per_heating_hour", "heating_gas_yesterday")}
+    # The Yesterday figures have the card's own short labels (the heading says "yesterday"), not the sensors' names.
+    assert (english["yesterday_starts"], english["yesterday_heating"], english["degree_days"]) == (
+        "Burner starts per heating hour", "Heating energy (estimate)", "Degree-days")
+    assert (nl["yesterday_starts"], nl["yesterday_heating"], nl["degree_days"]) == (
+        "Branderstarts per stookuur", "Energie voor verwarmen (schatting)", "Graaddagen")
+    assert (pl["yesterday_starts"], pl["yesterday_heating"], pl["degree_days"]) == (
+        "Starty palnika na godzinę grzania", "Energia na ogrzewanie (szacunek)", "Stopniodni")
+    assert "const NAMES" not in CARD and ".name') ||" not in CARD
     assert pl["request"].startswith("Żądanie do kotła") and pl["all_reasons"] == TEXT["pl"]["problem_more"]
     for words in (english, nl, pl):
         assert not any(term in text.lower() for text in words.values()

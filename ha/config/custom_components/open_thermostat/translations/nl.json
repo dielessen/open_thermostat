@@ -2736,7 +2736,10 @@
               "no_warmup": "gisteren niet opgewarmd",
               "late_hours": "{h} u {m} min te laat",
               "early_hours": "{h} u {m} min te vroeg",
-              "not_warm": "niet warm binnen 3 u"
+              "not_warm": "niet warm binnen 3 u",
+              "yesterday_starts": "Branderstarts per stookuur",
+              "yesterday_heating": "Energie voor verwarmen (schatting)",
+              "warm_on_time": "{room}: op tijd warm"
             }
           }
         }

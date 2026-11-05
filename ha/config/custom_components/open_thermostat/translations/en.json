@@ -1699,7 +1699,10 @@
               "no_warmup": "no warm-up yesterday",
               "late_hours": "{h} h {m} min late",
               "early_hours": "{h} h {m} min early",
-              "not_warm": "not warm within 3 h"
+              "not_warm": "not warm within 3 h",
+              "yesterday_starts": "Burner starts per heating hour",
+              "yesterday_heating": "Heating energy (estimate)",
+              "warm_on_time": "{room}: warm on time"
             }
           }
         }

@@ -48,9 +48,9 @@ async def test_yesterday_in_figures_is_on_the_learning_view_once_with_the_missed
     assert cards is not None
     text = cards[1]["content"]
     assert f"state_attr(\"{hub['daily_summary']}\", 'last_day')" in text
-    assert "{{ d.burner_hours }}" in text and "{{ d.burner_starts }}" in text and "{{ d.short_runs }}" in text
+    assert "{{ d.burner_hours }}" in text and "d.burner_starts" in text and "d.short_runs" in text
     assert "~ ' m³'" in text  # the gas in the gas sensor's unit
-    assert "The first full day appears here tomorrow." in text and "d.date" not in text  # no date header
+    assert "The first day appears here tomorrow." in text and "d.date" not in text  # no date header
     charts = [card for card in cards if card.get("type") == "statistics-graph"]
     assert [c["entities"][0]["entity"] for c in charts] == [hub["daily_missed_comfort"]]
     assert charts[0]["visibility"] == known(hub["daily_missed_comfort"])
@@ -88,9 +88,17 @@ async def test_yesterday_in_figures_renders_the_summary_as_list_lines(hass):
     hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "complete": False, "rooms": []}})
     assert Template(card["content"], hass).async_render(parse_result=False).endswith(
         "\n\n_Partial day: the E32 was not heard all day, so the figures are incomplete._")
+    # rc7 (R1-23): one start is "1 start"; no short run, no "(0 shorter than 10 minutes)"; no start at all says so.
+    hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "burner_starts": 1, "short_runs": 0}})
+    assert Template(card["content"], hass).async_render(parse_result=False).startswith(
+        "- Burner 6.3 h, 1 start. Gas: heating 1.2 m³")
+    quiet = {**day, "burner_hours": 0.0, "burner_starts": 0, "short_runs": 0, "gas": None, "outdoor": None, "rooms": []}
+    hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": quiet})
+    assert Template(card["content"], hass).async_render(parse_result=False) == "- The burner did not start."
+    # On the day of installation tomorrow shows a partial day, so not "the first full day" (R1-27).
     hass.states.async_set(hub["daily_summary"], "unknown", {})
     assert Template(card["content"], hass).async_render(parse_result=False) == (
-        "The first full day appears here tomorrow.")
+        "The first day appears here tomorrow.")
 
 
 @pytest.mark.asyncio
@@ -125,7 +133,7 @@ async def test_one_gas_figure_as_a_tile_and_tomorrow_only_while_nothing_has_a_va
     assert "Gas: heating 1.2, hot water 0.8." in Template(card["content"], hass).async_render(parse_result=False)
     hass.states.async_set(hub["daily_summary"], "unknown", {})
     assert Template(card["content"], hass).async_render(parse_result=False) == (
-        "The first full day appears here tomorrow.")
+        "The first day appears here tomorrow.")
     hass.states.async_set(hub["heating_gas_yesterday"], "18.2")  # a figure on the card: no "tomorrow" under it
     assert Template(card["content"], hass).async_render(parse_result=False) == ""
 
@@ -154,11 +162,31 @@ async def test_the_four_headline_figures_are_large_and_the_lines_do_not_repeat_t
                                       ("0.4", hub["short_cycling_hours"], {}), ("18.2", hub["heating_gas_yesterday"], {}),
                                       ("1.98", hub["gas_per_degree_day"], {"degree_days": 9.2, "heating_kwh": 18.2})):
         hass.states.async_set(entity, state, attributes)
+    # 0.0 °C above the target is not "too warm" (R1-21): left out.
     assert Template(lines["content"], hass).async_render(parse_result=False) == (
         "- **Woonkamer**: 0.3 °C too warm\n"
-        "- **Badkamer**: warm 12 min late · 0.0 °C too warm\n"
+        "- **Badkamer**: warm 12 min late\n"
         "- Heating time: 6.2 h · Short burner runs: 0.4 h\n"
         "- 1.98 kWh per degree-day")
+    # rc7: below the target is not too warm either; an hour or more in hours; 3 hours is "not warm within 3 h" (the E32
+    # counts a room that never got warm as 3 hours late); no short runs: "none" (R1-6, 21, 24; integrator's 4).
+    for minutes, said in (("95", "warm 1 h 35 min late"), ("180", "not warm within 3 h"), ("-75", "warm 1 h 15 min early")):
+        hass.states.async_set(rooms["badkamer"]["warm_on_time"], minutes)
+        hass.states.async_set(rooms["badkamer"]["overshoot"], "-0.3")
+        hass.states.async_set(hub["short_cycling_hours"], "0.0")
+        assert Template(lines["content"], hass).async_render(parse_result=False).split("\n")[1:3] == [
+            "- **Badkamer**: " + said, "- Heating time: 6.2 h · Short burner runs: none"], minutes
+    # The E32's last scored day is an older one (a day without a trusted clock): said once, above the lines (R1-27).
+    hass.states.async_set(rooms["woonkamer"]["warm_on_time"], "-4", {"day": "2026-10-30"})
+    assert Template(lines["content"], hass).async_render(parse_result=False).startswith(
+        "_These figures are from 30 Oct: the E32 has no newer full day._\n\n- **Woonkamer**")
+    from homeassistant.util import dt as dt_util
+    yesterday = (dt_util.now() - __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%d")
+    hass.states.async_set(rooms["woonkamer"]["warm_on_time"], "-4", {"day": yesterday})
+    assert Template(lines["content"], hass).async_render(parse_result=False).startswith("- **Woonkamer**")
+    hass.states.async_set(rooms["badkamer"]["warm_on_time"], "12")
+    hass.states.async_set(rooms["badkamer"]["overshoot"], "0.0")
+    hass.states.async_set(hub["short_cycling_hours"], "0.4")
     for text in ("Burner starts per heating hour", "Gas for heating", "Degree-days"):
         assert text not in lines["content"], text
     # Only the four on the card: with them alone known, the lines are empty and hide (no "tomorrow" under figures).
@@ -204,12 +232,16 @@ async def test_yesterday_in_figures_in_dutch(hass):
                       "missed_minutes": 4}]}
     hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": day})
     assert Template(cards[1]["content"], hass).async_render(parse_result=False) == (
-        "- Brander 7,4 uur, 21 starts (0 korter dan 10 minuten). Gas: verwarmen 1,25 m³, warm water 0,5 m³. "
+        "- Brander 7,4 uur, 21 starts. Gas: verwarmen 1,25 m³, warm water 0,5 m³. "
         "Buiten 4,5 tot 10,0 °C.\n"
-        "- Woonkamer: vroeg 7,0 uur warmte; gemiddeld na 25 min op temperatuur; gemiste comfort 4 min.")
+        "- Woonkamer: vroeg 7,0 uur warmte; gemiddeld na 25 min op temperatuur; gemist comfort 4 min.")
+    hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "burner_starts": 1, "short_runs": 2}})
+    assert Template(cards[1]["content"], hass).async_render(parse_result=False).startswith(
+        "- Brander 7,4 uur, 1 start (2 korter dan 10 minuten).")
     hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": {**day, "outdoor": {"min": 4.5, "max": 4.5}}})
     assert " Buiten 4,5 °C." in Template(cards[1]["content"], hass).async_render(parse_result=False)
-    assert [c["title"] for c in cards if c.get("type") == "statistics-graph"] == ["Gemiste comfort per dag (minuten)"]
+    # "Gemist comfort" (comfort is a het-word; docs/UX-GLOSSARY.md).
+    assert [c["title"] for c in cards if c.get("type") == "statistics-graph"] == ["Gemist comfort per dag (minuten)"]
     today = heading_section(view(config, "boiler"), "Vandaag en deze week")
     assert "Branderuren per dag" in [c.get("title") for c in today]
 
@@ -220,3 +252,33 @@ async def test_no_yesterday_in_figures_without_the_summary_and_the_scoreboard(ha
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     assert heading_section(view(config, "learned"), "Yesterday in figures") is None
     assert "Yesterday" not in json.dumps(config)
+
+
+@pytest.mark.asyncio
+async def test_with_a_gas_meter_yesterdays_gas_is_the_measured_one(hass):
+    """R1-22: with a gas meter the summary's measured gas (in the meter's unit) is yesterday's gas; the boiler's own
+    estimate in kWh is neither on the figures card nor in the lines. Without a meter the estimate stays, labelled as
+    the boiler's (R3-9)."""
+    e, rooms, sensors, hub, fields = installation(hass, "en")
+    entities, devices = er.async_get(hass), dr.async_get(hass)
+    product = devices.async_get_device_by_identifier(("open_thermostat", "fixture"), e.entry_id)
+    for key in ("daily_summary", "heating_gas_yesterday", "gas_per_degree_day", "heating_gas"):
+        hub[key] = entities.async_get_or_create("sensor", "open_thermostat", f"fixture_hub_{key}", config_entry=e,
+                                                device_id=product.id, suggested_object_id=key).entity_id
+    day = {"complete": True, "burner_hours": 6.3, "burner_starts": 14, "short_runs": 2,
+           "gas": {"heating": 1.2, "hot_water": 0.8}, "outdoor": None, "rooms": []}
+    hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": day})
+    hass.states.async_set(hub["heating_gas_yesterday"], "18.2")
+    for meter, said in ((True, "- Burner 6.3 h, 14 starts (2 shorter than 10 minutes). Gas: heating 1.2 m³, hot water "
+                                "0.8 m³."),
+                        (False, "- Burner 6.3 h, 14 starts (2 shorter than 10 minutes).")):
+        hass.states.async_set(hub["heating_gas"], "120.5", {"unit_of_measurement": "m³", "estimate": not meter})
+        config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
+        section = next(s for s in view(config, "learned")["sections"] if s["cards"][0]["heading"] == "Yesterday in figures")
+        figures, card = section["cards"][1:3]
+        assert ("gas" in figures) is not meter, meter
+        assert Template(card["content"], hass).async_render(parse_result=False) == said, meter
+    from custom_components.open_thermostat.dashboard import TEXT
+    assert [TEXT[lang]["scoreboard_gas"].split(":")[0] for lang in ("en", "nl", "pl")] == [
+        "Gas for heating (boiler's estimate)", "Gas voor verwarming (schatting van de ketel)",
+        "Gaz na ogrzewanie (szacunek kotła)"]

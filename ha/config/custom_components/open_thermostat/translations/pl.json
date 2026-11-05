@@ -4215,7 +4215,7 @@
       "message": "Wybierz Automatyczny, W domu, Nieobecność lub Urlop."
     },
     "house_holiday_date_needed": {
-      "message": "Najpierw ustaw \"Urlop do\": urlop zaczyna się od daty końcowej."
+      "message": "Aby rozpocząć urlop, ustaw \"Urlop do\" na dzień powrotu; tryb domu sam zmieni się na Urlop."
     },
     "house_mode_update_required": {
       "message": "Wymaga oprogramowania E32 beta.23 lub nowszego. Zaktualizuj E32 za pomocą jego encji Oprogramowanie."

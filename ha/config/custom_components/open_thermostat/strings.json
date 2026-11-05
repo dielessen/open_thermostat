@@ -4215,7 +4215,7 @@
       "message": "Choose Automatic, At home, Away or Holiday."
     },
     "house_holiday_date_needed": {
-      "message": "Set \"Holiday until\" first: the holiday starts with its end date."
+      "message": "To go on holiday, set \"Holiday until\" to the day you are back; the house mode then becomes Holiday by itself."
     },
     "house_mode_update_required": {
       "message": "This needs E32 firmware beta.23 or newer. Update the E32 with its Firmware entity."

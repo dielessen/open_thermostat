@@ -4215,7 +4215,7 @@
       "message": "Kies Automatisch, Thuis, Afwezig of Vakantie."
     },
     "house_holiday_date_needed": {
-      "message": "Stel eerst \"Vakantie tot\" in: de vakantie begint met haar einddatum."
+      "message": "Zet voor een vakantie \"Vakantie tot\" op de dag dat je terug bent; de huismodus wordt dan vanzelf Vakantie."
     },
     "house_mode_update_required": {
       "message": "Hiervoor is E32-firmware beta.23 of nieuwer nodig. Werk de E32 bij met zijn Firmware-entiteit."

@@ -849,7 +849,7 @@ The trial run is optional. **The E32 does:**
 - learn from how your boiler answers its requests (its ceiling and rest, see
   [Listening to the boiler](USER-GUIDE.md#listening-to-the-boiler)); the
   boiler's response says **E32 not controlling the boiler** until the takeover;
-- drive radiator valves. A room's **Valve control** switch is off by default,
+- drive radiator valves. A room's **Radiator valve control** switch is off by default,
   and even when it is on, valves are only driven while the E32 controls the
   boiler itself.
 
@@ -909,7 +909,7 @@ to the boiler, the house model, the knowledge figure, free heat) starts from
 zero and fills in over the first days of heating, so **The E32 knows your
 house** starts lower than it will end up; see
 [What the E32 knows](USER-GUIDE.md#what-the-e32-knows-and-what-it-still-lacks).
-The two new sensors **Knowledge** and **Boiler response** read unknown until
+The two new sensors **Known about your house** and **Boiler response** read unknown until
 the E32 runs rc.5 and has reported.
 
 **Coming from 1.0.0-rc.3?** The same order and the same versions (integration

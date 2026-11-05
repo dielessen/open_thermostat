@@ -122,7 +122,7 @@ it is done.
      Zigbee2MQTT valve whose model is not recognised (choose it under
      **Choose the models myself (advanced)**).
 
-   Each room has a **Valve control** switch, off by default. Valves are
+   Each room has a **Radiator valve control** switch, off by default. Valves are
    driven only while that switch is on **and** the E32 controls the boiler.
    So during a trial run nothing is sent to the valves, even when you set
    them up. Give each valve one job: either the room's **setting device**
@@ -215,7 +215,7 @@ only your home can tell us:
   while heating) and step 5 (stop heating). The result is kept on the Rooms
   page and in Home Assistant on the sensor **Ready for E32 control**.
 - **Valves per room.** Model, Zigbee2MQTT or ZHA, and after the takeover with
-  **Valve control** on: does the valve follow the room, does it report its
+  **Radiator valve control** on: does the valve follow the room, does it report its
   position and battery, and does it ever go silent?
 - **Sensors.** Which sensors you use, and whether a room on the E32 Rooms page
   ever shows "Backup sensor in use", "Sensor silent: last reading used" or
@@ -370,7 +370,7 @@ best report of all.
 ## 8. Known limits in rc.5
 
 - **Radiator valve control is not yet verified on real valves.** You are the
-  one verifying it. Switch **Valve control** on one room at a time, after the
+  one verifying it. Switch **Radiator valve control** on one room at a time, after the
   takeover.
 - **EMS Classic (EMS 1.0) boilers only.** EMS+ boilers come in 1.1.
 - **Writing boiler settings** comes after 1.0; the E32 only reads them.

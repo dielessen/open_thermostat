@@ -345,3 +345,95 @@ async def test_the_choose_source_fix_only_chooses_a_source(hass, linked, badkame
     room = link.room("badkamer")
     assert room["sources"] == [{"type": "ha", "id": binding.temperature.entity_id}] and room["state"] == "inactive"
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+
+
+class PlanLink(FakeLink):
+    """FakeLink that also writes a whole-plan change (RoomPlanLink.async_change_plan)."""
+
+    async def async_change_plan(self, change, confirm=lambda stored: True, key=None):
+        self.plan = change(self.plan)
+        assert confirm(self.plan)
+        self.changes.append("plan")
+        return self.plan
+
+
+@pytest.mark.asyncio
+async def test_a_source_renamed_in_home_assistant_is_renamed_in_the_room_plan(hass):
+    """R2-4 (1.0.0rc7): renaming climate.tado to climate.woonkamer (Home Assistant moves its history, so it looks
+    safe) renames the room's source and setting device on the E32 too, instead of a room that goes lost."""
+    from types import SimpleNamespace
+    from custom_components.open_thermostat.room_plan import RoomSourceWatch
+    link = PlanLink(e32_plan([{"type": "ha", "id": "sensor.badkamer"}]))
+    hub = SimpleNamespace(status={"ha_entities": ["climate.tado", "sensor.badkamer"]}, plan=link)
+    stop = RoomSourceWatch(hass, SimpleNamespace(entry_id="e"), hub).start()
+    registry = er.async_get(hass)
+    assert registry.async_get_or_create("climate", "tado", "zone1", suggested_object_id="tado").entity_id == "climate.tado"
+    registry.async_update_entity("climate.tado", new_entity_id="climate.woonkamer")
+    await hass.async_block_till_done()
+    woonkamer = room_of(link.plan, "woonkamer")
+    assert woonkamer["sources"] == [{"type": "ha", "id": "climate.woonkamer"}, BLE]
+    assert woonkamer["setpoint_entity"] == "climate.woonkamer"
+    assert room_of(link.plan, "badkamer")["sources"] == [{"type": "ha", "id": "sensor.badkamer"}]
+    # An entity the plan does not read, or a change that is not a rename: nothing is written.
+    other = registry.async_get_or_create("sensor", "demo", "elsewhere", suggested_object_id="elsewhere")
+    registry.async_update_entity(other.entity_id, new_entity_id="sensor.somewhere")
+    registry.async_update_entity("climate.woonkamer", name="Living room")
+    await hass.async_block_till_done()
+    assert link.changes == ["plan"]
+    stop()
+
+
+@pytest.mark.asyncio
+async def test_a_source_gone_for_ten_minutes_asks_for_a_new_one(hass):
+    """R2-4 (1.0.0rc7): a source with no state and no registry entry for 10 minutes (removed, or renamed while
+    Home Assistant was not running) raises the fixable "Choose a new temperature source" repair for its room."""
+    from types import SimpleNamespace
+    from custom_components.open_thermostat import repairs
+    from custom_components.open_thermostat.room_plan import SOURCE_MISSING_ISSUE, RoomSourceWatch
+    now = [0.0]
+    link = PlanLink(e32_plan([{"type": "ha", "id": "sensor.badkamer"}, BLE]))
+    hub = SimpleNamespace(status={"ha_entities": ["climate.tado", "sensor.badkamer"]}, plan=link)
+    entry = SimpleNamespace(entry_id="e")
+    hass.states.async_set("climate.tado", "heat", {"current_temperature": 20.5})
+    watch = RoomSourceWatch(hass, entry, hub, clock=lambda: now[0])
+    issue_id = migrate.choose_source_issue_id(entry, "badkamer")
+    issues = ir.async_get(hass)
+    watch.check()
+    now[0] += 9 * 60
+    watch.check()
+    assert issues.async_get_issue(DOMAIN, issue_id) is None  # its integration may still be starting
+    now[0] += 2 * 60
+    watch.check()
+    issue = issues.async_get_issue(DOMAIN, issue_id)
+    assert issue.translation_key == SOURCE_MISSING_ISSUE and issue.is_fixable and not issue.is_persistent
+    assert issue.translation_placeholders == {"room": "Badkamer", "source": "sensor.badkamer"}
+    assert issue.data == {"entry_id": "e", "room_id": "badkamer", "entities": ["sensor.badkamer"]}
+    assert isinstance(await repairs.async_create_fix_flow(hass, issue_id, issue.data), repairs.ChooseSourceRepairFlow)
+    # While the E32 is silent nothing is judged; back with its source (a registry entry is enough): gone.
+    hub.status = None
+    watch.check()
+    assert issues.async_get_issue(DOMAIN, issue_id) is not None
+    hub.status = {"ha_entities": ["climate.tado", "sensor.badkamer"]}
+    er.async_get(hass).async_get_or_create("sensor", "demo", "badkamer", suggested_object_id="badkamer")
+    watch.check()
+    assert issues.async_get_issue(DOMAIN, issue_id) is None and watch.missing == {}
+
+
+@pytest.mark.asyncio
+async def test_the_new_source_repair_names_the_room_as_the_dashboard_does(hass, monkeypatch):
+    """R4-14: a room renamed in Home Assistant keeps that name in "Choose a new temperature source" (room_names)."""
+    from types import SimpleNamespace
+    from custom_components.open_thermostat import insight
+    from custom_components.open_thermostat.room_plan import RoomSourceWatch
+    now = [0.0]
+    hub = SimpleNamespace(status={"ha_entities": ["climate.tado", "sensor.badkamer"]}, rooms={"badkamer": {}},
+                          plan=PlanLink(e32_plan([{"type": "ha", "id": "sensor.badkamer"}, BLE])))
+    monkeypatch.setattr(insight, "room_names", lambda hub, hass, entry_id: {"badkamer": "Bathroom upstairs"})
+    hass.states.async_set("climate.tado", "heat", {"current_temperature": 20.5})
+    entry = SimpleNamespace(entry_id="e")
+    watch = RoomSourceWatch(hass, entry, hub, clock=lambda: now[0])
+    watch.check()
+    now[0] += 11 * 60
+    watch.check()
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, migrate.choose_source_issue_id(entry, "badkamer"))
+    assert issue.translation_placeholders == {"room": "Bathroom upstairs", "source": "sensor.badkamer"}

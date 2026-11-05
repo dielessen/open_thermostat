@@ -26,7 +26,8 @@ import re
 import time
 
 import aiohttp
-from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
+from homeassistant.components.update import UpdateDeviceClass, UpdateEntity, UpdateEntityFeature
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
@@ -54,6 +55,20 @@ RESULTS = ("installed", "download_failed", "verification_failed", "upload_failed
 INSTALL_RECORD = ("tag", "from_version", "sha256", "size", "started_at", "finished_at", "duration_s",
                   "result", "uploads", "reported")
 _UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+# Where a failed install stopped (last_install "result") -> the error Home Assistant shows, in the user's
+# language (exceptions.<key>), instead of "Unknown error".
+INSTALL_ERRORS = {"download_failed": "firmware_download_failed", "verification_failed": "firmware_verification_failed",
+                  "upload_failed": "firmware_upload_failed", "not_confirmed": "firmware_not_confirmed"}
+
+
+class _InstallFailed(Exception):
+    """The install stopped where last_install's result says."""
+
+
+def install_error(result, error=None):
+    """The translated Home Assistant error for an install that stopped at ``result``."""
+    return HomeAssistantError(translation_domain=DOMAIN, translation_key=INSTALL_ERRORS[result],
+                              translation_placeholders={"error": error or "-"} if result == "upload_failed" else None)
 
 
 def parse_tag(tag):
@@ -144,6 +159,7 @@ def verify_image(image, release):
 class E32FirmwareUpdate(UpdateEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "e32_firmware"  # "Firmware" (EN/NL/PL)
+    _attr_device_class = UpdateDeviceClass.FIRMWARE
     _attr_supported_features = UpdateEntityFeature.INSTALL | UpdateEntityFeature.RELEASE_NOTES
 
     def __init__(self, hass, entry):
@@ -165,12 +181,18 @@ class E32FirmwareUpdate(UpdateEntity):
         return self._attr_installed_version is not None
 
     def _set_installed(self, version):
-        """A version the E32 reported (or that a restart restored); its channel follows."""
+        """A version the E32 reported (or that a restart restored); its channel follows.
+
+        A version the release tags do not know (a local or development build) shows as installed, with no
+        update offered (version_is_newer), instead of an entity that stays unavailable for good.
+        """
         key = parse_tag(version)
         if key is None:
-            return False
+            if type(version) is not str or not version.strip() or len(version) > 64:
+                return False
+        else:
+            self._channel = key[3]
         self._attr_installed_version = version
-        self._channel = key[3]
         if self._attr_latest_version is None:
             self._attr_latest_version = version
         self._sync_device_version()
@@ -188,7 +210,8 @@ class E32FirmwareUpdate(UpdateEntity):
 
     def version_is_newer(self, latest_version, installed_version):
         latest, installed = parse_tag(latest_version), parse_tag(installed_version)
-        return latest is not None and (installed is None or latest > installed)
+        # An unknown installed version (a development build) is never replaced by an offer.
+        return latest is not None and installed is not None and latest > installed
 
     @property
     def last_install(self):
@@ -299,7 +322,7 @@ class E32FirmwareUpdate(UpdateEntity):
         async with self._lock:
             release = self._release
             if release is None or (version is not None and version != release["tag"]):
-                raise ValueError("Unknown release; refresh first")
+                raise HomeAssistantError(translation_domain=DOMAIN, translation_key="firmware_release_unknown")
             self._attr_in_progress = True
             self.async_write_ha_state()
             started, clock, before = dt_util.utcnow(), time.monotonic(), self._attr_installed_version
@@ -309,17 +332,18 @@ class E32FirmwareUpdate(UpdateEntity):
                 async with asyncio.timeout(300):
                     async with session.get(release["url"]) as response:
                         if response.status != 200:
-                            raise ValueError("Download failed")
+                            raise _InstallFailed("download failed (HTTP %s)" % response.status)
                         chunks, total = [], 0
                         async for chunk in response.content.iter_chunked(65536):
                             total += len(chunk)
                             if total > MAX_IMAGE:
-                                raise ValueError("Firmware larger than the update slot")
+                                outcome["result"] = "verification_failed"
+                                raise _InstallFailed("firmware larger than the update slot")
                             chunks.append(chunk)
                         image = b"".join(chunks)
                 outcome["result"] = "verification_failed"
                 if not verify_image(image, release):
-                    raise ValueError("SHA-256, size or version marker does not match the release")
+                    raise _InstallFailed("SHA-256, size or version marker does not match the release")
                 outcome["result"] = "upload_failed"
                 async with self._client() as client:
                     # The owner pressed Install: wait for a free E32 web session (all 4 in use).
@@ -343,11 +367,17 @@ class E32FirmwareUpdate(UpdateEntity):
                         raise  # never a second failed sign-in: Repairs asks for the new password
                     except ControllerLinkError:
                         continue
-                raise ValueError("The E32 did not report the new version within 3 minutes")
+                raise _InstallFailed("the E32 did not report the new version within 3 minutes")
+            except _InstallFailed as err:
+                _LOGGER.warning("OpenThermostat: the E32 firmware %s was not installed: %s", release["tag"], err)
+                raise install_error(outcome["result"]) from None
             except ControllerLinkError as err:
-                raise ValueError(f"E32 upload failed: {err}") from None
-            except (aiohttp.ClientError, TimeoutError):
-                raise ValueError("Firmware download from GitHub failed") from None
+                _LOGGER.warning("OpenThermostat: the E32 firmware %s was not installed: E32 %s", release["tag"], err)
+                raise install_error(outcome["result"], str(err) or type(err).__name__) from None
+            except (aiohttp.ClientError, TimeoutError) as err:
+                _LOGGER.warning("OpenThermostat: the E32 firmware %s was not installed: %s", release["tag"],
+                                type(err).__name__)
+                raise install_error(outcome["result"]) from None
             finally:
                 self._last_install = {
                     "tag": release["tag"], "from_version": before if isinstance(before, str) else None,

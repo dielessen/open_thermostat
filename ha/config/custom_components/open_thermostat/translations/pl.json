@@ -588,7 +588,7 @@
           "ble_sources": "Czujniki Bluetooth na E32",
           "bluetooth_first": "Najpierw używaj czujników Bluetooth",
           "setpoint_entity": "Urządzenie nastawcze (opcjonalnie)",
-          "fallback_temperature": "Temperatura bez Home Assistant",
+          "fallback_temperature": "Temperatura bez programu tygodniowego",
           "program": "Program tygodniowy na E32",
           "inactive_until": "Wyłączony do (opcjonalnie)"
         },
@@ -619,7 +619,7 @@
           },
           "limits": {
             "name": "Limity temperatury",
-            "description": "Temperatura docelowa, temperatura bez Home Assistant i program mieszczą się w tych limitach.",
+            "description": "Temperatura docelowa, temperatura bez programu tygodniowego i program mieszczą się w tych limitach.",
             "data": {
               "minimum_temperature": "Temperatura minimalna",
               "maximum_temperature": "Temperatura maksymalna"
@@ -1204,7 +1204,7 @@
       "e32_source_not_found": "{source} nie istnieje w Home Assistant.",
       "e32_source_not_celsius": "{source} nie zgłasza temperatury (°C lub °F). Wybierz czujnik temperatury.",
       "e32_source_no_temperature": "{source} nie zgłasza bieżącej temperatury. Wybierz termostat, który mierzy temperaturę pomieszczenia, lub czujnik temperatury.",
-      "e32_limits_invalid": "Użyj limitów w zakresie {range}, z minimum nie wyższym niż maksimum, oraz temperatury bez Home Assistant mieszczącej się w nich.",
+      "e32_limits_invalid": "Użyj limitów w zakresie {range}, z minimum nie wyższym niż maksimum, oraz temperatury bez programu tygodniowego mieszczącej się w nich.",
       "e32_program_invalid": "Nie udało się odczytać linii {line} programu tygodniowego: {text}. Użyj jednej linii na grupę dni, na przykład mon-fri: 06:30 20.5; 22:30 18, i wymień każdy dzień tylko w jednej linii.",
       "e32_program_too_many": "Linia {line}: dzień może mieć najwyżej 6 punktów przełączenia.",
       "e32_program_outside_limits": "Linia {line}: temperatura jest poza limitami temperatury pomieszczenia.",
@@ -1238,7 +1238,7 @@
       "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
       "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
       "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
-      "controller_room_plan_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
+      "controller_room_plan_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (aktualizacja „Oprogramowanie układowe” urządzenia E32 w Ustawienia → Aktualizacje w Home Assistant albo System → Firmware update na stronie E32), a potem spróbuj ponownie. Nic nie zostało zmienione.",
       "controller_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
       "controller_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
       "controller_readback_unconfirmed": "E32 nie odesłał swoich bieżących ustawień pomieszczeń w ciągu 90 sekund, więc ten zapis nie jest potwierdzony. Sprawdź, czy E32 jest online i połączony z brokerem MQTT, a potem spróbuj ponownie.",
@@ -1454,7 +1454,7 @@
         "name": "Moc znamionowa grzejników"
       },
       "room_fallback_setpoint": {
-        "name": "Temperatura bez Home Assistant"
+        "name": "Temperatura bez programu tygodniowego"
       },
       "away_temperature": {
         "name": "Temperatura, gdy nikogo nie ma w domu"
@@ -1490,8 +1490,8 @@
           "stale": "Pomiar nieaktualny",
           "lost": "Utracono czujnik",
           "inactive": "Wyłączone",
-          "window_open": "Okno otwarte, ogrzewanie wstrzymane",
-          "window_pending": "Okno otwarte, wkrótce wstrzymanie"
+          "window_open": "Otwarte okno lub drzwi, ogrzewanie wstrzymane",
+          "window_pending": "Otwarte okno lub drzwi, wkrótce wstrzymanie"
         }
       },
       "room_reason": {
@@ -1598,6 +1598,16 @@
               "away": "Nieobecność",
               "holiday": "Urlop"
             }
+          },
+          "program": {
+            "name": "Program tygodniowy",
+            "state": {
+              "comfort": "Komfort",
+              "eco": "Eko",
+              "night": "Noc",
+              "holiday": "Urlop",
+              "step": "{level} do {time}, potem {next}"
+            }
           }
         }
       },
@@ -1611,16 +1621,16 @@
         "name": "Bateria"
       },
       "shadow_e32_heating_time_today": {
-        "name": "Czas grzania dziś (E32)"
+        "name": "Czas grzania E32 dziś (okres próbny)"
       },
       "shadow_tado_heating_time_today": {
-        "name": "Czas grzania dziś (termostat)"
+        "name": "Czas grzania termostatu dziś (okres próbny)"
       },
       "shadow_e32_starts_today": {
-        "name": "Starty palnika dziś (E32)"
+        "name": "Starty palnika E32 dziś (okres próbny)"
       },
       "shadow_tado_starts_today": {
-        "name": "Starty palnika dziś (termostat)"
+        "name": "Starty palnika termostatu dziś (okres próbny)"
       },
       "shadow_agreement_today": {
         "name": "Zgodność z termostatem dziś"
@@ -1635,7 +1645,7 @@
         }
       },
       "heat_request": {
-        "name": "Żądanie do kotła (E32)",
+        "name": "Żądana temperatura wody",
         "state_attributes": {
           "card": {
             "name": "Karta",
@@ -1667,7 +1677,7 @@
               "legend_heating": "Ogrzewanie",
               "legend_hot_water": "Ciepła woda",
               "legend_keep_warm": "Podtrzymanie",
-              "waiting": "E32 jeszcze niczego nie przekazał.",
+              "waiting": "E32 się nie odzywa.",
               "now": "teraz",
               "warm": "{room}: ciepło",
               "early": "{m} min za wcześnie",
@@ -1675,8 +1685,24 @@
               "on_time": "na czas",
               "degree_days": "Stopniodni",
               "target": "cel {t} °C",
-              "per_day": "{n} dni: {value} dziennie",
-              "today_since": "Dziś od północy"
+              "per_day": "Średnio {value} dziennie (z ostatnich {n} dni)",
+              "today_since": "Dziś od północy",
+              "burner": "palnik {n} %",
+              "code": "kod {code}",
+              "water": "woda {t} °C",
+              "last_hour": "{n} w ostatniej godzinie",
+              "would_ask": "E32 zażądałby {flow} °C",
+              "no_wish": "E32 nie żądałby ciepła",
+              "tap_open": "Ciepła woda: pobór",
+              "keeping_warm": "Podtrzymanie ciepłej wody",
+              "gas_estimate": "Gaz dziś (szacunek)",
+              "no_warmup": "wczoraj bez nagrzewania",
+              "late_hours": "{h} godz. {m} min za późno",
+              "early_hours": "{h} godz. {m} min za wcześnie",
+              "not_warm": "nie ciepło w ciągu 3 godz.",
+              "yesterday_starts": "Starty palnika na godzinę grzania",
+              "yesterday_heating": "Energia na ogrzewanie (szacunek)",
+              "warm_on_time": "{room}: ciepło na czas"
             }
           }
         }
@@ -1689,14 +1715,14 @@
         "state": {
           "collecting": "Zbieranie danych",
           "learning": "Uczenie się",
-          "ready": "Gotowe"
+          "ready": "Wyuczone"
         }
       },
       "room_flow_advice": {
         "name": "Zalecana temperatura wody"
       },
       "room_heating_start": {
-        "name": "Przewidywany start grzania"
+        "name": "Start inteligentnego nagrzewania"
       },
       "dhw_taps_today": {
         "name": "Pobory ciepłej wody dziś"
@@ -1948,7 +1974,7 @@
         "name": "Temperatura startu pompy"
       },
       "field_dhw_hysteresis_on": {
-        "name": "Margines włączenia c.w.u. (histereza)"
+        "name": "Margines włączenia ciepłej wody (histereza)"
       },
       "field_dhw_charge_optimisation_enabled": {
         "name": "Optymalizacja ładowania ciepłej wody",
@@ -1958,7 +1984,7 @@
         }
       },
       "field_dhw_flow_temperature_offset": {
-        "name": "Dodatkowa temperatura wody dla c.w.u."
+        "name": "Dodatkowa temperatura wody dla ciepłej wody"
       },
       "field_dhw_circulation_enabled": {
         "name": "Cyrkulacja włączona",
@@ -2244,7 +2270,7 @@
         "name": "Czego nauczył się termostat"
       },
       "knowledge": {
-        "name": "Wiedza",
+        "name": "Znane o domu",
         "state_attributes": {
           "missing": {
             "name": "Jeszcze do nauczenia"
@@ -2282,7 +2308,7 @@
             "name": "Przerwa po utrzymaniu (min)"
           },
           "ceiling_c": {
-            "name": "Blisko temperatury docelowej E32 zadaje najwyżej (°C)"
+            "name": "Blisko temperatury docelowej E32 żąda najwyżej (°C)"
           },
           "absorbed_kw": {
             "name": "Ciepło pobierane przez dom (kW)"
@@ -2342,7 +2368,7 @@
               "off": "Kompensacja pogodowa jest wyłączona; linie pokazują, czego by żądała.",
               "waiting": "E32 jeszcze nie przekazał danych kompensacji pogodowej.",
               "house": "Oszacowana na podstawie Twojego domu",
-              "asks": "E32 zadaje {flow} °C"
+              "asks": "E32 żąda {flow} °C"
             }
           },
           "design_flow_c": {
@@ -2367,7 +2393,7 @@
             "name": "Temperatura wody na linii teraz (°C)"
           },
           "flow_c": {
-            "name": "Kompensacja pogodowa zadaje (°C)"
+            "name": "Kompensacja pogodowa żąda (°C)"
           }
         }
       },
@@ -2408,7 +2434,7 @@
         "name": "Temperatura RTC"
       },
       "hub_cpu_temperature": {
-        "name": "Temperatura procesora ESP32"
+        "name": "Temperatura E32"
       },
       "hub_uptime": {
         "name": "Czas pracy urządzenia"
@@ -2498,13 +2524,13 @@
         "name": "Podsumowanie dnia"
       },
       "daily_burner_time": {
-        "name": "Czas pracy palnika dziś"
+        "name": "Czas pracy palnika (łącznie)"
       },
       "daily_burner_starts": {
-        "name": "Starty palnika dziś"
+        "name": "Starty palnika (łącznie)"
       },
       "daily_missed_comfort": {
-        "name": "Utracony czas komfortu"
+        "name": "Utracony czas komfortu (łącznie)"
       },
       "boiler_activity": {
         "name": "Aktywność kotła",
@@ -2546,7 +2572,9 @@
               "starts": "Starty w ostatniej godzinie",
               "calm": "spokojnie",
               "often": "włącza się zbyt często",
-              "today": "dziś {n}"
+              "today": "dziś {n}",
+              "no_e32": "Brak danych z E32",
+              "resting": "Spoczynek"
             }
           }
         }
@@ -2563,22 +2591,22 @@
         }
       },
       "room_warm_on_time": {
-        "name": "Ciepło na czas"
+        "name": "Ciepło na czas wczoraj (minuty spóźnienia)"
       },
       "room_overshoot": {
-        "name": "Przegrzanie"
+        "name": "Powyżej temperatury docelowej wczoraj"
       },
       "burner_starts_per_heating_hour": {
-        "name": "Starty palnika na godzinę grzania"
+        "name": "Starty palnika na godzinę grzania (wczoraj)"
       },
       "short_cycling_hours": {
-        "name": "Krótkie cykle palnika (godz.)"
+        "name": "Krótkie cykle palnika wczoraj"
       },
       "heating_gas_yesterday": {
-        "name": "Gaz na ogrzewanie (szacunek)"
+        "name": "Energia na ogrzewanie wczoraj (szacunek)"
       },
       "gas_per_degree_day": {
-        "name": "Gaz na stopniodzień"
+        "name": "Energia grzewcza na stopniodzień (wczoraj)"
       }
     },
     "select": {
@@ -3943,13 +3971,13 @@
       "description": "Starsze pomieszczenie Home Assistant zostało usunięte, ale E32 nadal ma stare ustawienia połączenia. Wybierz Napraw, aby połączyć E32 ponownie bez niego. Twoje pomieszczenia pozostają bez zmian."
     },
     "e32_room_choose_source": {
-      "title": "Wybierz źródło temperatury dla {room}",
+      "title": "Wybierz źródło temperatury dla pomieszczenia {room}",
       "description": "{room} na E32 używało termostatu starego pomieszczenia Home Assistant jako źródła temperatury. To stare pomieszczenie zostało usunięte i nie miało czym go zastąpić. {room} pozostaje bez zmian (także gdy jest nieaktywne), ale nie ma działającego źródła temperatury, dopóki go nie wybierzesz.\n\nWybierz Napraw, aby wybrać termostat lub czujnik temperatury, albo otwórz Konfiguruj → Pomieszczenia → {room}.",
       "fix_flow": {
         "step": {
           "choose_source": {
-            "title": "Wybierz źródło temperatury dla {room}",
-            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
+            "title": "Wybierz źródło temperatury dla pomieszczenia {room}",
+            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w pomieszczeniu {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
             "data": {
               "source": "Źródło temperatury"
             },
@@ -3978,16 +4006,16 @@
       "description": "Usunięto grupę pomieszczenia {room} w {installation}, ale {room} nadal jest pomieszczeniem w planie pomieszczeń E32 i E32 nadal je ogrzewa. Grupa, urządzenie i encje zostały przywrócone z tymi samymi nazwami, obszarami i historią. Aby usunąć pomieszczenie, otwórz {installation} → Konfiguruj → Pomieszczenia → Edytuj lub usuń pomieszczenie, wybierz {room} i usuń je tam. Możesz zignorować ten komunikat."
     },
     "valve_battery_low": {
-      "title": "Słaba bateria zaworu w {room}",
-      "description": "Bateria {valves} w {room} jest prawie pusta (około 20 % lub mniej). Wymień ją wkrótce: zawór z pustą baterią przestaje słuchać E32. Komunikat zniknie sam, gdy zawór zgłosi pełną baterię."
+      "title": "Słaba bateria zaworu w pomieszczeniu {room}",
+      "description": "Bateria prawie pusta (około 20 % lub mniej) w pomieszczeniu {room}: {valves}. Wymień ją wkrótce: zawór z pustą baterią przestaje słuchać E32. Komunikat zniknie sam, gdy zawór zgłosi baterię, która nie jest już słaba."
     },
     "valve_offline": {
-      "title": "Zawór grzejnikowy nie odpowiada w {room}",
-      "description": "{valves} w {room} nie zgłosił się do Zigbee2MQTT od ponad dwóch godzin. Sprawdź baterię i połączenie Zigbee. Pomieszczenie dalej grzeje według innych źródeł temperatury; zawór reguluje sam według ostatniej nastawy."
+      "title": "Zawór grzejnikowy nie odpowiada w pomieszczeniu {room}",
+      "description": "Brak zgłoszeń do Zigbee2MQTT od ponad dwóch godzin w pomieszczeniu {room}: {valves}. Sprawdź baterię i połączenie Zigbee. Pomieszczenie dalej grzeje według innych źródeł temperatury; zawór sam reguluje według ostatniej nastawy."
     },
     "valve_single_source": {
       "title": "{room} ma tylko jedno źródło temperatury",
-      "description": "E32 steruje zaworami w {room}, ale pomieszczenie ma tylko jedno źródło temperatury. Gdy ono przestanie działać, E32 po 30 minutach przestaje żądać ciepła dla tego pomieszczenia zamiast grzać na ślepo. Dodaj drugie źródło, np. osobny czujnik Bluetooth, w ustawieniach pomieszczenia."
+      "description": "E32 steruje zaworami w pomieszczeniu {room}, które ma tylko jedno źródło temperatury. Gdy ono przestanie działać, E32 po 30 minutach przestaje żądać ciepła dla tego pomieszczenia zamiast grzać na ślepo. Dodaj drugie źródło, np. osobny czujnik Bluetooth, w ustawieniach pomieszczenia."
     },
     "heating_problem": {
       "title": "Ogrzewanie wymaga uwagi",
@@ -3998,8 +4026,8 @@
       "description": "{name}: Home Assistant od ponad 3 dni nie może utworzyć kopii ustawień E32 (ostatnia kopia: {last}). Bez aktualnej kopii zastępczy E32 nie odzyska bieżących ustawień. Sprawdź, czy E32 jest włączony i jego strona się otwiera oraz czy jego hasło w Home Assistant jest nadal poprawne; potem naciśnij Utwórz teraz kopię ustawień E32 na urządzeniu E32. Ten komunikat zniknie po następnej udanej kopii."
     },
     "heating_input_lost": {
-      "title": "E32 nie otrzymuje wartości pokojowych z Home Assistant",
-      "description": "E32 od {minutes} minut nie przyjął żadnych wartości pokojowych z Home Assistant, więc steruje pomieszczeniami według własnych czujników i programu tygodniowego. Home Assistant wysłał ostatnią wartość o {last_sent} (ostatni błąd wysyłania: {error}). OpenThermostat zaczął wysyłać od nowa. Jeśli ten komunikat nie znika, uruchom ponownie Home Assistant: ponowne wczytanie integracji nie zawsze wystarcza. Komunikat zniknie sam, gdy E32 znów przyjmie wartości."
+      "title": "E32 nie otrzymuje wartości pomieszczeń z Home Assistant",
+      "description": "Od {since} E32 nie przyjmuje wartości pomieszczeń z Home Assistant, więc steruje pomieszczeniami według własnych czujników i programów tygodniowych. Home Assistant nadal je wysyła. {cause} Jeśli tak zostanie, uruchom ponownie Home Assistant. Komunikat zniknie, gdy E32 znów przyjmie wartości."
     },
     "e32_time_zone": {
       "title": "E32 używa innej strefy czasowej",
@@ -4027,6 +4055,37 @@
         }
       },
       "description": "{name}: zegar E32 używa {e32}, Home Assistant używa {home}. Programy tygodniowe przełączałyby się o złej porze. Wybierz Napraw, aby ustawić E32 na {home}. E32 uruchomi się raz ponownie."
+    },
+    "e32_room_source_missing": {
+      "title": "Wybierz nowe źródło temperatury dla pomieszczenia {room}",
+      "description": "{room} odczytuje temperaturę z {source}, a ta encja już nie istnieje w Home Assistant: zmieniono jej nazwę lub ją usunięto. Dopóki nie wybierzesz innej, {room} korzysta z pozostałych źródeł temperatury, jeśli je ma; bez źródła nie żąda ciepła.\n\nWybierz Napraw, aby wybrać termostat lub czujnik temperatury, albo otwórz Konfiguruj → Pomieszczenia → {room}. Komunikat zniknie sam, jeśli {source} wróci.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Wybierz źródło temperatury dla pomieszczenia {room}",
+            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w pomieszczeniu {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
+            "data": {
+              "source": "Źródło temperatury"
+            },
+            "data_description": {
+              "source": "Termostat mierzący temperaturę pomieszczenia lub czujnik temperatury."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "E32 nie może użyć {source}: identyfikatory encji mogą mieć najwyżej 80 znaków.",
+          "e32_source_wrong_domain": "Nie można tu użyć {source}. Wybierz termostat lub czujnik temperatury.",
+          "e32_source_not_found": "{source} nie istnieje w Home Assistant.",
+          "e32_source_no_temperature": "{source} nie podaje bieżącej temperatury. Wybierz termostat mierzący temperaturę pomieszczenia lub czujnik temperatury.",
+          "e32_source_not_celsius": "{source} nie podaje temperatury (°C lub °F). Wybierz czujnik temperatury.",
+          "save_failed": "E32 nie zapisał planu pomieszczeń. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Najpierw połącz E32 (Konfiguruj → Połączenie z E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
+          "e32_unreachable": "Nie można połączyć się z E32. Sprawdź, czy jest włączony i połączony z siecią, i spróbuj ponownie.",
+          "room_missing": "Tego pomieszczenia nie ma już w planie pomieszczeń E32."
+        }
+      }
     }
   },
   "services": {
@@ -4184,7 +4243,7 @@
       "message": "Wybierz Automatyczny, W domu, Nieobecność lub Urlop."
     },
     "house_holiday_date_needed": {
-      "message": "Najpierw ustaw \"Urlop do\": urlop zaczyna się od daty końcowej."
+      "message": "Aby rozpocząć urlop, ustaw \"Urlop do\" na dzień powrotu; tryb domu sam zmieni się na Urlop."
     },
     "house_mode_update_required": {
       "message": "Wymaga oprogramowania E32 beta.23 lub nowszego. Zaktualizuj E32 za pomocą jego encji Oprogramowanie."
@@ -4233,6 +4292,36 @@
     },
     "house_holiday_too_many": {
       "message": "Można zaplanować najwyżej 8 urlopów. Najpierw usuń jeden."
+    },
+    "firmware_download_failed": {
+      "message": "Nie udało się pobrać oprogramowania z GitHub. Sprawdź połączenie Home Assistant z internetem i spróbuj ponownie."
+    },
+    "firmware_verification_failed": {
+      "message": "Pobrane oprogramowanie nie zgadza się z wydaniem (suma kontrolna). Nic nie zostało zainstalowane."
+    },
+    "firmware_upload_failed": {
+      "message": "E32 nie przyjął oprogramowania ({error}). Sprawdź, czy otwiera się jego strona, i spróbuj ponownie."
+    },
+    "firmware_not_confirmed": {
+      "message": "E32 nie zgłosił nowej wersji w ciągu 3 minut. Sprawdź jego stronę; może się jeszcze uruchamiać."
+    },
+    "firmware_release_unknown": {
+      "message": "To wydanie nie jest już oferowane. Sprawdź aktualizacje ponownie."
+    },
+    "e32_not_connected": {
+      "message": "Home Assistant nie ma jeszcze połączenia z E32. Połącz go w Konfiguruj → Połączenie z E32, a potem spróbuj ponownie."
+    },
+    "e32_not_reached": {
+      "message": "E32 nie odpowiedział, więc nic nie zostało zmienione. Sprawdź, czy jest włączony i czy otwiera się jego strona, a potem spróbuj ponownie."
+    },
+    "e32_answer_unreadable": {
+      "message": "E32 udzielił odpowiedzi, której ta wersja nie potrafi odczytać, więc nic nie zostało zmienione. Zaktualizuj razem oprogramowanie E32 i integrację."
+    },
+    "e32_update_required": {
+      "message": "Oprogramowanie tego E32 jest do tego za stare. Najpierw zaktualizuj E32 (aktualizacja „Oprogramowanie układowe” w Ustawienia → Aktualizacje), a potem spróbuj ponownie."
+    },
+    "e32_busy": {
+      "message": "E32 jest aktualizowany lub uruchamia się ponownie. Spróbuj ponownie, gdy jego strona znów normalnie się otworzy."
     }
   },
   "device": {

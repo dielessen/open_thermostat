@@ -745,6 +745,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     _attr_preset_modes = PRESETS
     _attr_supported_features = (ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
                                 | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF)
+    # A translated sentence that changes with every step and message: shown, not kept in the history.
+    _unrecorded_attributes = frozenset({"smart_warm_up"})
 
     def __init__(self, hub, room, entry):
         self._attach_room(hub, room, "thermostat")
@@ -853,16 +855,25 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
 
     def _smart_warm_up(self):
         """What Smart warm-up does for the next program step (E32 rc.3) and how the last step up turned out
-        (E32 rc.4: "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier."), in the Home Assistant
+        (E32 rc.4: "Yesterday warm at 09:12 (12 min late); next time it starts a little earlier."), in the Home Assistant
         language, or None."""
         if self.hass is None:
             return None
         from .e32_flow import smart_warm_up
-        from .learned_overview import arrival_line, language, local_clock, local_day, smart_warm_up_line
+        from .learned_overview import (HELD_MODES, arrival_line, free_heat_later, language, local_clock, local_day,
+                                       smart_warm_up_line, trial_run)
         plan = self.hub.warmup.get(self.room_id) if type(getattr(self.hub, "warmup", None)) is dict else None
         plan = plan if type(plan) is dict else {}
         lang, clock = language(self.hass), local_clock(self.hass)
-        line = smart_warm_up_line(plan.get("optimum_start"), smart_warm_up(self.hass, self.entry.entry_id), lang, clock)
+        # As the learned overview (rc7): nothing while away or a window holds the program, "would" in the trial run,
+        # the later start the free heat gives.
+        comfort = (self.hub.rooms.get(self.room_id) or {}).get("comfort")
+        comfort = comfort if type(comfort) is dict else {}
+        held = comfort.get("mode") in HELD_MODES or comfort.get("window") == "open"
+        trial = trial_run(self.hub.status)
+        later = free_heat_later((getattr(self.hub, "learned", None) or {}).get(self.room_id), plan)
+        line = None if held else smart_warm_up_line(plan.get("optimum_start"),
+                                                    smart_warm_up(self.hass, self.entry.entry_id), lang, clock, trial, later)
         arrived = arrival_line(plan.get("arrival"), lang, clock, *local_day(self.hass))
         return " ".join(item[0] for item in (line, arrived) if item) or None
 
@@ -889,8 +900,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
 
     async def _command(self, command, house=None):
         if self.link is None:
-            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
-                                     translation_placeholders={"error": "no_controller_connection"})
+            from .room_plan import link_error
+            raise link_error("no_controller_connection")
         if house is not None:  # the house mode, with the house changes still on their way (e32_house)
             from .e32_house import async_house_change, house_away
             answer = await async_house_change(self.link, house_away(self.hub), **house)

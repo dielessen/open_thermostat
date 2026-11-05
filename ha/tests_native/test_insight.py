@@ -314,16 +314,16 @@ def with_smart(sensor, on):
     ({"state": "learned", "rest_s": None, "ceiling_c": 52}, 52, True,
      "Your boiler holds about 54 °C; near the target the E32 asks at most 52 °C.",
      "Je ketel houdt ongeveer 54 °C vast; dicht bij de doeltemperatuur vraagt de E32 hoogstens 52 °C.",
-     "Twój kocioł utrzymuje około 54 °C; blisko temperatury docelowej E32 zadaje najwyżej 52 °C."),
+     "Twój kocioł utrzymuje około 54 °C; blisko temperatury docelowej E32 żąda najwyżej 52 °C."),
     ({"state": "learned", "rest_s": 180, "ceiling_c": 41, "return": False}, 41, True,
      "Your boiler holds about 43 °C and rests 3 minutes; near the target the E32 asks at most 41 °C.",
      "Je ketel houdt ongeveer 43 °C vast en rust 3 minuten; dicht bij de doeltemperatuur vraagt de E32 hoogstens 41 °C.",
-     "Twój kocioł utrzymuje około 43 °C i odpoczywa 3 minuty; blisko temperatury docelowej E32 zadaje najwyżej 41 °C."),
+     "Twój kocioł utrzymuje około 43 °C i odpoczywa 3 minuty; blisko temperatury docelowej E32 żąda najwyżej 41 °C."),
     # The cap in effect is never below the plan's lowest water temperature: that number is what the E32 asks.
     ({"state": "learned", "rest_s": None, "ceiling_c": 38}, 40, True,
      "Your boiler holds about 40 °C; near the target the E32 asks at most 40 °C.",
      "Je ketel houdt ongeveer 40 °C vast; dicht bij de doeltemperatuur vraagt de E32 hoogstens 40 °C.",
-     "Twój kocioł utrzymuje około 40 °C; blisko temperatury docelowej E32 zadaje najwyżej 40 °C."),
+     "Twój kocioł utrzymuje około 40 °C; blisko temperatury docelowej E32 żąda najwyżej 40 °C."),
     # Learned but not in effect now: Smart warm-up on (a room warming up gets the full water temperature) ...
     ({"state": "learned", "rest_s": 540, "ceiling_c": 48}, None, True,
      "Your boiler holds about 50 °C and rests 9 minutes.", "Je ketel houdt ongeveer 50 °C vast en rust 9 minuten.",
@@ -336,7 +336,7 @@ def with_smart(sensor, on):
      "target.",
      "Je ketel houdt ongeveer 50 °C vast en rust 9 minuten. Met Slim opwarmen aan zou de E32 dicht bij de doeltemperatuur "
      "hoogstens 48 °C vragen.",
-     "Twój kocioł utrzymuje około 50 °C i odpoczywa 9 minut. Z włączonym Inteligentnym nagrzewaniem E32 zadawałby blisko "
+     "Twój kocioł utrzymuje około 50 °C i odpoczywa 9 minut. Z włączonym Inteligentnym nagrzewaniem E32 żądałby blisko "
      "temperatury docelowej najwyżej 48 °C."),
     ({"state": "learned"}, None, None, "The E32 has learned how your boiler holds its temperature.",
      "De E32 heeft geleerd hoe je ketel zijn temperatuur vasthoudt.", "E32 nauczył się, jak Twój kocioł utrzymuje swoją temperaturę."),
@@ -655,16 +655,16 @@ def test_free_heat_needs_five_windows_and_a_real_rise():
 
 @pytest.mark.parametrize("language, status, figure", [
     ("en", "Weather compensation: estimated from your house for now, learning more (2 of 6 steady periods).",
-     "Weather compensation, estimated from your house: the water gets about 0.71 °C warmer for every degree colder outside."),
+     "The water gets about 0.71 °C warmer for every degree colder outside."),
     ("nl", "Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog bij (2 van 6 rustige periodes).",
-     "Weerafhankelijke regeling, geschat uit je huis: het water wordt ongeveer 0,71 °C warmer voor elke graad kouder buiten."),
+     "Het water wordt ongeveer 0,71 °C warmer voor elke graad kouder buiten."),
     ("pl", "Kompensacja pogodowa: na razie oszacowana na podstawie Twojego domu, wciąż się uczy (2 z 6 stabilnych okresów).",
-     "Kompensacja pogodowa oszacowana na podstawie Twojego domu: woda jest cieplejsza o około 0,71 °C na każdy stopień "
-     "zimniej na zewnątrz.")])
+     "Woda jest cieplejsza o około 0,71 °C na każdy stopień zimniej na zewnątrz.")])
 def test_a_curve_worked_out_from_the_house_says_so(language, status, figure):
     summary = {**SUMMARY, "flow": FLOW["flow"]}
     texts = [line["text"] for line in lo.house_overview(summary, language)]
-    assert texts[0] == status and figure in texts
+    # Weather compensation once (rc7): what it uses and how steep its line is, in one line.
+    assert texts[0] == status + " " + figure
     # "held": the boiler's own ceiling binds; the boiler sentence says that, not "Coolest water".
     assert not any("Coolest water" in text or "Koelste water" in text for text in texts)
     plain = {"state": "applied", "slope": 0.71, "slope_source": "house"}

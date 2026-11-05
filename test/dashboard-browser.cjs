@@ -1,5 +1,6 @@
 // Real shipped E32 root/assets; fixture HTTP/auth/state, no board or boiler control.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(process.env.OPENTHERMOSTAT_DASHBOARD_EVIDENCE||path.join(__dirname,'../out/e32-dashboard-20261022'));
 const buildCapabilities=process.env.OPENTHERMOSTAT_BUILD_CAPABILITIES?JSON.parse(fs.readFileSync(process.env.OPENTHERMOSTAT_BUILD_CAPABILITIES,'utf8')):null;
@@ -112,7 +113,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   }
   await page.evaluate(()=>{for(let i=0;i<3;i++){lastLoadedStatus.control.captured_at_ms+=2000;lastLoadedStatus.control.state.zones[0].temperature_centi_c+=10;updateRooms(lastLoadedStatus);}});
   assert.equal(await page.locator('svg.pd-trend').count(),8);
-  await page.screenshot({path:path.join(out,'DASHBOARD-'+label+'.png'),fullPage:true});
+  await shot(page,{path:path.join(out,'DASHBOARD-'+label+'.png'),fullPage:true});
   status.control.state.zones[0].zone_id='deadbeef';
   await page.evaluate(s=>updateRooms(s),status);
   assert.equal(await page.evaluate(()=>!keptRoom.isConnected && !document.querySelector('.pd-room details').open && keptBuild.open),true);

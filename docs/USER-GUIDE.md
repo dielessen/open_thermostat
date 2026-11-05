@@ -85,16 +85,21 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
       letters: orange while heating (with the water temperature), blue for
       hot water, grey for "Boiler resting". The house mode is on the right of
       the band; tap it to open the house mode control. While rooms want heat,
-      a second line says how many and what the boiler request is. A problem
-      comes first: the band turns red and says "Attention" with the first
-      reason. Tap it to open Repairs; **All reasons** lists every reason.
+      a second line says how many and what the boiler request is. The band
+      also says how hard the burner works and the boiler's display code
+      ("burner 37 % · code -H"; point at it for what the code means): on a
+      wide screen on its right, before the house mode, on a phone under the
+      words. A problem comes first: the band turns red and says "Attention"
+      with the first reason. Tap it to open Repairs; **All reasons** lists
+      every reason.
     - Today's figures, large. The first is the room that is on, with its
       temperature, its target and why it heats or not (every room also keeps
       its own card under **Rooms**, the rooms that are on first).
-      Then **Hot water** (the taps so far today, or "running now"), **Gas
-      today** (heating and hot water together) with a small line of the last
-      7 days beside it and the average day of the week before under it, and
-      **Burner starts today**. While the band shows a problem, **Heating**
+      Then **Hot water** (the taps so far today, or "running now", and the
+      hot water's temperature), **Gas today** (heating and hot water
+      together) with a small line of the last 7 days beside it and the
+      average day of the week before under it, and **Burner starts today**
+      (with how many came in the last hour). While the band shows a problem, **Heating**
       (on, with the water temperature, or off) is added, because the band
       then cannot say it. A figure that your boiler or the E32 does not
       report is left out. The gas and the burner starts are read from Home
@@ -107,17 +112,41 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
     room does, its name, its temperature, large, and, in one line, why it
     heats or not: window open, away, warm enough, Smart warm-up heating
     early, and so on. The same line is the **Reason** sensor of the room.
+    While the room follows its week program, the line goes on with the
+    program: the level now and the next step ("Comfort until 22:30, then
+    Night 18.0 °C"; a level the planner does not name shows its
+    temperature). A holiday planned before that step is the next step
+    ("then Holiday 12.0 °C"). It is left out while something else holds the
+    room (a temporary change, away, a holiday, an open window) or when the
+    program changes nothing in the coming week. The times are the E32's
+    clock (its time zone as Home Assistant last saw it in the E32's
+    settings, else Home Assistant's own).
     Chips under it say in a word what the room does, whether Smart warm-up is
     on, whether the house is at home, away or on holiday, and how far the
     radiator valves are open.
   - **Today**: for each room that is switched on, when it warms up next and
-    what it will be then ("Tomorrow Living room warms up from 6:10 to be
-    20.5 °C at 7:00"), and how yesterday's warm-up went ("Yesterday it was
-    warm 4 minutes early"). Under it one line on Weather compensation: what
-    it asks of the water temperature at today's outdoor temperature, and
-    which line it follows: the standard line, one estimated from your house,
-    or the line learned for your house. Until the line is learned, the line
-    says after how many steady periods it follows.
+    what it will be then ("Tomorrow Living room warms up from 06:10 to be
+    20.5 °C at 07:00"; a start on another day says "at 00:30 tomorrow" or
+    "on 7 Nov"), and how the last warm-up went ("Today it was warm 4 minutes
+    late" once today's warm-up is judged, else "Yesterday it was warm 4
+    minutes early"; "did not get warm within 3 hours" when it never got
+    there). The start shown includes what free heat saves, and a line says
+    how much later it is. While the house or room is away, on holiday or a
+    window is open, no warm-up is announced; the line says why. In the
+    trial run the lines say "would". When the room is warm enough by itself,
+    the line says so ("Tomorrow Living room is warm enough for 20.5 °C at
+    07:00; if it cools down before then, the warm-up starts earlier"); in the
+    first days, before the E32 has measured the room, the start is marked
+    "(estimate)". A room that is off says that only frost protection keeps it
+    warm. Under it one line on Weather compensation: what it asks of the
+    water temperature at today's outdoor temperature (when the room
+    correction adds to the line, it says what the line gives), when no room
+    asks for heat what it would send once one does, and which line it
+    follows: the standard line, one estimated from your house, or the line
+    learned for your house. Until the line is learned, the line says after
+    how many steady periods it follows. The **Smart warm-up start** tile of
+    a room is hidden while Smart warm-up is off or the room is held (away,
+    holiday, open window).
   - **House**: **Home or away** (the house mode; tap it to change it),
     **Holiday** (**Plan** opens the integration's page, where you plan one
     under Configure → House → House mode and holiday; the next planned
@@ -150,9 +179,15 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   1. **What the E32 knows**: a ring with how much of your house the E32
      knows ("The E32 knows your house: 62 %") and, in words, what it still
      has to learn.
-  2. **Your boiler**: one sentence on what the E32 learned from your boiler:
-     how it holds its temperature, how long it rests and what the E32 asks
-     because of it, or that the E32 is still listening.
+  2. **Your boiler**: a line for each thing the E32 learned from your boiler.
+     **Highest water temperature**: how warm your boiler lets the water get
+     by itself at the outdoor temperature (the E32 asks no more than that
+     near the target). **Rest**: how long your boiler rests each time it
+     reaches its temperature (the E32 waits just as long before it asks again,
+     unless a room is cold). **Lowest water temperature**: from which water
+     temperature your boiler starts heating (the E32 asks at least that).
+     What is not learned yet stands on one line, "Still being learned"; while
+     the E32 is only listening, the card says that instead.
   3. **Water temperature by outdoor temperature**: the chart with the
      standard line (dashed), the line learned for your house (solid), the
      point of now and the water temperature in hard frost.
@@ -177,7 +212,13 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   check before the E32 takes over). Each part shows only once it has something
   to say (E32 rc.5). On a phone the sections stand under each other in this
   order; on a wide screen they stand in two columns.
-- **Diagnostics**: the E32 itself, **Thermostat on the bus** (what a
+- **Diagnostics**: it starts with **Connection with the E32**, one line per
+  question: does the E32 report to Home Assistant (and since when it has been
+  silent), do the room values reach the E32 (when not: since when, the last
+  value the E32 refused and why, and what to do), does the MQTT broker take
+  the messages, and which firmware runs (with a note when an update is
+  waiting). More details stand behind **More**. Then come the E32 itself,
+  **Thermostat on the bus** (what a
   thermostat on the boiler bus asks, as the E32 hears it; mostly of use in the
   trial run), the energy and hot water counters, the raw boiler data and the
   hot water capability.
@@ -289,7 +330,7 @@ Assistant — you edit rooms here." on the **Rooms** page.
    floor heating). **Inactive until** switches a room off until a date.
 3. Under **Temperature sources**, choose the Bluetooth sensor. Up to four
    sources in order: the first fresh one leads, the others are fallback.
-4. Set the **Temperature without Home Assistant** (for example 19 °C) and the
+4. Set the **Temperature without a week program** (for example 19 °C) and the
    room's **Minimum** and **Maximum**.
 5. Turn on **Use a week program**. Choose a template under **Start from a
    template**, set the **Comfort**, **Eco** and **Night** temperatures, and
@@ -365,7 +406,7 @@ and the paired Bluetooth thermometer as fallback.
      temperature at every switch point; see
      [Week program and setting device](#week-program-and-setting-device).
      Leave it empty to use the room's own thermostat in Home Assistant.
-   - **Temperature without Home Assistant:** for example 19 °C.
+   - **Temperature without a week program:** for example 19 °C.
    - **Week program on the E32:** the form starts with the "Workdays and
      weekend" template. Keep it and adjust it in the visual planner (the
      **Week program** tab of the OpenThermostat dashboard), or type one line
@@ -383,7 +424,13 @@ and the paired Bluetooth thermometer as fallback.
      [Temporary changes, open windows and away](#temporary-changes-open-windows-and-away)
      and [Away: the whole house and single rooms](#away-the-whole-house-and-single-rooms).
 3. Choose **Submit**. Home Assistant forwards the selected entities to the
-   E32 on every change and every five minutes.
+   E32 on every change and every five minutes. When the E32 comes back
+   after an outage or a quick restart, all of them are sent again at once.
+   A source that has not reported for 3 hours (a sensor that froze, a
+   thermostat that went offline) is not sent again as if it were fresh; the E32
+   then treats it as lost and uses another source of the room. If you rename a
+   source in Home Assistant, the room follows it; if it is removed, a repair
+   **Choose a new temperature source for ...** appears after 10 minutes.
 
 The E32 in turn reports to Home Assistant calmly, in small messages: a room's
 temperature (from 0.1 °C), the requested flow (from 1 °C) and the boiler
@@ -469,8 +516,10 @@ everything else.
   - **Holiday**: away from now until a date and time, at the **Temperature on
     holiday** (Home Assistant: **Holiday ends** in Configure → House → House
     mode and holiday → House mode, or the **Holiday until** entity; E32 Home
-    page: **Away until**, then **Start holiday**). Afterwards the house returns
-    to Automatic. To plan holidays ahead, see the
+    page: **Away until**, then **Start holiday**). Choosing Holiday in the
+    list in Home Assistant starts the next planned holiday; without a planned
+    holiday it tells you to plan one or to use **Holiday ends**. Afterwards
+    the house returns to Automatic. To plan holidays ahead, see the
     [holiday planner](#holiday-planner). The E32 starts
     warming up early enough to be at the week program's temperature when you
     are back (from what it learned, else 45 minutes per °C for radiators and 2
@@ -806,12 +855,30 @@ for heating and hot water (and tapping and keeping warm), the outdoor
 temperature when one is set, and per room how long it asked for heat, how
 long it took to reach a raised target (late after 2 hours) and the missed
 comfort minutes. Only time with E32 data counts; a day with less than 20
-hours of data is marked partial. **Burner time**, **Burner starts** and
-**Missed comfort time** are running totals with long-term statistics, so
-their change per day is the daily figure. The **Learning and settings** tab of
+hours of data is marked partial. **Burner time (total)**, **Burner starts
+(total)** and **Missed comfort time (total)** are running totals with long-term
+statistics, so their change per day is the daily figure. The **Learning and settings** tab of
 the dashboard shows yesterday in figures, with the missed comfort of the last
 days as bars. The gas and the burner hours of the last days are bars under
 **Today and this week** on the **Boiler** tab.
+
+**Where the entities are (rc7).** On a device page the entities you use every
+day stand in the main list: the thermostat, Temperature, Heat demand, Reason,
+gas, Boiler activity, Heating problem and the hot water taps. Settings
+(for example a room's **Heating** on/off and **Off until**) stand under
+Configuration, and figures that only inform (Target temperature, Control
+status, Learning status, Recommended water temperature, **Smart warm-up
+start** (was Predicted heating start), Burner starts last hour, **Requested water temperature**, **Known about
+your house**, Boiler response, the three running totals and the yesterday
+figures) stand under Diagnostic; entities that already exist move there too.
+Entity IDs stay the same on updating; some names changed. The running totals say what they are: **Burner starts (total)**,
+**Burner time (total)** and **Missed comfort time (total)** (they were
+"... today"). The yesterday figures say "(yesterday)" in their name, for
+example **Heating energy per degree-day (yesterday)** in kWh/°C·d.
+**Device uptime** keeps no long-term statistics any more. The first time
+the integration starts after the update it relabels the old degree-day
+statistics to the new unit and deletes the old uptime statistics; the history
+of the other figures stays, and no repair is shown.
 
 ### Radiator valves
 
@@ -874,7 +941,7 @@ on the Rooms page has a **Radiator valves** block with its own *Save valves*
 button; Home Assistant valves show there read-only, as *Home Assistant climate
 entity (set in Home Assistant)*. At most 4 valves per room and 16 in all.
 
-**Nothing happens until you switch it on.** Each room has a **Valve control**
+**Nothing happens until you switch it on.** Each room has a **Radiator valve control**
 switch (entity ID ending in `_valve_control`), off by default. The E32 sends
 to a room's valves only while that switch is on **and** the E32 controls the
 boiler itself (active control after the attended switch-over). During the trial run,
@@ -912,8 +979,8 @@ valve off. It does not send the room temperature, and these valves do not feed
 back into the boiler flow (a room with one never counts as all closed).
 Health: a valve that is unavailable for 2 hours is offline; the battery comes
 from a battery sensor on the valve's device in Home Assistant (or its
-low-battery sensor). The valve counts in the room's *Valve position*, *Valve
-battery* and *Valve problem* entities and in Repairs, like a Zigbee2MQTT valve;
+low-battery sensor). The valve counts in the room's *Radiator valve position*, *Radiator valve
+battery* and *Radiator valve problem* entities and in Repairs, like a Zigbee2MQTT valve;
 on the E32 page its state reads *Driven by Home Assistant*. A failing service
 call is logged once and tried again a minute later at the earliest.
 
@@ -1014,9 +1081,9 @@ During the trial run nothing is sent to the boiler either way.
 
 | Sensor | Meaning |
 | --- | --- |
-| Learning status | Collecting data, Learning or Ready. Learning uses stable heating periods without hot water and with fresh readings, so it takes several heating periods. |
+| Learning status | Collecting data, Learning or Learned. Learning uses stable heating periods without hot water and with fresh readings, so it takes several heating periods. |
 | Recommended water temperature (1 °C) | The coolest water (flow temperature) that warms the room by 1 °C in an acceptable time. Unknown until learned. Its attributes show what the room control asks now, for comparison. |
-| Predicted heating start | When the E32 would start heating to reach the next higher week-program temperature on time. Its attributes compare night strategies (holding a night temperature versus letting it drop) in kWh, m³ and €. |
+| Smart warm-up start | When the E32 starts heating to reach the next higher week-program temperature on time. Its attributes compare night strategies (holding a night temperature versus letting it drop) in kWh, m³ and €. |
 
 What the E32 has learned is kept when it restarts, loses power or gets a
 firmware update, so learning carries on where it was (it is saved every 6
@@ -1056,11 +1123,13 @@ heat. Under it is a chart of the missed comfort per day. On the E32 it is on
 the **Home** page, under **What the thermostat has learned**.
 
 Each figure is also a sensor, so Home Assistant keeps its history: per room
-**Warm on time** (minutes) and **Overshoot** (°C), and on the OpenThermostat
-device **Burner starts per heating hour**, **Short cycling hours**, **Heating
-gas yesterday** and **Gas per degree-day**. The state is yesterday's figure. A
-sensor appears once the E32 has a figure for it; with firmware before rc.4 there
-are none.
+**Warm on time yesterday (minutes late)** (negative: early) and **Above target
+yesterday** (°C), and on the OpenThermostat device **Burner starts per heating
+hour (yesterday)**, **Short burner runs yesterday**, **Heating energy yesterday
+(estimate)** and **Heating energy per degree-day (yesterday)** (kWh/°C·d). The
+state is yesterday's figure; they are under Diagnostic on the device page. A
+sensor appears once the E32 has a figure for yesterday; with firmware before
+rc.4 there are none.
 
 ### What the E32 knows, and what it still lacks
 
@@ -1076,7 +1145,9 @@ says how much of what the E32 can learn about your house it has learned. Under
 it, in words, stands what is still missing, for example "It still has to see
 how fast the living room warms up". The figure rises by itself while the
 heating runs. It is information and changes nothing the E32 does. It is
-rounded down, so 100 % means nothing is missing.
+rounded down, so 100 % means nothing is missing. Only at 100 % the card
+says "It has learned everything it needs; it keeps checking as the seasons
+change"; before that it never shows 100 %, and it lists what is missing.
 
 | What counts | Share |
 | --- | --- |
@@ -1101,7 +1172,7 @@ temperature** and the figure tops out below 100 %.
 
 On the E32 you find the figure on the **Home** page under **What the
 thermostat has learned**. In Home Assistant the **Learning and settings** tab
-starts with **What the E32 knows**, and the sensor **Knowledge** on the E32
+starts with **What the E32 knows**, and the sensor **Known about your house** on the E32
 device has the percentage as its state and the missing items, as sentences, in
 its attributes.
 
@@ -1159,8 +1230,9 @@ the boiler is still listening but the heat per °C is already known, the sentenc
 says that figure instead: "Your boiler has not held a water temperature by
 itself yet; every degree the water is warmer than the rooms gives your house
 about 0.3 kW. The E32 keeps listening."
-Home Assistant shows the same sentence on the **Learning and settings** tab,
-under **Your boiler**, and has the sensor **Boiler response** on the E32 device.
+Home Assistant shows the same on the **Learning and settings** tab, under
+**Your boiler**, as lines (the highest and lowest water temperature and the
+rest), and has the sensor **Boiler response** on the E32 device.
 Its state is:
 
 | State | Meaning |
@@ -1497,7 +1569,7 @@ is retired since rc.3), and no existing thermostat is required: the page
 speaks of an old thermostat only when the E32 has heard one. The E32 checks every step
 from the boiler's reports and shows each as passed, waiting or failed in plain
 words; the details and pass criteria are in
-[INSTALL.md section 12](INSTALL.md#12-what-the-trial-run-does-and-does-not-do).
+[INSTALL.md section 12](INSTALL.md#12-the-route-to-the-takeover-boiler-test-or-a-trial-run-first).
 Its temporary room target has an end time and never changes the week
 program. When a safety rule stops it, the page says "Stop and give control
 back to your thermostat" (without a thermostat the E32 ever heard: "Stop E32
@@ -1550,4 +1622,7 @@ dashboard follows by itself, but an automation, script or dashboard of your
 own that uses an old ID stops working until you change it; templates in YAML
 and other integrations are not searched. Entities you renamed yourself are
 skipped. **Undo the entity ID tidy** puts the old IDs back (where still free)
-for 30 days.
+for 30 days. A Dutch installation made with rc.5 or rc.6 may have IDs with
+the room twice (`sensor.woonkamer_woonkamer_reden`); this option offers to
+say the room once. New installations from rc7 do so by themselves, and no
+existing ID changes by updating.

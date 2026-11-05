@@ -95,6 +95,19 @@ def merge_periods(periods):
     return out
 
 
+HOLIDAY_SELECT_AHEAD_S = 24 * 3600  # Holiday from the list means "now": a planned one counts only when it starts within a day
+
+
+def next_holiday_end(away, now=None, within=HOLIDAY_SELECT_AHEAD_S):
+    """E32 rc.4+: the end (unix seconds) of the planned holiday that runs now or starts within ``within`` seconds, or
+    None (choosing Holiday from the list starts it now, so one weeks away would start weeks early)."""
+    if not supports_holidays(away):
+        return None
+    now = dt_util.utcnow().timestamp() if now is None else now
+    return next((until for start, until in holiday_periods(away["holidays"]) if until > now and start <= now + within),
+                None)
+
+
 def holiday_temperature(away):
     """The temperature on holiday (°C): the owner's own, else the away temperature; None on older firmware."""
     return number(away.get("holiday_temperature_c"), *AWAY_LIMITS) if supports_holidays(away) else None
@@ -338,11 +351,13 @@ class HouseModeSelect(HouseEntity, SelectEntity):
         return attributes
 
     async def async_select_option(self, option):
+        """Holiday from the list: until "Holiday until", the running holiday's end, or (rc.4+) the end of a planned
+        holiday that starts within a day, which then starts now; without any of them the error says how to start one."""
         away = self.house.away
         until = None
         if option == "holiday":
             current = away.get("until") if house_mode(away) == "holiday" else None
-            until = self.house.pending_until or current
+            until = self.house.pending_until or current or next_holiday_end(away)
         await self.house.async_command(option, until)
 
 

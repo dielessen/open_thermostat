@@ -9,6 +9,7 @@
 // 5 minutes and when the day changes, nothing after the card left the page. English, Dutch and Polish; light and dark;
 // desktop, a tablet (the narrowest four-column card), phone and a narrow phone (no sideways scroll, nothing cut). Screenshots go to the evidence directory for the visual check.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),component=path.join(root,'ha/config/custom_components/open_thermostat');
 const source=fs.readFileSync(path.join(component,'frontend/boiler-now-card.js'));
@@ -92,6 +93,10 @@ const cardsFor=lang=>{const code=CODES[lang];return {
    modulation:'sensor.boiler_burner_power'},
   states:[ent('binary_sensor.boiler_heating_active','on'),ent('binary_sensor.boiler_hot_water_active','off'),ent('sensor.boiler_flow','45',C),
    ent('sensor.boiler_burner_power','50',PCT)]},
+ // An imperial Home Assistant: the temperatures in °F, the unit as the entities say (R3 review).
+ imperial:{config:{flow:'sensor.flow_f',return:'sensor.return_f',request:'sensor.req_f'},
+  states:[ent('sensor.flow_f','106',{unit_of_measurement:'°F'}),ent('sensor.return_f','93',{unit_of_measurement:'°F'}),
+   ent('sensor.req_f','113',{unit_of_measurement:'°F',mode:'active'})]},
  // A code without its words (an older entity) and one figure that is not known yet.
  partial:{config:{code:'sensor.code_bare',flow:'sensor.flow_partial'},states:[ent('sensor.code_bare','-H'),ent('sensor.flow_partial','unknown',C)]},
 };};
@@ -199,7 +204,7 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   assert.deepEqual(await figures('water'),[['flow','55'+NB+'°C',note(W.no_request)],['return','45'+NB+'°C',note(fill(W.difference,{n:'10'}))],
    ['power','100'+NB+'%',note(W.power_full)],['starts','7',note(W.often,fill(W.today,{n:'16'}))]]);
   // 3. Resting in the trial run: grey; a waiting code with its cause number and what to do; what the E32 would ask.
-  assert.deepEqual(await band('idle'),['rest',activityWord('idle'),fill(W.code,{code:'0A 202',meaning:lower(CODES[lang].waiting.meaning)}),
+  assert.deepEqual(await band('idle'),['rest',W.resting,fill(W.code,{code:'0A 202',meaning:lower(CODES[lang].waiting.meaning)}),
    CODES[lang].waiting.advice,meta(W.link_good,W.no),'mdi:water-boiler']);
   assert.deepEqual(await figures('idle'),[['flow','31'+NB+'°C',note(fill(W.would_ask,{flow:'38'}))],
    ['return','29'+NB+'°C',note(fill(W.difference,{n:'2'}))],['power','0'+NB+'%',note(W.power_off)],['starts','0',null]]);
@@ -211,8 +216,13 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   // 5. The E32 heard, the boiler not: no data from the boiler, connection none; what is asked still said.
   assert.deepEqual(await band('silent'),['none',W.no_data,null,null,meta(W.link_none,'—'),'mdi:water-boiler-off']);
   assert.deepEqual(await figures('silent'),[['flow','—',note(fill(W.asked,{flow:'45'}))],['power','—',null]]);
-  // 6. Nothing heard: no data, every figure "—" and nothing under it, the connection and hot water "—".
-  assert.deepEqual(await band('unknown'),['none',W.no_data,null,null,meta('—','—'),'mdi:water-boiler-off']);
+  // 6. Nothing heard (the E32 offline: what the boiler does and the request unavailable too): no data from the E32,
+  // every figure "—" and nothing under it, the connection and hot water "—".
+  assert.deepEqual(await band('unknown'),['none',W.no_e32,null,null,meta('—','—'),'mdi:water-boiler-off']);
+  assert.notEqual(W.no_e32,W.no_data);
+  // An imperial house: the figures and the lines under them in the entities' °F.
+  assert.deepEqual(await figures('imperial'),[['flow','106'+NB+'°F',note(fill(W.asked,{flow:'113'}).replace('°C','°F'))],
+   ['return','93'+NB+'°F',note(fill(W.difference,{n:'13'}).replace('°C','°F'))]]);
   assert.deepEqual(await figures('unknown'),[['flow','—',null],['return','—',null],['power','—',null],['starts','—',null]]);
   assert.equal(await card('unknown').locator('.figure .unit, .figure .num').count(),0);
   // 7. An older integration (the hub's heating and hot water bits, no activity): the activity's words still.
@@ -279,8 +289,8 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
    assert(value.left>=arcBox.right&&value.top<arcBox.bottom&&value.bottom>arcBox.top,`${name}: the number beside the arc`);
    assert(arcBox.left>=box.left&&value.right<=box.right,`${name}: arc and number inside the figure`);
   }
-  await page.screenshot({path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
-  for(const name of ['heating','water','idle','fault'])await card(name).screenshot({path:path.join(out,`${lang}-${width}-${theme}-${name}.png`)});
+  await shot(page,{path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
+  for(const name of ['heating','water','idle','fault'])await shot(card(name),{path:path.join(out,`${lang}-${width}-${theme}-${name}.png`)});
   // A tap (or Enter) on a figure opens its entity's history; the focus stays over a redraw.
   await figure('heating','return').click();
   await figure('heating','flow').focus();await page.keyboard.press('Enter');

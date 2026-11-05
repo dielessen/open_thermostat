@@ -179,8 +179,17 @@ s_static(){
     grep -qF "${entry#*|}$HA.js" "$ha_dir/${entry%%|*}" || missing+=" ${entry%%|*}:${entry#*|}$HA.js"
   done
   grep -qF "p==='/open_thermostat/week-editor-$HA.js'" test/week-editor-browser.cjs || missing+=" test/week-editor-browser.cjs"
+  # rc7: the E32 screenshot tool routes the week editor too.
+  grep -qF "p === '/open_thermostat/week-editor-$HA.js'" tools/dev/e32-shots/shots.cjs || missing+=" tools/dev/e32-shots/shots.cjs"
   [ -z "$missing" ] || { echo "FAIL versioned frontend URLs do not carry $HA:$missing"; return 1; }
   echo "versioned frontend URLs: all eight carry $HA"
+  # The page modules and the Zigbee report producers, as CI's browser (1/4) job tests them without a browser
+  # (rc7: ui-language.test.cjs also checks the HA translations, which no other local step did).
+  node --test --test-reporter=tap test/zigbee2mqtt/*.test.cjs test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs \
+       test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs \
+       test/time-zone-picker.test.cjs test/week-editor.test.cjs > "$L/node-unit.log" 2>&1 \
+    || { tail -30 "$L/node-unit.log"; echo "FAIL node unit tests (see $L/node-unit.log)"; return 1; }
+  echo "node unit tests: pass ($(grep -c '^ok' "$L/node-unit.log") ok)"
   # Since beta.22 only the E32 V2 build may send an active heat request (after the
   # owner's plan + handover); every other board keeps the gate closed.
   python3 - <<'PY' || { echo "FAIL active heat gate: only the E32 V2 branch of src/Board.h may be open"; return 1; }

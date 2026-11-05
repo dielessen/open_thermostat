@@ -236,5 +236,8 @@ def test_the_daily_sensors_have_names_of_their_own_on_the_e32_device():
         daily = {key: sensors[key]["name"] for key in ("daily_summary", "daily_burner_time", "daily_burner_starts",
                                                         "daily_missed_comfort")}
         assert not set(daily.values()) & others, (name, set(daily.values()) & others)
+        # The three are running totals since the install (total_increasing): no name may call them today's.
+        for key in ("daily_burner_time", "daily_burner_starts", "daily_missed_comfort"):
+            assert not any(word in daily[key].lower() for word in ("today", "vandaag", "dziś")), (name, daily[key])
     assert json.loads((component / "translations/nl.json").read_text(encoding="utf-8"))["entity"]["sensor"][
-        "daily_burner_starts"]["name"] == "Branderstarts vandaag"
+        "daily_burner_starts"]["name"] == "Branderstarts (totaal)"

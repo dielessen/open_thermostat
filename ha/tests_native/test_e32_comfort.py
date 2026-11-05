@@ -535,8 +535,16 @@ async def test_the_room_says_what_smart_warm_up_does(hass):
                                   {"id": "living", "optimum_start": {"reason": "planned", "predicted_start_utc": at - 6000,
                                    "next_switch": {"utc": at, "target_c": 21}, "lead_minutes": 100, "confidence": "learned",
                                    "reachable": True, "start_now": False, "applies": True}}))
+    # The fixture E32 runs the trial run: Smart warm-up only says what it would do (rc7, R1-3).
+    text = entity.extra_state_attributes["smart_warm_up"]
+    assert text.startswith("Smart warm-up in the trial run: it would start at ") and " so it is 21 °C at " in text
+    hub.status["mode"] = "active"
     text = entity.extra_state_attributes["smart_warm_up"]
     assert text.startswith("Smart warm-up: starts at ") and " so it is 21 °C at " in text
+    # rc7 (R1-1): away or an open window holds the program on the E32: no Smart warm-up sentence then.
+    hub.rooms["living"]["comfort"] = {"mode": "away"}
+    assert entity.extra_state_attributes["smart_warm_up"] is None
+    hub.rooms["living"]["comfort"] = {}
     hass.data.setdefault("open_thermostat", {})["e1"] = {"e32_flow": SimpleNamespace(settings={"apply_learned": False})}
     assert entity.extra_state_attributes["smart_warm_up"].startswith("Smart warm-up is off: heating starts at ")
     link.stop()
@@ -553,14 +561,15 @@ async def test_the_room_says_how_the_last_morning_went(hass):
     learned = {"id": "living", "emitter": "floor", "readiness": "ready"}
     hub.update_learned("living", (learned, {"id": "living", "arrival": arrival}))
     text = entity.extra_state_attributes["smart_warm_up"]
-    assert text.startswith("Today warm at ") and text.endswith(" (12 min late); tomorrow 10 % earlier.")
+    assert text.startswith("Today warm at ") and text.endswith(" (12 min late); next time it starts a little earlier.")
     start = {"reason": "planned", "predicted_start_utc": at - 6000, "estimate": True,
              "next_switch": {"utc": at, "target_c": 21}, "lead_minutes": 100, "confidence": "default",
              "reachable": True, "start_now": False, "applies": True}
     hub.update_learned("living", (learned, {"id": "living", "arrival": arrival, "optimum_start": start}))
+    hub.status["mode"] = "active"  # the trial run would say "would start" (rc7)
     text = entity.extra_state_attributes["smart_warm_up"]
     assert text.startswith("Smart warm-up: starts at ") and "(estimate; it learns from every morning)" in text
-    assert text.endswith(" (12 min late); tomorrow 10 % earlier.") and ". Today warm at " in text
+    assert text.endswith(" (12 min late); next time it starts a little earlier.") and ". Today warm at " in text
     hub.update_learned("living", (learned, None))
     assert entity.extra_state_attributes["smart_warm_up"] is None  # no plan (no trusted clock): nothing
     link.stop()

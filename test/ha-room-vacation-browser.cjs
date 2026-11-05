@@ -1,5 +1,6 @@
 // Shipped date UI, isolated native WS/service/state fixture; no device IO.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
 const out=path.join(root,'out/room-vacation-20261027/browser');
@@ -99,7 +100,7 @@ const model={entry_id:'fixture',room_id:'a1b2c3d4',supported:true,editable:true,
   const afterServiceTimeout=await page.evaluate(()=>services.length);await page.evaluate(()=>releaseService());await page.waitForTimeout(100);
   assert.equal(await page.evaluate(()=>services.length),afterServiceTimeout);assert.equal(await start.isDisabled(),true);
   assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(out,`VACATION-${lang}-${width}.png`),fullPage:true});results.push({lang,width,result:'PASS',browserTimezone:'America/Los_Angeles',haTimezone:'Europe/Amsterdam',explicitFold:true,gapRejected:true,expectedRoomScope:true,noOptimisticState:true,noReplay:true});await page.close();
+  await shot(page,{path:path.join(out,`VACATION-${lang}-${width}.png`),fullPage:true});results.push({lang,width,result:'PASS',browserTimezone:'America/Los_Angeles',haTimezone:'Europe/Amsterdam',explicitFold:true,gapRejected:true,expectedRoomScope:true,noOptimisticState:true,noReplay:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));
 })().catch(e=>{console.error(e);process.exitCode=1;});

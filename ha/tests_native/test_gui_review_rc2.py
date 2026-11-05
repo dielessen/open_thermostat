@@ -6,7 +6,7 @@
   right under it, the boiler's state words say "Boiler:", long states get the whole width.
 - "Ready to take over?" never shows "None °C" for a figure the E32 does not know yet.
 - Device pages: the boiler's settings, counters, the thermostat on the bus and service details are
-  Diagnostic, the room's "Temperature without Home Assistant" is a setting; unique IDs stay.
+  Diagnostic, the room's "Temperature without a week program" is a setting; unique IDs stay.
 - Configure: a new installation gets the dashboard, the room form says which room, sources by name,
   the house default for windows in minutes like each room's own.
 """
@@ -73,7 +73,8 @@ async def test_the_overview_is_short_and_what_it_learned_is_its_own_view(hass):
     # What it learned per room is in that room's section, not in the learning view.
     living = next(s["cards"] for s in view(config, "rooms")["sections"] if s["cards"][0]["heading"] == "Woonkamer")
     lines = next(c for c in living if c["type"] == "markdown" and "mine[0].lines" in c["content"])
-    assert '"Woonkamer"' in lines["content"] and hub["learned_overview"] in lines["content"]
+    # Found by the room's ID, so a room renamed in Home Assistant keeps its lines (rc7, R1-13).
+    assert "selectattr('room_id', 'eq', \"woonkamer\")" in lines["content"] and hub["learned_overview"] in lines["content"]
     # How the learning works is with what it learned, not on the Comparison page.
     assert "learns how fast each room warms up" not in json.dumps(view(config, "comparison"))
     # Dutch.
@@ -146,8 +147,8 @@ def test_the_temperature_without_home_assistant_is_a_room_setting():
     def category(cls):
         return cls.__new__(cls).entity_category
     assert category(RoomFallbackSetpoint) == EntityCategory.CONFIG
-    # The room's on/off and its "off until" stay controls on the device page.
-    assert category(RoomStateSelect) is None and category(RoomInactiveUntil) is None
+    # 1.0.0rc7: the room's on/off and its "off until" are settings too: the thermostat's Off/Auto is the control.
+    assert category(RoomStateSelect) == EntityCategory.CONFIG and category(RoomInactiveUntil) == EntityCategory.CONFIG
 
 
 def test_every_icon_belongs_to_a_translated_entity():

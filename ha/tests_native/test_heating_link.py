@@ -269,11 +269,11 @@ NAMES = {
                "room_status": ("Control status", "Regelstatus"),
                "ble_temperature": ("Temperature", "Temperatuur"), "ble_humidity": ("Humidity", "Luchtvochtigheid"),
                "ble_battery": ("Battery", "Batterij"),
-               "heat_request": ("Boiler request (E32)", "Ketelvraag (E32)"),
+               "heat_request": ("Requested water temperature", "Gevraagde watertemperatuur"),
                "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur"),
                "room_learning": ("Learning status", "Leerstatus"),
                "room_flow_advice": ("Recommended water temperature", "Geadviseerde watertemperatuur"),
-               "room_heating_start": ("Predicted heating start", "Verwachte start verwarmen"),
+               "room_heating_start": ("Smart warm-up start", "Start slim opwarmen"),
                "dhw_taps_today": ("Hot water taps today", "Warmwatertappen vandaag"),
                "dhw_keep_warm_today": ("Keeping hot water warm today", "Warm water warmhouden vandaag"),
                "dhw_burner_time_today": ("Hot water burner time today", "Brandertijd warm water vandaag")},
@@ -282,7 +282,7 @@ NAMES = {
                       "heating_problem": ("Heating problem", "Verwarmingsprobleem")},
     "select": {"room_state": ("Heating", "Verwarmen")},
     "datetime": {"room_inactive_until": ("Off until", "Uit tot")},
-    "number": {"room_fallback_setpoint": ("Temperature without Home Assistant", "Temperatuur zonder Home Assistant")},
+    "number": {"room_fallback_setpoint": ("Temperature without a week program", "Temperatuur zonder weekprogramma")},
 }
 
 
@@ -300,10 +300,40 @@ def test_entity_names_are_plain_glossary_names_in_both_languages():
     assert nl["sensor"]["room_status"]["state"] == {"ok": "In orde", "fallback": "Reservesensor in gebruik",
                                                     "stale": "Meting verouderd", "lost": "Sensor kwijt",
                                                     "inactive": "Uit",
-                                                    "window_open": "Raam open, verwarming gepauzeerd",
-                                                    "window_pending": "Raam open, pauzeert zo"}
+                                                    "window_open": "Raam of deur open, verwarming gepauzeerd",
+                                                    "window_pending": "Raam of deur open, pauzeert zo"}
     assert nl["select"]["room_state"]["state"] == {"active": "Aan", "inactive": "Uit"}
 
+
+
+def test_the_main_list_keeps_what_matters_and_the_rest_is_diagnostic():
+    """1.0.0rc7: a room's device page and Home Assistant's own Overview show the thermostat, Temperature, Heat
+    demand and Reason; on/off and "off until" are settings; the target (the thermostat shows it), the control
+    status, the learning figures and the E32's counters are diagnostic. Unique IDs stay."""
+    from homeassistant.const import EntityCategory
+    from custom_components.open_thermostat import heating_link as hl, insight, room_plan
+    from custom_components.open_thermostat.daily_summary import SummaryTotalSensor
+    hub, room = hl.HeatingHub("fixture"), {"id": "woonkamer", "name": "Woonkamer"}
+    summary = SimpleNamespace(hub=hub)
+    temperature, target = hl.RoomTemperatureSensor(hub, room), hl.RoomTemperatureSensor(hub, room, "setpoint", 5, 30)
+    assert (temperature.unique_id, target.unique_id) == ("fixture_e32_room_woonkamer_temperature",
+                                                         "fixture_e32_room_woonkamer_setpoint")
+    assert temperature.suggested_display_precision == 1 == target.suggested_display_precision  # not 20.37 °C
+    assert temperature.entity_category is None and hl.RoomDemandBinarySensor(hub, room).entity_category is None
+    for entity in (room_plan.RoomStateSelect(hub, room), room_plan.RoomInactiveUntil(hub, room),
+                   room_plan.RoomFallbackSetpoint(hub, room)):
+        assert entity.entity_category == EntityCategory.CONFIG, type(entity).__name__
+    for entity in (target, hl.RoomStatusSensor(hub, room), hl.RoomLearningSensor(hub, room),
+                   hl.RoomFlowAdviceSensor(hub, room), hl.RoomHeatingStartSensor(hub, room), hl.BurnerStartsSensor(hub),
+                   hl.HeatRequestSensor(hub), insight.KnowledgeSensor(hub), insight.BoilerResponseSensor(hub),
+                   *(SummaryTotalSensor(summary, key) for key in ("burner_s", "starts", "missed_s"))):
+        assert entity.entity_category == EntityCategory.DIAGNOSTIC, type(entity).__name__
+    assert hl.BoilerActivitySensor(hub).entity_category is None
+    # Recorded attributes that change with every plan save or message are left out of the history.
+    for cls in (hl.RoomStatusSensor, room_plan.RoomStateSelect, room_plan.RoomFallbackSetpoint):
+        assert "revision" in cls._unrecorded_attributes, cls.__name__
+    from custom_components.open_thermostat.e32_comfort import E32RoomClimate
+    assert "smart_warm_up" in E32RoomClimate._unrecorded_attributes
 
 def test_icons_cover_the_entities_and_services():
     import re
@@ -403,11 +433,14 @@ def test_shadow_sensor_names_are_translated():
     for name in ("strings.json", "translations/nl.json"):
         sensor = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]["sensor"]
         names[name] = [sensor["shadow_" + key]["name"] for key in SHADOW_SENSORS]
-    assert names["strings.json"] == ["Heating time today (E32)", "Heating time today (thermostat)",
-                                     "Burner starts today (E32)", "Burner starts today (thermostat)",
+    # 1.0.0rc7: who counted first, the trial run last (NL 'proef': names stay within 45 characters).
+    assert names["strings.json"] == ["E32 heating time today (trial run)", "Thermostat heating time today (trial run)",
+                                     "E32 burner starts today (trial run)", "Thermostat burner starts today (trial run)",
                                      "Agreement with thermostat today"]
-    assert names["translations/nl.json"] == ["Stooktijd vandaag (E32)", "Stooktijd vandaag (thermostaat)",
-                                             "Branderstarts vandaag (E32)", "Branderstarts vandaag (thermostaat)",
+    assert names["translations/nl.json"] == ["E32-stooktijd vandaag (proef)",
+                                             "Thermostaat-stooktijd vandaag (proef)",
+                                             "E32-branderstarts vandaag (proef)",
+                                             "Thermostaat-branderstarts vandaag (proef)",
                                              "Overeenstemming met thermostaat vandaag"]
 
 
@@ -492,9 +525,9 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
         # The learned values read like the room's other entities, on the same room device.
         assert [e.entity_id for e in learned] == ["sensor.woonkamer_learning_status",
                                                   "sensor.woonkamer_recommended_water_temperature",
-                                                  "sensor.woonkamer_predicted_heating_start"]
+                                                  "sensor.woonkamer_smart_warm_up_start"]
         assert hass.states.get("sensor.woonkamer_learning_status").state == "ready"
-        assert hass.states.get("sensor.woonkamer_predicted_heating_start").state == "2026-10-30T03:35:00+00:00"
+        assert hass.states.get("sensor.woonkamer_smart_warm_up_start").state == "2026-10-30T03:35:00+00:00"
         assert hass.states.get("sensor.woonkamer_recommended_water_temperature").state == "34"
         assert {entities.async_get(e.entity_id).device_id for e in learned} == {
             devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"),
@@ -800,14 +833,18 @@ async def test_todays_hot_water_becomes_product_sensors_once_reported(hass, monk
 def test_learning_states_and_icons_in_both_languages():
     icons = json.loads((COMPONENT / "icons.json").read_text(encoding="utf-8"))["entity"]["sensor"]
     states = {}
-    for name in ("strings.json", "translations/en.json", "translations/nl.json"):
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
         sensor = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]["sensor"]
         states[name] = sensor["room_learning"]["state"]
         assert list(states[name]) == ["collecting", "learning", "ready"], name
     assert states["strings.json"] == states["translations/en.json"] == {
-        "collecting": "Collecting data", "learning": "Learning", "ready": "Ready"}
+        "collecting": "Collecting data", "learning": "Learning", "ready": "Learned"}
     assert states["translations/nl.json"] == {"collecting": "Gegevens verzamelen", "learning": "Aan het leren",
-                                              "ready": "Klaar"}
+                                              "ready": "Geleerd"}
+    # rc7: "Learned" as the Learning tab and the E32's page say it (learned_overview.py "learned"), not "Ready".
+    from custom_components.open_thermostat.learned_overview import TEXT
+    assert [states[f"translations/{lang}.json"]["ready"] for lang in ("en", "nl", "pl")] == [
+        TEXT[lang]["learned"] for lang in ("en", "nl", "pl")]
     assert set(icons["room_learning"]["state"]) == set(states["strings.json"])
     from custom_components.open_thermostat.heating_link import LEARNING_STATES
     assert LEARNING_STATES == list(states["strings.json"])

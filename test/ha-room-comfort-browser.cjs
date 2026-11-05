@@ -1,5 +1,6 @@
 // Shipped HA editor and isolated WebSocket/state fixtures, no device IO.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
 const out=path.join(root,'out/room-comfort-20261027/browser');
@@ -57,7 +58,7 @@ const model={entry_id:'fixture',room_id:'a1b2c3d4',supported:true,editable:true,
   assert.equal(await card.locator('#comfort_enabled').isChecked(),true);assert.equal(await card.locator('#presence_entity').inputValue(),'person.room');
   const count=await page.evaluate(()=>calls.length);await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>calls.length),count);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
-  await page.screenshot({path:path.join(out,`COMFORT-${lang}-${width}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`COMFORT-${lang}-${width}.png`),fullPage:true});
   results.push({lang,width,result:'PASS',nativePresenceIdentity:true,oneAtomicSave:true,liveStatusWithoutReads:true,explicitRemoval:true,uncertainDraftRetained:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));

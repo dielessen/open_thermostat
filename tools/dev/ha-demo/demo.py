@@ -321,20 +321,22 @@ class Demo:
         end = loop.time() + timeout
         while True:
             states = {s["entity_id"]: s for s in await hass.get("/api/states")}
-            if check(states):
+            ids = {e["unique_id"]: e["entity_id"] for e in await hass.ws("config/entity_registry/list")
+                   if e.get("platform") == "open_thermostat"}
+            if check(states, ids):
                 return states
             if loop.time() > end:
                 raise HassError(f"timed out waiting for {what}")
             await asyncio.sleep(2)
 
     @staticmethod
-    def live(states):
-        """The E32 is heard and the boiler's values and day sensors exist (the dashboard is complete)."""
-        reason = states.get("sensor.woonkamer_reason", {}).get("state")
-        flow = [s for e, s in states.items() if e.endswith("water_temperature_to_heating_flow")]
-        gas = [s for e, s in states.items() if e.endswith("gas_for_heating")]
-        return reason not in (None, "unknown", "unavailable") and flow and gas and flow[0]["state"] not in (
-            "unknown", "unavailable")
+    def live(states, ids):
+        """The E32 is heard and the boiler's values and day sensors exist (the dashboard is complete). By unique ID:
+        the entity IDs follow the onboarding's language and areas (sensor.woonkamer_reden in Dutch)."""
+        reason, flow, gas = (states.get(ids.get(f"{PREFIX}_{key}"), {}).get("state") for key in (
+            "e32_room_woonkamer_reason", "boiler_fields_v1_measured_flow_temperature", "hub_heating_gas"))
+        return reason not in (None, "unknown", "unavailable") and flow not in (None, "unknown", "unavailable") and (
+            gas is not None)
 
     async def setup(self):
         """First run: onboarding, MQTT, the installation and its E32, until every entity exists."""

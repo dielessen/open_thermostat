@@ -26,7 +26,10 @@ their ``{prefix}_room_*`` devices) are never touched; legacy_rooms_flow removes
 them. An area is suggested at most once per device: only when the device is
 first created or first gets its group, only while it has no area, and only if
 an area with the room's name (case-insensitive) already exists. No area is ever
-created.
+created. Home Assistant puts a device's area in front of new entity IDs; the room
+entities keep that name out of theirs while it is the room's own
+(heating_link.RoomEntity.async_prepare_to_add_to_hass): sensor.woonkamer_reden,
+not sensor.woonkamer_woonkamer_reden.
 """
 from __future__ import annotations
 

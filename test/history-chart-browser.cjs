@@ -2,6 +2,7 @@
 // dashboard, in English and Dutch, light and dark, desktop and 360 px. Fixtures only.
 // Hot water (beta.23): the owner's 31 Oct 2026 as 5-minute shares tapping and keeping warm.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),shots=process.env.OPENTHERMOSTAT_HISTORY_EVIDENCE||'';
 function heating(){
@@ -118,7 +119,7 @@ function history(){
   await page.mouse.move(2,2);await dhwTip.waitFor({state:'hidden'});
   // Phone width: nothing wider than the screen.
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  if(shots)await page.screenshot({path:path.join(shots,`history-${lang}-${width}-${scheme}.png`),fullPage:true});
+  if(shots)await shot(page,{path:path.join(shots,`history-${lang}-${width}-${scheme}.png`),fullPage:true});
   // At most one history read a minute, on the regular 10 s poll.
   assert.equal(reads.length,1);
   await page.clock.runFor(10000);await page.waitForTimeout(50);assert.equal(reads.length,1);

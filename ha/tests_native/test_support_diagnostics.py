@@ -88,6 +88,12 @@ async def test_the_e32_diagnostics_help_and_contain_no_secret(hass):
     assert e32["inputs"]["options"] == {CONF_GAS_METER: "sensor.gas", CONF_BOILER_KW: 24}
     assert e32["inputs"]["entities"][CONF_GAS_METER]["unit_of_measurement"] == "m³"
     assert e32["inputs"]["on_e32"]["boiler_kw_source"] == "ha"
+    # rc.7 (R2-23): per entity the plan reads whether it exists and is sent; here it has no state at all.
+    assert e32["inputs"]["forwarded"] == [{"entity_id": "climate.woonkamer", "domain": "climate", "in_states": False,
+                                           "in_registry": False, "state": None, "last_reported_age_s": None,
+                                           "sent_on_refresh": False}]
+    assert set(e32["inputs"]["comfort"]) == {"presence_entities", "away_delay_min", "room_persons", "contacts",
+                                             "contact_delay_s", "contact_delays", "override_minutes"}
     counts = e32["entities"]
     assert counts["per_domain"] == {"sensor": 2, "update": 1} and counts["total"] == 3
     assert counts["unavailable"] == [stale.entity_id] and len(counts["disabled"]) == 1
@@ -158,3 +164,35 @@ async def test_the_last_install_record_of_the_update_entity_is_in_the_download_c
     monkeypatch.setattr(module, "_update_entity", lambda hass, entity_id: None)
     firmware = (await diagnostics.async_get_config_entry_diagnostics(hass, parent))["e32"]["firmware"]
     assert firmware["last_install"] is None and firmware["last_install_valid"] is None
+
+
+@pytest.mark.asyncio
+async def test_the_inputs_say_per_forwarded_entity_whether_it_exists_and_is_sent(hass):
+    """A source that was deleted, renamed or stopped reporting fails silently on the E32 (R2-4); the download says it:
+    exists, domain, last written, sent by the refresh. And the comfort configuration (contacts, people, delays)."""
+    from custom_components.open_thermostat.e32_comfort import CONF_COMFORT
+    parent, hub = product_entry(hass)
+    hub.update({**hub.status, "ha_entities": ["climate.woonkamer", "sensor.badkamer", "climate.gone"]})
+    hass.config_entries.async_update_entry(parent, options={**parent.options, CONF_COMFORT: {
+        "contacts": {"woonkamer": ["binary_sensor.raam_woonkamer"]}, "contact_delays": {"woonkamer": 120},
+        "room_persons": {"woonkamer": ["person.mark"]}, "presence_entities": ["person.mark"], "away_delay_min": 20}})
+    registry = er.async_get(hass)
+    registry.async_get_or_create("sensor", "other", "badkamer", suggested_object_id="badkamer")
+    hass.states.async_set("climate.woonkamer", "heat", {"current_temperature": 20.4, "temperature": 21})
+    hass.states.async_set("sensor.badkamer", "unavailable", {})
+    inputs = module.inputs(hass, parent, hub)
+    forwarded = {item["entity_id"]: item for item in inputs["forwarded"]}
+    age = forwarded["climate.woonkamer"].pop("last_reported_age_s")
+    assert type(age) is float and 0 <= age < 30
+    assert forwarded["climate.woonkamer"] == {"entity_id": "climate.woonkamer", "domain": "climate", "in_states": True,
+                                              "in_registry": False, "state": "heat", "sent_on_refresh": True}
+    assert forwarded["sensor.badkamer"]["in_registry"] is True and forwarded["sensor.badkamer"]["sent_on_refresh"] is False
+    assert forwarded["climate.gone"]["in_states"] is False and forwarded["climate.gone"]["sent_on_refresh"] is False
+    comfort = inputs["comfort"]
+    assert comfort["contacts"] == {"woonkamer": ["binary_sensor.raam_woonkamer"]}
+    assert comfort["contact_delays"] == {"woonkamer": 120} and comfort["room_persons"] == {"woonkamer": ["person.mark"]}
+    assert comfort["presence_entities"] == ["person.mark"] and comfort["away_delay_min"] == 20
+    # Nothing secret in the whole download.
+    text = json.dumps(await diagnostics.async_get_config_entry_diagnostics(hass, parent))
+    for secret in SECRETS:
+        assert secret not in text, secret

@@ -54,7 +54,7 @@ blokkeert 1.0.0. Een `fail` geeft `FAIL` tot een latere `pass` voor dezelfde tes
 ## 3. Voor je begint
 
 **De dag ervoor (± 15 min):**
-- [ ] E32 `v1.0.0-e32v2-rc.5` met HA `1.0.0rc6` staan erop (met vastlegging geïnstalleerd), de E32 draait ≥ 24 uur
+- [ ] E32 `v1.0.0-e32v2-rc.5` met HA `1.0.0rc7` staan erop (met vastlegging geïnstalleerd), de E32 draait ≥ 24 uur
   stabiel, de overname is bevestigd, de tado is los. Ruimtes → **Actieve regeling** zegt "De E32 regelt de ketel."
   Draait er nog rc.4, gebruik dan bij `init` die versies (open vraag 1).
 - [ ] Back-ups: Home Assistant (Instellingen → Systeem → Back-ups → Nu back-up maken) en de E32 (Systeem →
@@ -147,7 +147,7 @@ ketel.
 
    ```powershell
    $D = '2026-11-14'
-   python3 -I tools/switchover/record_test.py --date $D init --firmware v1.0.0-e32v2-rc.5 --ha 1.0.0rc6
+   python3 -I tools/switchover/record_test.py --date $D init --firmware v1.0.0-e32v2-rc.5 --ha 1.0.0rc7
    ```
 
 2. Start de bewaking in een **eigen venster**; het vraagt "E32 password for admin:" en jij typt daar het E32-wachtwoord.
@@ -612,7 +612,7 @@ voorbeeld), dan zijn de meeste velden leeg: bij T6, T7 en T8 is dat verwacht.
 
 | Wat | Commando |
 | --- | --- |
-| Lijst aanmaken (één keer) | `python3 -I tools/switchover/record_test.py --date $D init --firmware v1.0.0-e32v2-rc.5 --ha 1.0.0rc6` |
+| Lijst aanmaken (één keer) | `python3 -I tools/switchover/record_test.py --date $D init --firmware v1.0.0-e32v2-rc.5 --ha 1.0.0rc7` |
 | Geslaagd | `… --date $D T<n> pass '<wat je zag>' --evidence '<foto of bestand>'` |
 | Niet geslaagd | `… --date $D T<n> fail '<wat je zag>' --evidence '<foto of bestand>'` |
 | Alleen T12: alternatief | `… --date $D T12 alternative '<reden>' --evidence '<bewijs>'` |

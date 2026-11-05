@@ -14,10 +14,10 @@ on your own, that meets the 1.0 criterion "an install guide someone else has
 followed".
 
 Versions: E32 firmware **1.0.0-rc.5** with Home Assistant integration
-**1.0.0rc6**, or a newer pair that the release notes name together.
+**1.0.0rc7**, or a newer pair that the release notes name together.
 
 Already testing rc.4 (or rc.3)? Do not start over: update with the three steps
-in [INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0rc6
+in [INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0rc7
 first, then the E32's **Firmware** entity, then confirm the takeover again)
 and read [What to look at in rc.5](#what-to-look-at-in-rc5).
 
@@ -88,7 +88,7 @@ it is done.
    3. Release candidates are pre-releases, which HACS does not offer by
       default. In the HACS list, open the three dots of **OpenThermostat**,
       choose **Download**, open **Need a different version?** and pick
-      **1.0.0rc6**.
+      **1.0.0rc7**.
    4. Restart Home Assistant (**Settings → System → Restart**).
 
    To be offered the next release candidate as an update, switch on the
@@ -122,7 +122,7 @@ it is done.
      Zigbee2MQTT valve whose model is not recognised (choose it under
      **Choose the models myself (advanced)**).
 
-   Each room has a **Valve control** switch, off by default. Valves are
+   Each room has a **Radiator valve control** switch, off by default. Valves are
    driven only while that switch is on **and** the E32 controls the boiler.
    So during a trial run nothing is sent to the valves, even when you set
    them up. Give each valve one job: either the room's **setting device**
@@ -215,7 +215,7 @@ only your home can tell us:
   while heating) and step 5 (stop heating). The result is kept on the Rooms
   page and in Home Assistant on the sensor **Ready for E32 control**.
 - **Valves per room.** Model, Zigbee2MQTT or ZHA, and after the takeover with
-  **Valve control** on: does the valve follow the room, does it report its
+  **Radiator valve control** on: does the valve follow the room, does it report its
   position and battery, and does it ever go silent?
 - **Sensors.** Which sensors you use, and whether a room on the E32 Rooms page
   ever shows "Backup sensor in use", "Sensor silent: last reading used" or
@@ -370,7 +370,7 @@ best report of all.
 ## 8. Known limits in rc.5
 
 - **Radiator valve control is not yet verified on real valves.** You are the
-  one verifying it. Switch **Valve control** on one room at a time, after the
+  one verifying it. Switch **Radiator valve control** on one room at a time, after the
   takeover.
 - **EMS Classic (EMS 1.0) boilers only.** EMS+ boilers come in 1.1.
 - **Writing boiler settings** comes after 1.0; the E32 only reads them.

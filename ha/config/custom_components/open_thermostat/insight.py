@@ -33,7 +33,7 @@ language (English, Dutch or Polish), as the learned overview does; the E32 Home 
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import PERCENTAGE
+from homeassistant.const import PERCENTAGE, EntityCategory
 from homeassistant.core import callback
 
 from .const import DOMAIN
@@ -148,14 +148,14 @@ TEXT = {
         "missing.boiler_response": "Wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "missing.house": "Wciąż oblicza, jak szybko Twój dom traci ciepło.",
         "boiler.learned_both": "Twój kocioł utrzymuje około {flow} °C i odpoczywa {rest}; blisko temperatury docelowej E32 "
-                               "zadaje najwyżej {ceiling} °C.",
-        "boiler.learned_ceiling": "Twój kocioł utrzymuje około {flow} °C; blisko temperatury docelowej E32 zadaje najwyżej "
+                               "żąda najwyżej {ceiling} °C.",
+        "boiler.learned_ceiling": "Twój kocioł utrzymuje około {flow} °C; blisko temperatury docelowej E32 żąda najwyżej "
                                   "{ceiling} °C.",
         "boiler.learned_held_rest": "Twój kocioł utrzymuje około {flow} °C i odpoczywa {rest}.",
         "boiler.learned_held": "Twój kocioł utrzymuje około {flow} °C.",
         "boiler.learned_rest": "Twój kocioł odpoczywa {rest} za każdym razem, gdy osiągnie swoją temperaturę.",
         "boiler.learned": "E32 nauczył się, jak Twój kocioł utrzymuje swoją temperaturę.",
-        "boiler.ceiling_off": "Z włączonym Inteligentnym nagrzewaniem E32 zadawałby blisko temperatury docelowej "
+        "boiler.ceiling_off": "Z włączonym Inteligentnym nagrzewaniem E32 żądałby blisko temperatury docelowej "
                               "najwyżej {ceiling} °C.",
         "boiler.collecting": "E32 wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "boiler.collecting_output": "Twój kocioł jeszcze sam nie utrzymał temperatury wody; każdy stopień, o który woda "
@@ -342,8 +342,21 @@ def insight_lines(summary, names, lang):
             for _, text, meaning in (insight_text(item, names, lang) for item in insight_items(summary))]
 
 
-def room_names(hub):
-    return {room_id: label(room) for room_id, room in hub.rooms.items()}
+def room_names(hub, hass=None, entry_id=None):
+    """{room id: name}: the name the dashboard shows (the room device's name in Home Assistant, renamed there or
+    not; dashboard.RoomDashboard._device_name), else the E32's own; without ``hass`` and the entry the E32's."""
+    names = {room_id: label(room) for room_id, room in hub.rooms.items()}
+    from homeassistant.core import HomeAssistant
+    if not isinstance(hass, HomeAssistant) or not entry_id:
+        return names
+    from homeassistant.helpers import device_registry as dr
+    from .heating_link import room_device_identifier
+    registry = dr.async_get(hass)
+    for room_id in names:
+        device = registry.async_get_device_by_identifier(room_device_identifier(hub.prefix, room_id), entry_id)
+        if device is not None and (device.name_by_user or device.name):
+            names[room_id] = device.name_by_user or device.name
+    return names
 
 
 # -- the sensors ------------------------------------------------------------------------------------------------
@@ -368,6 +381,7 @@ class KnowledgeSensor(_InsightSensor):
     """How much of what it needs the E32 knows about the house (%), and what it still learns, in words."""
 
     _attr_translation_key = "knowledge"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC  # the Learning view's ring shows it
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 0
@@ -387,7 +401,9 @@ class KnowledgeSensor(_InsightSensor):
         part = knowledge(self.summary)
         if part is None:
             return None
-        missing, more = missing_sentences(part, room_names(self.hub), self._lang())
+        entry = getattr(getattr(self, "platform", None), "config_entry", None)
+        missing, more = missing_sentences(part, room_names(self.hub, getattr(self, "hass", None),
+                                                           getattr(entry, "entry_id", None)), self._lang())
         return {"missing": missing, "more": more}
 
 
@@ -396,6 +412,7 @@ class BoilerResponseSensor(_InsightSensor):
     asks of it near the target."""
 
     _attr_translation_key = "boiler_response"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = BOILER_STATES
     # The heat the house takes now changes all the time; shown, not kept in the history.
@@ -480,7 +497,7 @@ class InsightNotifier:
     @callback
     def sync(self, items):
         from homeassistant.components import persistent_notification
-        lang, names = language(self.hass), room_names(self.hub)
+        lang, names = language(self.hass), room_names(self.hub, self.hass, self.entry_id)
         wanted = {self.notification_id(item): item for item in items}
         for key, item in wanted.items():
             if self.dismissed.get(key) == _signature(item):

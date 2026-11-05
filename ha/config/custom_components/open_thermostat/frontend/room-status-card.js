@@ -6,7 +6,10 @@
    opens the Reason sensor's history. The words are the integration's translations (strings.json
    entity.sensor.room_reason), so every viewer reads them in their own Home Assistant language; the card itself
    holds no text but English last resorts. Optional config: smart (the Smart warm-up switch) and mode (the house
-   mode select); the OpenThermostat dashboard adds both when they exist. */
+   mode select); the OpenThermostat dashboard adds both when they exist.
+   HA 1.0.0rc7 (the owner's sketch): after the sentence, the week program's step from the Reason sensor's
+   ``program`` attribute (room_overview.program_step): "Comfort until 22:30, then Night 18.0 °C"; nothing while the
+   attribute is absent or has no next step (the program does not set the room's target, or nothing changes). */
 const KEY = 'component.open_thermostat.entity.sensor.room_reason.state_attributes.';
 // The tone of each reason: the colour of the disc and of the word chip.
 const TONE = {warm_up: 'heat', heating: 'heat', wants_heat: 'heat', boost: 'heat', away_return: 'heat', window_open: 'warn', window_pending: 'warn',
@@ -18,6 +21,8 @@ const CHIP = {off: 'Off', window_open: 'Paused', window_pending: 'Pausing soon',
  house_away: 'Away', boost: 'Boost', temporary: 'Temporary', heating: 'Heating', wants_heat: 'Wants heat', warm_enough: 'At temperature'};
 // The card's other words (state_attributes.card): the same, for the chips beside the reason's word.
 const WORDS = {smart_on: 'Smart warm-up on', home: 'At home', away: 'Away', holiday: 'Holiday'};
+// The week program's step (state_attributes.program): the English last resort, key for key as strings.json.
+const PROGRAM = {comfort: 'Comfort', eco: 'Eco', night: 'Night', holiday: 'Holiday', step: '{level} until {time}, then {next}'};
 // Who is home for this room (room_overview.room_presence): the house chip's word while the house mode is automatic.
 const PRESENCE = {room_home: 'home', room_away: 'away', house_home: 'home', house_away: 'away'};
 const MODES = new Set(['home', 'away', 'holiday']);  // the house mode select's options that name the house itself
@@ -50,20 +55,60 @@ ${Object.keys({heat: 0, warn: 0, error: 0, info: 0, away: 0, ok: 0, off: 0}).map
 const locale = hass => hass?.locale?.language || hass?.language || 'en';
 // A figure and its unit stay together on a narrow card ("21,2 °C" never breaks before the unit).
 const together = text => text.replace(/ (°C|%)/g, ' $1');
-const zone = hass => hass?.locale?.time_zone === 'server' ? hass?.config?.time_zone : undefined;
-// The viewer's 12/24-hour choice in Home Assistant (profile → time format); else the language's.
-const hour12 = hass => ({'12': true, '24': false})[hass?.locale?.time_format];
 // Now with one decimal (20.0); a target as set (21, 22.5).
 const degrees = (hass, value, fixed) => typeof value === 'number' && Number.isFinite(value)
  ? value.toLocaleString(locale(hass), {minimumFractionDigits: fixed ? 1 : 0, maximumFractionDigits: 1}) : null;
-// A moment as the clock time today, else with the weekday (Back door open since Tue 14:05).
-const moment = (hass, iso) => {
- const at = typeof iso === 'string' ? new Date(iso) : null;
- if (!at || !Number.isFinite(at.getTime())) return '';
- const timeZone = zone(hass), day = d => d.toLocaleDateString('en-CA', {timeZone});
- const options = {hour: '2-digit', minute: '2-digit', timeZone, hour12: hour12(hass), ...(day(at) === day(new Date()) ? {} : {weekday: 'short'})};
- try { return at.toLocaleString(locale(hass), options); } catch (e) { return at.toISOString().slice(11, 16); }
+/* clock: begin. One clock for the OpenThermostat cards (the same text in house-card.js and room-status-card.js, checked
+   by test_room_overview.py): Home Assistant's time zone (the house's, where the E32 and its program live), the viewer's
+   12/24-hour choice (a 12-hour clock without a leading zero: "5:00 PM"); a moment today as its time, the day before or
+   after as "yesterday 14:05" / "tomorrow 14:30" in the viewer's language, further away with its date ("Sat 14 Nov,
+   14:30"): a weekday alone is ambiguous after six days, and a holiday can end months ahead. */
+const clockLocale = hass => hass?.locale?.language || hass?.language || 'en';
+const clockZone = hass => {
+ const zone = hass?.config?.time_zone;
+ if (typeof zone !== 'string' || !zone) return undefined;
+ try { new Intl.DateTimeFormat('en', {timeZone: zone}); return zone; } catch (e) { return undefined; }
 };
+const clockHour12 = hass => {
+ const chosen = ({'12': true, '24': false})[hass?.locale?.time_format];
+ if (chosen !== undefined) return chosen;
+ try { return /h1[12]/.test(new Intl.DateTimeFormat(clockLocale(hass), {hour: 'numeric'}).resolvedOptions().hourCycle); } catch (e) { return false; }
+};
+const clockOptions = hass => {
+ const hour12 = clockHour12(hass);
+ return {hour: hour12 ? 'numeric' : '2-digit', minute: '2-digit', hour12, timeZone: clockZone(hass)};
+};
+// The time of day of ms ("14:30", "2:30 PM").
+const clockTime = (hass, ms) => {
+ try { return new Date(ms).toLocaleTimeString(clockLocale(hass), clockOptions(hass)); } catch (e) { return new Date(ms).toISOString().slice(11, 16); }
+};
+// The day number of ms in the house's zone (days since 1970), to compare calendar days.
+const clockDay = (hass, ms) => {
+ try {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {timeZone: clockZone(hass), year: 'numeric', month: 'numeric', day: 'numeric'})
+   .formatToParts(new Date(ms)).map(({type, value}) => [type, Number(value)]));
+  return Math.round(Date.UTC(p.year, p.month - 1, p.day) / 86400000);
+ } catch (e) { return Math.floor(ms / 86400000); }
+};
+// A moment (an ISO text or ms) for a sentence: "14:30", "tomorrow 14:30", "Sat 14 Nov, 14:30"; '' when not a time.
+const clockMoment = (hass, value, now = Date.now()) => {
+ const ms = typeof value === 'number' ? value : typeof value === 'string' ? Date.parse(value) : NaN;
+ if (!Number.isFinite(ms)) return '';
+ const days = clockDay(hass, ms) - clockDay(hass, now), time = clockTime(hass, ms);
+ if (days === 0) return time;
+ if (Math.abs(days) === 1) {
+  try {
+   const word = new Intl.RelativeTimeFormat(clockLocale(hass), {numeric: 'auto'}).format(days, 'day');
+   // Polish "do"/"od"/"na" would need the genitive ("do jutra"): the time first keeps every sentence right ("do 06:30 jutro").
+   return /^pl\b/.test(clockLocale(hass)) ? time + ' ' + word : word + ' ' + time;
+  } catch (e) { /* older browser */ }
+ }
+ try { return new Date(ms).toLocaleString(clockLocale(hass), {weekday: 'short', day: 'numeric', month: 'short', ...clockOptions(hass)}); }
+ catch (e) { return new Date(ms).toISOString().slice(0, 16).replace('T', ' '); }
+};
+/* clock: end */
+// A moment in a sentence (Back door open since 14:05; Holiday until Sat 14 Nov, 14:30): the shared clock.
+const moment = (hass, iso) => clockMoment(hass, iso);
 
 class OpenThermostatRoomStatus extends HTMLElement {
  constructor() { super(); this.attachShadow({mode: 'open'}); this._key = null; }
@@ -77,7 +122,8 @@ class OpenThermostatRoomStatus extends HTMLElement {
   this._hass = hass;
   // Only a new state of its own entities, language or theme redraws; Home Assistant sets hass on every change in the house.
   const config = this._config || {}, states = hass?.states || {};
-  const key = [states[config.entity], states[config.smart], states[config.mode], locale(hass), hass?.themes?.darkMode];
+  const key = [states[config.entity], states[config.smart], states[config.mode], locale(hass), hass?.themes?.darkMode,
+   hass?.locale?.time_format];
   if (this._key && key.every((v, i) => v === this._key[i])) return;
   this._key = key; this.render();
  }
@@ -94,6 +140,25 @@ class OpenThermostatRoomStatus extends HTMLElement {
   const line = typeof a.line === 'string' ? this._text('line.state.' + a.line, values) : '';
   if (line) return together(line);
   try { return this._hass?.formatEntityState?.(st) || st.state; } catch (e) { return st.state; }
+ }
+ // The week program's step: "Comfort until 22:30, then Night 18.0 °C" (a level with its own temperature: "21.5 °C
+ // until …"); '' without a next step. The time as the sentence's times (today plain, another day with its weekday).
+ step(st) {
+  const p = st.attributes?.program, hass = this._hass;
+  if (!p || typeof p !== 'object' || typeof p.next_at !== 'string') return '';
+  // The time kept on one line ("Sun 4:12 PM" never breaks before PM).
+  const time = moment(hass, p.next_at).replace(/\s/g, ' '), now = degrees(hass, p.target, true), next = degrees(hass, p.next_target, true);
+  if (!time || now === null || next === null) return '';
+  const word = (key, values = {}) => {
+   const text = this._text('program.state.' + key, values);
+   return text || PROGRAM[key].replace(/\{(\w+)\}/g, (all, k) => k in values ? values[k] : all);
+  };
+  const level = key => ['comfort', 'eco', 'night', 'holiday'].includes(key) ? word(key) : '';
+  const nowLevel = level(p.level), nextLevel = level(p.next_level);
+  // A level by its name ("Comfort"), its next one with the temperature ("Night 18.0 °C"); a point without a level by its
+  // temperature alone. The program's temperatures are the E32's, in °C.
+  const deg = value => value + ' °C';
+  return together(word('step', {level: nowLevel || deg(now), time, next: nextLevel ? nextLevel + ' ' + deg(next) : deg(next)}));
  }
  // The house in one word: the house mode when it names the house (at home, away, holiday), else who is home.
  house(st) {
@@ -133,7 +198,10 @@ class OpenThermostatRoomStatus extends HTMLElement {
    return;
   }
   const label = key => this._text(key + '.name') || FALLBACK[key];
-  text.append(el('p', this.sentence(st), {class: 'why', 'data-reason': st.state}));
+  // The sentence, then the week program's step after a middle dot (the sketch: "At temperature · Comfort until 22:30, …").
+  const why = el('p', this.sentence(st), {class: 'why', 'data-reason': st.state}), step = this.step(st);
+  if (step) why.append(el('span', ' · '), el('span', step, {class: 'step', 'data-step': ''}));
+  text.append(why);
   // Now, large; for a screen reader with its label and the target ("Now 20.6 °C, Target 22.5 °C").
   const now = degrees(hass, a.temperature, true), target = st.state === 'off' ? null : degrees(hass, a.setpoint);
   const spoken = [now && `${label('temperature')} ${now} °C`, target && `${label('setpoint')} ${target} °C`].filter(Boolean).join(', ');

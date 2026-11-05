@@ -116,7 +116,7 @@ int main(){
  std::cout<<"PASS 26 actual login/session/password/logout handler scenarios: full capacity, per-address lockout, idle eviction (not during a test or settings write), credentials, cooldown, active trial/update, entropy failure, malformed recovery, explicit success, session JSON, password change limits/shape/rate limit/invalidation/busy/storage\n";
 }
 '''
-p=root/'out/session-recovery';p.mkdir(exist_ok=True);cpp=p/'login-handler.cpp';cpp.write_text(pre+method+logout+post)
+p=root/'out/session-recovery';p.mkdir(parents=True, exist_ok=True);cpp=p/'login-handler.cpp';cpp.write_text(pre+method+logout+post)
 subprocess.run(['gcc','-std=c11','-c',str(cjson/'cJSON.c'),'-o',str(p/'cjson.o')],check=True)
 subprocess.run(['g++','-std=c++17','-Wall','-Wextra','-Werror','-I'+str(root/'src'),'-I'+str(cjson),str(cpp),str(p/'cjson.o'),'-o',str(p/'login-handler')],check=True)
 # test/native_harnesses.sh build: compile only, a stale stub fails before anything runs.

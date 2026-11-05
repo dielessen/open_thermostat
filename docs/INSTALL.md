@@ -22,7 +22,7 @@ other.
 > always go straight to the boiler test. The one thing that acts on your home
 > before the takeover is an optional *setting device* (a valve or thermostat
 > that Home Assistant sets to your week program); see
-> [The route to the takeover](#12-what-the-trial-run-does-and-does-not-do).
+> [The route to the takeover](#12-the-route-to-the-takeover-boiler-test-or-a-trial-run-first).
 
 Want someone to check the guide as they go? Give them the
 [installation checklist](INSTALL-CHECK.md): each step, its expected result
@@ -48,7 +48,7 @@ Assistant.
 9. [Install the Home Assistant integration](#9-install-the-home-assistant-integration)
 10. [Add the integration and connect the E32](#10-add-the-integration-and-connect-the-e32)
 11. [Add your rooms](#11-add-your-rooms)
-12. [The route to the takeover: boiler test, or a trial run first](#12-what-the-trial-run-does-and-does-not-do)
+12. [The route to the takeover: boiler test, or a trial run first](#12-the-route-to-the-takeover-boiler-test-or-a-trial-run-first)
 13. [Updates](#13-updates)
 14. [Backup and restore](#14-backup-and-restore)
 15. [Secure your setup](#15-secure-your-setup)
@@ -421,7 +421,7 @@ OpenThermostat is a *custom repository* in HACS: you add it once.
 4. Restart Home Assistant (**Settings → System → Restart**). *Why:* Home
    Assistant only loads new integrations at start-up.
 
-**Pre-releases** (versions such as `1.0.0rc6`): HACS offers only
+**Pre-releases** (versions such as `1.0.0rc7`): HACS offers only
 stable versions unless you ask for more. Two ways:
 
 - **One specific version:** in the HACS list, open the three dots of the
@@ -437,7 +437,7 @@ stable versions unless you ask for more. Two ways:
 
 1. On the [releases page](https://github.com/dielessen/open_thermostat/releases),
    choose the **Home Assistant** release that the release notes pair with your
-   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc6`.
+   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc7`.
    Download `OpenThermostat-HA-<version>.zip`.
 2. Extract the ZIP on your computer. It contains a folder
    `custom_components/open_thermostat`.
@@ -555,7 +555,7 @@ Right after connecting, choose **Add the first room**. Later, go to
    any. Tick **Use the Bluetooth sensors first** to make them lead and keep the
    Home Assistant sources as backup.
 6. **Setting device (optional)**: see [11.3](#113-the-setting-device).
-7. **Temperature without Home Assistant**: a safe fixed temperature, for
+7. **Temperature without a week program**: a safe fixed temperature, for
    example 19 °C. The E32 uses it only in the rare case that the room has no
    usable week program, for example when the E32 has no valid clock.
 8. **Week program on the E32**: the form fills in the **Workdays and weekend**
@@ -849,7 +849,7 @@ The trial run is optional. **The E32 does:**
 - learn from how your boiler answers its requests (its ceiling and rest, see
   [Listening to the boiler](USER-GUIDE.md#listening-to-the-boiler)); the
   boiler's response says **E32 not controlling the boiler** until the takeover;
-- drive radiator valves. A room's **Valve control** switch is off by default,
+- drive radiator valves. A room's **Radiator valve control** switch is off by default,
   and even when it is on, valves are only driven while the E32 controls the
   boiler itself.
 
@@ -890,10 +890,10 @@ When a new release pair comes out, read its release notes first. They say
 which integration goes with which firmware. Usually: **update the integration
 first, then the firmware.**
 
-**From 1.0.0-rc.4 to 1.0.0-rc.5** (Home Assistant integration 1.0.0rc6), while
+**From 1.0.0-rc.4 to 1.0.0-rc.5** (Home Assistant integration 1.0.0rc7), while
 someone is home:
 
-1. Update OpenThermostat in HACS to **1.0.0rc6** and restart Home Assistant
+1. Update OpenThermostat in HACS to **1.0.0rc7** and restart Home Assistant
    ([13.2](#132-update-the-integration)). HACS offers it only while the
    **Pre-release** switch is on ([9.1](#91-with-hacs-recommended)).
 2. Install E32 1.0.0-rc.5 from the **Firmware** update entity
@@ -909,11 +909,11 @@ to the boiler, the house model, the knowledge figure, free heat) starts from
 zero and fills in over the first days of heating, so **The E32 knows your
 house** starts lower than it will end up; see
 [What the E32 knows](USER-GUIDE.md#what-the-e32-knows-and-what-it-still-lacks).
-The two new sensors **Knowledge** and **Boiler response** read unknown until
+The two new sensors **Known about your house** and **Boiler response** read unknown until
 the E32 runs rc.5 and has reported.
 
 **Coming from 1.0.0-rc.3?** The same order and the same versions (integration
-1.0.0rc6, firmware 1.0.0-rc.5); the changes of rc.4 come along. From the first
+1.0.0rc7, firmware 1.0.0-rc.5); the changes of rc.4 come along. From the first
 morning after the update Smart warm-up starts heating early (see
 [Warm on time](USER-GUIDE.md#warm-on-time-smart-warm-up)). The **Yesterday**
 sensors appear once the E32 has measured a day.
@@ -1283,7 +1283,10 @@ not start properly or did not reach the network within 10 minutes. Check
 that the router and the MQTT broker were available, then try again.
 **System → Firmware update → Update diagnostics** and the system log show
 what happened. If Home Assistant says the E32 did not report the new version
-in time, check the version on the E32 itself before trying again.
+in time, check the version on the E32 itself before trying again. A failed
+installation from Home Assistant now says in words where it stopped
+(downloading, checking the file, sending it to the E32, or the E32 not
+confirming the new version).
 
 ### Something else
 

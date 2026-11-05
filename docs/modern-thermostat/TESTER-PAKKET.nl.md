@@ -13,11 +13,11 @@ de ketel is altijd jouw eigen beslissing.
 - **Home Assistant 2026.10.0 of nieuwer**, een MQTT-broker (Mosquitto-add-on) met de MQTT-integratie en **HACS**;
   Zigbee2MQTT alleen als je kranen daaraan hangen (ZHA en andere integraties lopen via Home Assistant).
 - Kamersensoren (in Home Assistant of Bluetooth), je radiatorkranen en een telefoon voor foto's.
-- **Versies:** E32-firmware **1.0.0-rc.5** (tag `v1.0.0-e32v2-rc.5`) met HA-integratie **1.0.0rc6** (tag `ha-v1.0.0rc6`);
+- **Versies:** E32-firmware **1.0.0-rc.5** (tag `v1.0.0-e32v2-rc.5`) met HA-integratie **1.0.0rc7** (tag `ha-v1.0.0rc7`);
   Mark meldt wanneer ze gepubliceerd zijn. Het zijn pre-releases: voeg `https://github.com/dielessen/openthermostat-ha`
   toe als custom repository in HACS (type Integration) en zet **Pre-release** aan (Instellingen → Apparaten en diensten →
   HACS → apparaat OpenThermostat; eerst de entiteit inschakelen), of kies bij **Download** → *Need a different version?*
-  → **1.0.0rc6**.
+  → **1.0.0rc7**.
 - **Tijd:** ± 1 uur E32 en ± ½ uur Home Assistant als niets hapert, daarna 1–2 weken meekijken. De E32-pagina's volgen de
   taal van je browser (wisselen kan onderaan elke pagina); de gids noemt de Engelse namen.
 

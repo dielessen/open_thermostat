@@ -141,8 +141,9 @@ def valve_error(err):
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unconfirmed")
         return ServiceValidationError(translation_domain=DOMAIN, translation_key="valves_rejected",
                                       translation_placeholders={"error": err.error})
-    return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
-                              translation_placeholders={"error": str(err)})
+    from .room_plan import link_error
+    return link_error(str(err)) or HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
+                                                      translation_placeholders={"error": str(err)})
 
 
 class ValveLink:
@@ -193,8 +194,8 @@ class ValveLink:
 
 
 def unreadable():
-    return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
-                              translation_placeholders={"error": "controller_response_invalid"})
+    from .room_plan import link_error
+    return link_error("controller_response_invalid")
 
 
 def valve_link(hass, entry):
@@ -378,10 +379,12 @@ def sync_issues(hass, entry, hub, raised):
     if not hub.fresh:
         return  # an offline E32 says nothing about its valves; "E32 offline" is its own problem
     wanted = {}
+    from .insight import room_names  # the dashboard's names: a room renamed in Home Assistant keeps its name
+    names = room_names(hub, hass, entry.entry_id) if hub.valves else {}
     for room_id in hub.valves:
         valves = room_valves(hub, room_id)
         room = hub.rooms.get(room_id) or {"id": room_id}
-        name = label(room) or room_id
+        name = names.get(room_id) or label(room) or room_id
         found = problems(valves)
         low = [n for n, h in found if h == "low_battery"]
         gone = [n for n, h in found if h == "offline"]

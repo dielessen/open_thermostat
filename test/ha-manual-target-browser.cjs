@@ -1,5 +1,6 @@
 // Shipped editor with an isolated native WebSocket contract. No device IO.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
 const out=path.join(root,'out/manual-target-20261027/browser');
@@ -48,7 +49,7 @@ const model={entry_id:'fixture',room_id:'a1b2c3d4',supported:true,editable:true,
   assert.equal(await selection.inputValue(),'input_number.manual_target');assert.equal(await duration.inputValue(),'15');
   const count=await page.evaluate(()=>calls.length);await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>calls.length),count);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
-  await page.screenshot({path:path.join(out,`MANUAL-${lang}-${width}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`MANUAL-${lang}-${width}.png`),fullPage:true});
   results.push({lang,width,result:'PASS',identityPinned:true,oneSave:true,noStatusPolling:true,uncertainDraftRetained:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));

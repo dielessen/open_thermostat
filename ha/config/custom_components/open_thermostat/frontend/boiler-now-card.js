@@ -27,7 +27,8 @@ const TEXT = {title: 'The boiler now', no_data: 'No data from the boiler', boile
  link_none: 'none', dhw: 'hot water: {state}', yes: 'yes', no: 'no', flow: 'Water to heating', asked: 'asked {flow} °C',
  would_ask: 'E32 would ask {flow} °C', no_request: 'no request', ceiling: 'at most {flow} °C', back: 'Water back',
  difference: 'difference {n} °C', power: 'Burner power', power_off: 'burner off', power_low: 'low fire, calm', power_mid: 'medium fire',
- power_full: 'full fire', starts: 'Starts in the last hour', calm: 'calm', often: 'switching on and off too often', today: 'today {n}'};
+ power_full: 'full fire', starts: 'Starts in the last hour', calm: 'calm', often: 'switching on and off too often', today: 'today {n}',
+ no_e32: 'No data from the E32', resting: 'Resting'};
 const DASH = '—';  // a figure not known yet: the same in every language
 const NBSP = ' ';  // a no-break space between a figure and its unit
 // What the boiler does (boiler_activity, heating_link.BOILER_ACTIVITIES): the band's tone and icon, as on the house card.
@@ -191,6 +192,9 @@ class OpenThermostatBoilerNow extends HTMLElement {
   return value.toLocaleString(locale(this._hass), {maximumFractionDigits: 0}).replace('-', '−');
  }
  value(id) { const st = this.st(id); return known(st) ? numeric(st.state) : null; }
+ // A temperature in the entity's own unit (Home Assistant converts a °C sensor for an imperial house).
+ unit(id) { const unit = this.st(id)?.attributes?.unit_of_measurement; return typeof unit === 'string' && unit ? unit : '°C'; }
+ inUnit(text, id) { const unit = this.unit(id); return unit !== '°C' && typeof text === 'string' ? text.replace('°C', unit) : text; }
  moreInfo(entityId) { this.dispatchEvent(new CustomEvent('hass-more-info', {bubbles: true, composed: true, detail: {entityId}})); }
 
  // -- today's burner starts: the statistic of the starts sensor, throttled; never the E32 -------------------------
@@ -241,15 +245,20 @@ class OpenThermostatBoilerNow extends HTMLElement {
   const activity = this.st(c.activity);
   if (known(activity) && KIND[activity.state]) {
    const kind = KIND[activity.state];
-   return {tone: kind, icon: ICON[kind], line: this.activityWord(activity.state)};
+   // Resting in the house card's word (its band says "Boiler resting"), not the activity's "Idle".
+   return {tone: kind, icon: ICON[kind], line: activity.state === 'idle' ? this.t('resting') : this.activityWord(activity.state)};
   }
   const heating = this.st(c.heating), water = this.st(c.hot_water);
   if (heating?.state === 'on') return {tone: 'heat', icon: ICON.heat, line: this.activityWord('heating')};
   if (water?.state === 'on') return {tone: 'water', icon: ICON.water, line: this.activityWord('hot_water')};
-  if (heating?.state === 'off' && (!water || water.state === 'off')) return {tone: 'rest', icon: ICON.rest, line: this.activityWord('idle')};
-  // Not known what it does: "Boiler" while its figures come in (an older boiler without the bits), else no data at all.
+  if (heating?.state === 'off' && (!water || water.state === 'off')) return {tone: 'rest', icon: ICON.rest, line: this.t('resting')};
+  // Not known what it does: "Boiler" while its figures come in (an older boiler without the bits); else no data, from
+  // the E32 when its own sensors (what the boiler does, the request) are missing or unavailable too, else from the boiler.
   const anything = [c.code, c.flow, c.return, c.modulation, c.starts].some(id => known(this.st(id)));
-  return anything ? {tone: 'none', icon: ICON.rest, line: this.t('boiler')} : {tone: 'none', icon: ICON.none, line: this.t('no_data')};
+  if (anything) return {tone: 'none', icon: ICON.rest, line: this.t('boiler')};
+  const own = [c.activity, c.request].filter(Boolean);
+  const silent = own.length > 0 && own.every(id => !this.st(id) || this.st(id).state === 'unavailable');
+  return {tone: 'none', icon: ICON.none, line: this.t(silent ? 'no_e32' : 'no_data'), silent};
  }
  // On the right of the band: the connection with the boiler (its own values come in; the E32 is heard but they do
  // not; nothing heard) and whether it serves hot water.
@@ -330,12 +339,12 @@ class OpenThermostatBoilerNow extends HTMLElement {
   const c = this._config, list = [];
   const flow = this.value(c.flow), back = this.value(c.return);
   const flowWhole = flow === null ? null : Math.round(flow), backWhole = back === null ? null : Math.round(back);
-  if (c.flow) list.push(this.figure('flow', c.flow, this.t('flow'), flowWhole === null ? null : this.number(flowWhole), '°C',
+  if (c.flow) list.push(this.figure('flow', c.flow, this.t('flow'), flowWhole === null ? null : this.number(flowWhole), this.unit(c.flow),
    [this.asked(), this.ceiling()]));
   if (c.return) {
    // The difference of the two numbers as they are shown (41 and 34: 7), never one the eye cannot check.
-   const difference = flowWhole !== null && backWhole !== null ? this.t('difference', {n: this.number(flowWhole - backWhole)}) : null;
-   list.push(this.figure('return', c.return, this.t('back'), backWhole === null ? null : this.number(backWhole), '°C', [difference]));
+   const difference = flowWhole !== null && backWhole !== null ? this.inUnit(this.t('difference', {n: this.number(flowWhole - backWhole)}), c.return) : null;
+   list.push(this.figure('return', c.return, this.t('back'), backWhole === null ? null : this.number(backWhole), this.unit(c.return), [difference]));
   }
   if (c.modulation) {
    const power = this.value(c.modulation), pct = power === null ? null : Math.max(0, Math.min(100, Math.round(power)));
@@ -364,7 +373,7 @@ class OpenThermostatBoilerNow extends HTMLElement {
   if (flow === null) return null;
   const a = st.attributes || {}, driving = a.mode !== 'shadow' && a.control !== 'awaiting_confirmation';
   if (flow <= 0) return driving ? this.t('no_request') : null;
-  return this.t(driving ? 'asked' : 'would_ask', {flow: this.number(Math.round(flow))});
+  return this.inUnit(this.t(driving ? 'asked' : 'would_ask', {flow: this.number(Math.round(flow))}), this._config.request);
  }
  // The most the E32 asks near the target now (the flow document's ceiling_c in effect: Smart warm-up on, the E32
  // driving the boiler); only while it is known.

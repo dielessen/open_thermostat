@@ -1,5 +1,6 @@
 // Shipped Settings assets, mocked HTTP only; no radio, device or broker actions.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.env.OPENTHERMOSTAT_BLUETOOTH_EVIDENCE||path.join(__dirname,'../out/bluetooth-browser'));
 const publicFixtureKey='231d39c1d7cc1ab1aee224cd096db932';
@@ -110,8 +111,8 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
   const details=root.locator('details').first();await details.locator('summary').click();await name.focus();
   data.devices[0].temperature=2410;await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
   assert.equal(await name.inputValue(),'Draft – Zoë');assert.equal(await name.evaluate(e=>e===document.activeElement),true);assert.equal(await details.getAttribute('open'),'');
-  if(!await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)){await page.screenshot({path:path.join(output,`overflow-${profile}-${lang}-${width}.png`),fullPage:true});console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>({tag:e.tagName,id:e.id,width:e.getBoundingClientRect().width,text:e.textContent.slice(0,90)})).slice(-15)));}assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(output,`${profile}-${lang}-${width}.png`),fullPage:true});
+  if(!await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)){await shot(page,{path:path.join(output,`overflow-${profile}-${lang}-${width}.png`),fullPage:true});console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>({tag:e.tagName,id:e.id,width:e.getBoundingClientRect().width,text:e.textContent.slice(0,90)})).slice(-15)));}assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await shot(page,{path:path.join(output,`${profile}-${lang}-${width}.png`),fullPage:true});
   const mac=box.locator('input').nth(0),choice=box.locator('[data-ble-field=profile]');
   await mac.fill('54:48:e6:8f:80:a6');await box.locator('[data-readings]').filter({hasText:lang==='nl'?/Sla op en herstart/:/Save and restart/}).waitFor();assert.equal(await box.locator('[data-extra]').textContent(),'—');
   await mac.fill('54:48:e6:8f:80:a5');await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));

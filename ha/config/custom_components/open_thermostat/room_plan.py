@@ -153,8 +153,27 @@ def plan_error(err):
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="e32_password_change_required")
     if str(err) in SIGN_IN_ERRORS:  # all E32 web sessions in use, or too many sign-in attempts
         return HomeAssistantError(translation_domain=DOMAIN, translation_key=SIGN_IN_ERRORS[str(err)])
-    return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
-                              translation_placeholders={"error": str(err)})
+    return link_error(str(err)) or HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
+                                                      translation_placeholders={"error": str(err)})
+
+
+# E32 link codes that tell the user what to do (1.0.0rc7): a sentence of their own in the user's language
+# instead of "... could not be reached (controller_unreachable)". Other codes stay in the brackets.
+LINK_ERRORS = {"no_controller_connection": "e32_not_connected", "no_connection": "e32_not_connected",
+               "controller_unreachable": "e32_not_reached", "not_read": "e32_not_reached",
+               "controller_response_invalid": "e32_answer_unreadable",
+               "controller_readback_invalid": "e32_answer_unreadable",
+               "controller_update_required": "e32_update_required", "controller_busy_or_conflict": "e32_busy"}
+
+
+def link_error(code):
+    """The Home Assistant error of a known E32 link code (LINK_ERRORS), else None.
+
+    The code stays a placeholder its sentence does not use: the options forms show it as before (e32_room_flow).
+    """
+    key = LINK_ERRORS.get(code)
+    return HomeAssistantError(translation_domain=DOMAIN, translation_key=key,
+                              translation_placeholders={"error": code}) if key else None
 
 
 SIGN_IN_ERRORS = {"controller_session_capacity": "e32_session_capacity",
@@ -516,7 +535,11 @@ class PlanRoomEntity(RoomEntity):
 
 
 class RoomStateSelect(PlanRoomEntity, SelectEntity):
+    """The room on or off. A setting (1.0.0rc7): the thermostat's Off/Auto does the same on the Overview."""
+
     _attr_options = ROOM_STATES
+    _attr_entity_category = EntityCategory.CONFIG
+    _unrecorded_attributes = frozenset({"revision"})  # changes with every plan save
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "state")
@@ -550,7 +573,9 @@ def until_datetime(room):
 
 
 class RoomInactiveUntil(PlanRoomEntity, DateTimeEntity):
-    """When an inactive room becomes active again (unknown: inactive without end, or active)."""
+    """When an inactive room becomes active again (unknown: inactive without end, or active). A setting."""
+
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "inactive_until")
@@ -584,6 +609,7 @@ class RoomFallbackSetpoint(PlanRoomEntity, NumberEntity):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_native_step = SETPOINT_STEP
     _attr_mode = NumberMode.BOX
+    _unrecorded_attributes = frozenset({"revision"})  # changes with every plan save
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "fallback_setpoint")
@@ -655,3 +681,123 @@ async def async_setup_datetimes(hass, entry, async_add_entities):
 
 async def async_setup_numbers(hass, entry, async_add_entities):
     await _async_setup(hass, entry, async_add_entities, RoomFallbackSetpoint)
+
+
+# -- A room's Home Assistant source that was renamed or removed (R2-4, 1.0.0rc7) -----------------
+
+SOURCE_MISSING_ISSUE = "e32_room_source_missing"
+# An entity the plan reads with no state and no registry entry for this long is gone (renamed outside the
+# registry, its integration removed): long enough for a slow start of its integration.
+SOURCE_MISSING_SECONDS = 10 * 60
+SOURCE_CHECK = 60
+
+
+def _uses(room, entity_id):
+    return room.get("setpoint_entity") == entity_id or any(
+        s.get("type") == "ha" and s.get("id") == entity_id for s in room.get("sources", []))
+
+
+def renamed_in_plan(plan, old, new):
+    """A copy of the plan with every use of entity ``old`` (a source, the setpoint entity) as ``new``."""
+    candidate = deepcopy(plan)
+    for room in candidate["rooms"]:
+        sources, renamed = [], {"type": "ha", "id": new}
+        for source in room.get("sources", []):
+            source = renamed if source.get("type") == "ha" and source.get("id") == old else source
+            if source not in sources:  # the new ID was a source already: once
+                sources.append(source)
+        if "sources" in room:
+            room["sources"] = sources
+        if room.get("setpoint_entity") == old:
+            room["setpoint_entity"] = new
+    return candidate
+
+
+class RoomSourceWatch:
+    """Keep the E32 rooms' Home Assistant sources real.
+
+    A source renamed in Home Assistant (the entity registry moves its history, so it looks safe) is renamed
+    in the E32 room plan too. A source that has no state and no registry entry for SOURCE_MISSING_SECONDS
+    (removed, or renamed while OpenThermostat was not running) gets the fixable "Choose a new temperature
+    source" repair for its room, which goes once it is back or replaced. Without either the room would go
+    "Sensor lost" after 15 minutes and stop asking for heat, without a word about why.
+    """
+
+    def __init__(self, hass, entry, hub, clock=time.monotonic):
+        self.hass, self.entry, self.hub, self.clock = hass, entry, hub, clock
+        self.missing = {}  # entity id -> monotonic time it was first found missing
+        self.raised = set()
+
+    @callback
+    def start(self):
+        from datetime import timedelta
+        from homeassistant.helpers import entity_registry as er
+        from homeassistant.helpers.event import async_track_time_interval
+        stops = [self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self.registry_updated),
+                 async_track_time_interval(self.hass, self.check, timedelta(seconds=SOURCE_CHECK))]
+
+        @callback
+        def stop():
+            for unsubscribe in stops:
+                unsubscribe()
+            self._issues({})
+        return stop
+
+    def _plan_entities(self):
+        status = self.hub.status
+        return set(status.get("ha_entities") or ()) if status is not None else set()
+
+    @callback
+    def registry_updated(self, event):
+        data = event.data
+        old, new = data.get("old_entity_id"), data.get("entity_id")
+        if data.get("action") != "update" or not old or not new or old not in self._plan_entities():
+            return
+        if self.hub.plan is None or len(new) > 80 or old.split(".", 1)[0] != new.split(".", 1)[0]:
+            return  # nothing to write with, or an ID the E32 cannot hold: the repair asks after 10 minutes
+        self.hass.async_create_task(self.async_rename(old, new), "OpenThermostat E32 room source renamed")
+
+    async def async_rename(self, old, new):
+        try:
+            await self.hub.plan.async_change_plan(lambda plan: renamed_in_plan(plan, old, new),
+                                                  lambda stored: not any(_uses(r, old) for r in stored["rooms"]))
+        except HomeAssistantError as err:
+            _LOGGER.warning("OpenThermostat: %s was renamed to %s, but the E32 room plan could not follow (%s); "
+                            "Repairs will ask for a new temperature source if it stays missing", old, new, err)
+        else:
+            _LOGGER.info("OpenThermostat: %s was renamed to %s; the E32 room plan follows", old, new)
+
+    @callback
+    def check(self, _now=None):
+        from homeassistant.helpers import entity_registry as er
+        link = self.hub.plan
+        plan = getattr(link, "plan", None)
+        if self.hub.status is None or plan is None:
+            return  # an E32 that is silent, or a plan not read yet, says nothing about the sources
+        now, registry = self.clock(), er.async_get(self.hass)
+        missing = {e for e in self._plan_entities()
+                   if self.hass.states.get(e) is None and registry.async_get(e) is None}
+        self.missing = {e: self.missing.get(e, now) for e in missing}
+        gone = {e for e, since in self.missing.items() if now - since >= SOURCE_MISSING_SECONDS}
+        wanted = {}
+        from .insight import room_names  # the dashboard's names: a room renamed in Home Assistant keeps its name
+        names = room_names(self.hub, self.hass, self.entry.entry_id) if gone and getattr(self.hub, "rooms", None) else {}
+        for room in plan.get("rooms", []):
+            dead = [s["id"] for s in room.get("sources", []) if s.get("type") == "ha" and s.get("id") in gone]
+            if dead:
+                from .legacy_room_migration import choose_source_issue_id
+                wanted[choose_source_issue_id(self.entry, room["id"])] = (
+                    names.get(room["id"]) or room.get("name") or room["id"], room["id"], dead)
+        self._issues(wanted)
+
+    def _issues(self, wanted):
+        from homeassistant.helpers import issue_registry as ir
+        for issue_id in self.raised - set(wanted):
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+        for issue_id, (name, room_id, dead) in wanted.items():
+            ir.async_create_issue(
+                self.hass, DOMAIN, issue_id, is_fixable=True, is_persistent=False,
+                severity=ir.IssueSeverity.WARNING, translation_key=SOURCE_MISSING_ISSUE,
+                translation_placeholders={"room": name, "source": ", ".join(dead)},
+                data={"entry_id": self.entry.entry_id, "room_id": room_id, "entities": dead})
+        self.raised = set(wanted)

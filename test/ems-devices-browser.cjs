@@ -1,5 +1,6 @@
 // Shipped root and entity panel: one coherent fixture snapshot, no device writes.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(__dirname,'../out/ems-devices-browser');
 const sample=(value,unit='degC',extra={})=>({value,unit,state:'valid',quality:'reported',source_type:24,source_address:8,age_ms:100,...extra});
@@ -74,7 +75,7 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   assert.match(await boiler.locator('[data-field="selected_dhw_temperature"] .ems-help').textContent(),lang==='nl'?/Gebruikersinstelling/:/User setting/);
   assert.match(await boiler.locator('[data-field="selected_dhw_temperature"] .ems-help').textContent(),/55 °C/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'open help fits the width');
-  fs.mkdirSync(output,{recursive:true});await hysteresis.screenshot({path:path.join(output,`${lang}-${width}-help.png`)});
+  fs.mkdirSync(output,{recursive:true});await shot(hysteresis,{path:path.join(output,`${lang}-${width}-help.png`)});
   await refresh();assert.equal(await help.evaluate(n=>n.open),true,'a refresh keeps the reader\'s place');
   assert.equal(await hysteresis.locator('button').count(),0,'help never adds an edit control');
   data.inventory.devices[0].product_id=null;await refresh();assert(!/EasyControl/.test(await boiler.locator('summary').first().innerText()));
@@ -116,8 +117,8 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   assert.equal(await now.innerText(),lang==='nl'?'uitgelezen bij het opstarten':'read at start-up');
   assert.deepEqual(await now.evaluate(look),{display:'block',muted:true,smaller:true,readable:true});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'the remark fits the width');
-  fs.mkdirSync(output,{recursive:true});await boiler.locator('[data-field="configured_heating_temperature"]').screenshot({path:path.join(output,`${lang}-${width}-read.png`)});
-  await page.locator('[data-essentials]').screenshot({path:path.join(output,`${lang}-${width}-now.png`)});
+  fs.mkdirSync(output,{recursive:true});await shot(boiler.locator('[data-field="configured_heating_temperature"]'),{path:path.join(output,`${lang}-${width}-read.png`)});
+  await shot(page.locator('[data-essentials]'),{path:path.join(output,`${lang}-${width}-now.png`)});
   // A failed read shows no old value and no old remark.
   failed=true;await refresh();assert.equal(await remark('pump_run_on').isVisible(),false);failed=false;
   // A room thermostat with table-driven entities gets its own read-only card.
@@ -133,7 +134,7 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   assert.equal(await page.locator('#ems-device-list > details[data-address="16"]').count(),0,'invalid entity data is ignored, the boiler card remains');
   assert.equal(await page.locator('#ems-device-list > details[data-address="8"]').count(),1);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  fs.mkdirSync(output,{recursive:true});await page.screenshot({path:path.join(output,`${lang}-${width}.png`),fullPage:true});
+  fs.mkdirSync(output,{recursive:true});await shot(page,{path:path.join(output,`${lang}-${width}.png`),fullPage:true});
   // The model chosen on the Boiler page names the boiler, as in Home Assistant; the next snapshot follows it.
   missingMetadata=true;displayModel='nefit-ecomline-classic-hrc-22h';data=snapshot();await page.reload();await page.evaluate(()=>loadNativePage('boiler_test'));
   await page.locator('[data-field="measured_flow_temperature"]').waitFor();

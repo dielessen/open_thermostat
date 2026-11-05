@@ -820,3 +820,16 @@ async def test_the_dashboard_shows_the_valve_opening_and_a_problem_badge_only_fo
 def test_the_valve_model_is_guessed_from_the_zigbee2mqtt_device(text, model):
     assert module.guess_model(text) == model
     assert model is None or model in module.MODELS
+
+
+@pytest.mark.asyncio
+async def test_a_valve_repair_names_the_room_as_the_dashboard_does(hass, monkeypatch):
+    """R4-14: a room renamed in Home Assistant keeps that name in the valve repairs (insight.room_names)."""
+    from custom_components.open_thermostat import insight
+    hub, _, e32, _, _, _ = await _setup(hass, monkeypatch)
+    calls = []
+    monkeypatch.setattr(insight, "room_names", lambda hub, hass, entry_id: calls.append(entry_id) or {"woonkamer": "Living room"})
+    send(e32, with_trv())
+    module.sync_issues(hass, SimpleNamespace(entry_id="e"), hub, set())
+    issue = ir.async_get(hass).async_get_issue("open_thermostat", "valve_battery_low_e_woonkamer")
+    assert issue.translation_placeholders == {"room": "Living room", "valves": "Kraan raam"} and calls == ["e"]

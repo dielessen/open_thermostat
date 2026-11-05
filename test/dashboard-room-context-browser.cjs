@@ -1,5 +1,6 @@
 // Shipped E32 dashboard/assets against isolated HTTP fixtures. No device connection.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
 const out=path.resolve(process.env.OPENTHERMOSTAT_DASHBOARD_CONTEXT_EVIDENCE||path.join(__dirname,'../out/dashboard-room-context-20261027'));
@@ -60,7 +61,7 @@ function fixture(){
   assert.match(await page.locator('.pd-room-context').nth(5).innerText(),/2026-10-28 17:30:00 UTC/);
   await page.evaluate(()=>document.querySelectorAll('.pd-room-detail').forEach(x=>x.open=true));
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(out,`ROOM-CONTEXT-${lang}-${width}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`ROOM-CONTEXT-${lang}-${width}.png`),fullPage:true});
   // Optional old/malformed metadata does not manufacture a timer or execute markup.
   Object.assign(status.control.state.zones[3],{name:'<img src=x onerror=alert(1)>',target_source:'__proto__',comfort_mode:'<img>',override_remaining_ms:'60000'});
   await page.evaluate(s=>updateRooms(s),status);

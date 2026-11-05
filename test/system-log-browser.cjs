@@ -1,5 +1,6 @@
 // Real root/fragment/auth/language scripts; bounded isolated HTTP fixtures.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.env.OPTH_LOG_EVIDENCE||'out/logging-20261024/browser');
 (async()=>{
@@ -104,7 +105,7 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   assert.equal(requests.filter(r=>r.path==='/config/logging'&&r.method==='POST').length,writesBeforeRetry);
   page.once('dialog',dialog=>dialog.accept());await page.locator('#log-clear').click();await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent==='');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(output,lang+'-'+width+'.png'),fullPage:true});
+  await shot(page,{path:path.join(output,lang+'-'+width+'.png'),fullPage:true});
   if(lang==='en'&&width===1440){
    ++boot;latest=1;rows=[{sequence:1,uptime_ms:100,level:3,feature:'App',message:'after restart'}];
   }

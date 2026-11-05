@@ -2,9 +2,13 @@
 // a fixture hass; no HA or device. Per room: a round disc in the colour of what the room does, its name, why in one muted
 // line, the temperature now large on the right (spoken with its target), and the chips: the reason in a word in the
 // disc's colour, "Smart warm-up on" while the switch is on, the house (its mode, else who is home; never "Away" twice)
-// and the radiator valves. English, Dutch and Polish; light and dark; desktop, phone and a narrow phone, no sideways
-// scroll; every chip and line readable (contrast at least 4.5:1). Screenshots go to the evidence directory.
+// and the radiator valves. HA 1.0.0rc7 (the sketch): after the sentence the week program's step from the Reason sensor's
+// "program" attribute ("Comfort until 22:30, then Night 18.0 °C"; a point with its own temperature by its temperature),
+// nothing without a next step or without the attribute. English, Dutch and Polish; light and dark; desktop, phone and a
+// narrow phone, no sideways scroll; every chip and line readable (contrast at least 4.5:1). Screenshots go to the
+// evidence directory.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),component=path.join(root,'ha/config/custom_components/open_thermostat');
 const source=fs.readFileSync(path.join(component,'frontend/room-status-card.js'));
@@ -16,33 +20,50 @@ function resources(lang){
  walk(translations(lang).entity,'component.open_thermostat.entity.');
  return flat;
 }
-const since=new Date(Date.now()-25*60000).toISOString(),until=new Date(Date.now()+3*86400000).toISOString();
+const since=new Date(Date.now()-25*60000).toISOString(),until=new Date(Date.now()+10*86400000).toISOString();  // a holiday ten days on: its date
+// The week program's next step: in two hours (today, or with its weekday after midnight), in three days.
+const soon=new Date(Date.now()+2*3600000).toISOString(),later=new Date(Date.now()+3*86400000).toISOString();
+const TOMORROW_0630=(()=>{const t=new Date();t.setDate(t.getDate()+1);t.setHours(6,30,0,0);return t.toISOString();})();
 const reason=(state,line,values,extra)=>({state,attributes:{room_id:'living',line,values,temperature:20.6,setpoint:22.5,presence:null,window:null,
  valve_position:null,valve_problem:null,friendly_name:'Living Reason',...extra}});
 const STATES={
- 'sensor.living_reason':reason('heating','heating',{temperature:20.6,target:22.5},{presence:'room_home',valve_position:40,valve_problem:false}),
+ 'sensor.living_reason':reason('heating','heating',{temperature:20.6,target:22.5},{presence:'room_home',valve_position:40,valve_problem:false,
+  program:{level:'comfort',target:22.5,next_at:soon,next_level:'night',next_target:18}}),
  'sensor.kitchen_reason':reason('window_open','window_open_contact',{contact:'Back door',since},{setpoint:8,presence:'house_home',window:'open'}),
- 'sensor.bedroom_reason':reason('room_away','room_away',{target:18},{presence:'room_away'}),
+ 'sensor.bedroom_reason':reason('room_away','room_away',{target:18},{presence:'room_away',program:null}),
  'sensor.study_reason':reason('off','off',{},{temperature:null,setpoint:null}),
  'sensor.hall_reason':reason('holiday','holiday',{until,target:15}),
  'sensor.warm_reason':reason('warm_enough','warm_enough',{temperature:21.2,target:21},{temperature:21.2,setpoint:21,presence:'house_away',
-  valve_position:5,valve_problem:true}),
+  valve_position:5,valve_problem:true,program:{level:null,target:21.5,next_at:later,next_level:'eco',next_target:19}}),
+ // A program that changes nothing in the coming week: the level now, no step on the card.
+ 'sensor.even_reason':reason('warm_enough','warm_enough',{temperature:20.1,target:20},{temperature:20.1,setpoint:20,
+  program:{level:'comfort',target:20,next_at:null,next_level:null,next_target:null}}),
+ // Night until tomorrow 06:30 (the browser's day): "tomorrow 06:30" in English and Dutch, the time first in Polish
+ // ("Noc do 06:30 jutro": "do" would need the genitive "jutra").
+ 'sensor.night_reason':reason('warm_enough','warm_enough',{temperature:18.2,target:18},{temperature:18.2,setpoint:18,
+  program:{level:'night',target:18,next_at:TOMORROW_0630,next_level:'comfort',next_target:20.5}}),
  'sensor.attic_reason':{state:'unavailable',attributes:{friendly_name:'Attic Reason'}},
  'switch.smart_warm_up':{state:'on',attributes:{}},'select.house_mode':{state:'auto',attributes:{}},
 };
-const ROOMS=['living','kitchen','bedroom','study','hall','warm','attic','gone'];
+const ROOMS=['living','kitchen','bedroom','study','hall','warm','even','night','attic','gone'];
 // A figure and its unit stay together: a no-break space before °C and % (the regular expressions' \s takes it too).
 const NB=s=>s.replace(/ (°C|%)/g,'\u00a0$1');
 const WORDS={
  en:{living:NB('Heating: 20.6 → 22.5 °C'),kitchen:/^Paused: Back door open since (\S+ )?\d{1,2}:\d\d( [AP]M)?$/,bedroom:NB('Away: nobody of this room is home (18 °C)'),
-  study:'Frost protection only (room off)',hall:/^Holiday until \S+ \d{1,2}:\d\d( [AP]M)? \(15\s°C\)$/,now:'20.6',spoken:'Now 20.6 °C, Target 22.5 °C',
-  valves:NB('Radiator valves open: 40 %'),home:'Someone of this room is home'},
+  study:'Frost protection only (room off)',hall:/^Holiday until .+ \(15\s°C\)$/,now:'20.6',spoken:'Now 20.6 °C, Target 22.5 °C',
+  valves:NB('Radiator valves open: 40 %'),home:'Someone of this room is home',
+  tomorrow:/^Night until tomorrow\s6:30\sAM, then Comfort 20\.5\u00a0°C$/,
+  step:/^Comfort until (\S+\s)?\d{1,2}:\d\d(\s[AP]M)?, then Night 18\.0\u00a0°C$/,own:/^21\.5\u00a0°C until .+, then Eco 19\.0\u00a0°C$/},
  nl:{living:NB('Verwarmt: 20,6 → 22,5 °C'),kitchen:/^Gepauzeerd: Back door open sinds (\S+ )?\d\d:\d\d$/,bedroom:NB('Afwezig: niemand van deze ruimte is thuis (18 °C)'),
-  study:'Alleen vorstbeveiliging (ruimte uit)',hall:/^Vakantie tot \S+ \d\d:\d\d \(15\s°C\)$/,now:'20,6',spoken:'Nu 20,6 °C, Gewenst 22,5 °C',
-  valves:NB('Radiatorkranen open: 40 %'),home:'Iemand van deze ruimte is thuis'},
- pl:{living:NB('Grzeje: 20,6 → 22,5 °C'),kitchen:/^Wstrzymane: Back door otwarte od (\S+ )?\d\d:\d\d$/,bedroom:NB('Nieobecność: nikogo z tego pomieszczenia nie ma w domu (18 °C)'),
-  study:'Tylko ochrona przed mrozem (pomieszczenie wyłączone)',hall:/^Urlop do \S+ \d\d:\d\d \(15\s°C\)$/,now:'20,6',spoken:'Teraz 20,6 °C, Cel 22,5 °C',
-  valves:NB('Otwarcie zaworów grzejnikowych: 40 %'),home:'Ktoś z tego pomieszczenia jest w domu'},
+  study:'Alleen vorstbeveiliging (ruimte uit)',hall:/^Vakantie tot .+ \(15\s°C\)$/,now:'20,6',spoken:'Nu 20,6 °C, Gewenst 22,5 °C',
+  valves:NB('Radiatorkranen open: 40 %'),home:'Iemand van deze ruimte is thuis',
+  tomorrow:/^Nacht tot morgen\s06:30, daarna Comfort 20,5\u00a0°C$/,
+  step:/^Comfort tot (\S+\s)?\d\d:\d\d, daarna Nacht 18,0\u00a0°C$/,own:/^21,5\u00a0°C tot .+, daarna Eco 19,0\u00a0°C$/},
+ pl:{living:NB('Grzeje: 20,6 → 22,5 °C'),kitchen:/^Wstrzymane: Back door otwarte od \d\d:\d\d( wczoraj)?$/,bedroom:NB('Nieobecność: nikogo z tego pomieszczenia nie ma w domu (18 °C)'),
+  study:'Tylko ochrona przed mrozem (pomieszczenie wyłączone)',hall:/^Urlop do .+ \(15\s°C\)$/,now:'20,6',spoken:'Teraz 20,6 °C, Cel 22,5 °C',
+  valves:NB('Otwarcie zaworów grzejnikowych: 40 %'),home:'Ktoś z tego pomieszczenia jest w domu',
+  tomorrow:/^Noc do 06:30\sjutro, potem Komfort 20,5\u00a0°C$/,
+  step:/^Komfort do \d\d:\d\d(\sjutro)?, potem Noc 18,0\u00a0°C$/,own:/^21,5\u00a0°C do .+, potem Eko 19,0\u00a0°C$/},
 };
 // Home Assistant's default theme colours (light and dark) and its state colours.
 const THEMES={light:'--primary-text-color:#212121;--secondary-text-color:#727272;--card-background-color:#fff;--secondary-background-color:#f5f5f5;'+
@@ -86,13 +107,31 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
    }
   },{states:STATES,lang,dict:resources(lang),dark:theme==='dark',rooms:ROOMS});
   const words=WORDS[lang],texts=translations(lang).entity.sensor.room_reason.state_attributes,chipWord=r=>texts.chip.state[r],card=texts.card.state;
-  const room=name=>page.locator(`openthermostat-room-status[data-room="${name}"]`),why=name=>room(name).locator('.why').innerText();
+  const room=name=>page.locator(`openthermostat-room-status[data-room="${name}"]`),why=name=>room(name).locator('.why').evaluate(p=>p.firstChild.textContent);
   const chips=name=>room(name).locator('.chip').evaluateAll(n=>n.map(c=>[c.dataset.chip,c.querySelector(':scope>span').textContent]));
   // The reason sentence, as before, in one muted line under the name.
   assert.equal(await why('living'),words.living);assert.match(await why('kitchen'),words.kitchen);
   assert.equal(await why('bedroom'),words.bedroom);assert.equal(await why('study'),words.study);assert.match(await why('hall'),words.hall);
-  assert.deepEqual(await page.locator('.why').evaluateAll(n=>n.map(x=>x.dataset.reason)),['heating','window_open','room_away','off','holiday','warm_enough']);
-  assert.deepEqual(await page.locator('.name').allInnerTexts(),['Living','Kitchen','Bedroom','Study','Hall','Warm','Attic','Gone']);
+  assert.deepEqual(await page.locator('.why').evaluateAll(n=>n.map(x=>x.dataset.reason)),
+   ['heating','window_open','room_away','off','holiday','warm_enough','warm_enough','warm_enough']);
+  assert.deepEqual(await page.locator('.name').allInnerTexts(),['Living','Kitchen','Bedroom','Study','Hall','Warm','Even','Night','Attic','Gone']);
+  // The week program's step after the sentence and a middle dot, in the same muted line (the sketch); a point with its
+  // own temperature by that temperature; nothing without a next step or without the attribute.
+  assert.match(await room('living').locator('[data-step]').innerText(),words.step);
+  assert.equal(await room('living').locator('.why').innerText(),words.living+' · '+await room('living').locator('[data-step]').innerText());
+  assert.match(await room('warm').locator('[data-step]').innerText(),words.own);
+  assert.match(await room('night').locator('[data-step]').innerText(),words.tomorrow);
+  // Beyond tomorrow a moment has its date (a weekday alone is ambiguous after six days): the holiday ten days on, the
+  // program step three days on; the viewer's 12/24 hours as the language has them here.
+  const dated=await page.evaluate(([lang,...isos])=>{const h12=/h1[12]/.test(new Intl.DateTimeFormat(lang,{hour:'numeric'}).resolvedOptions().hourCycle);
+   return isos.map(iso=>new Date(iso).toLocaleString(lang,{weekday:'short',day:'numeric',month:'short',hour:h12?'numeric':'2-digit',minute:'2-digit',hour12:h12}));},
+   [lang,until,later]);
+  assert((await why('hall')).includes(dated[0]),`${await why('hall')} names ${dated[0]}`);
+  assert((await room('warm').locator('[data-step]').innerText()).includes(dated[1].replace(/\s/g,' ')),'the step three days on with its date');
+  for(const name of ['kitchen','bedroom','study','hall','even'])assert.equal(await room(name).locator('[data-step]').count(),0,name);
+  const stepLook=await room('living').evaluate(c=>{const s=c.shadowRoot,g=q=>getComputedStyle(s.querySelector(q));
+   return [g('.step').color,g('.why').color,g('.step').fontSize];});
+  assert.deepEqual(stepLook,[stepLook[1],stepLook[1],'13px'],'the step in the sentence\'s muted 13 px');
   // Now, large, with a small degree sign; spoken with its label and the target. An off room without a reading: a dash.
   assert.equal(await room('living').locator('.now').innerText(),words.now+'°');
   assert.equal(await room('living').locator('.now').getAttribute('aria-label'),words.spoken);
@@ -129,7 +168,7 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
    const s=c.shadowRoot,surface=getComputedStyle(s.querySelector('ha-card')).backgroundColor;
    return [...[...s.querySelectorAll('.chip')].map(x=>[c.dataset.room+' '+x.dataset.chip,getComputedStyle(x).color,getComputedStyle(x).backgroundColor]),
     ...[...s.querySelectorAll('.why,.name,.now,.missing')].map(x=>[c.dataset.room+' '+x.className,getComputedStyle(x).color,surface])];}));
-  assert.equal(pairs.length,16+22,'the chips and lines of every card');
+  assert.equal(pairs.length,20+28,'the chips and lines of every card');
   for(const [name,fg,bg] of pairs)assert(contrast(fg,bg)>=4.5,`${lang} ${theme} ${name}: ${fg} on ${bg}: ${contrast(fg,bg).toFixed(2)}`);
   // The layout: the disc, the words and the temperature in one row; the chips under them; nothing wider than the screen.
   const row=await room('living').evaluate(c=>{const s=c.shadowRoot,r=q=>s.querySelector(q).getBoundingClientRect();
@@ -147,7 +186,7 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   if(lang!=='en')for(const english of ['Now ','Target','Radiator valves open','Someone of this room is home','Nobody of this room is home','Smart warm-up',
    'Heating','At temperature','At home','Away','Holiday','Paused','Off'])
    assert(!shown.some(t=>t.startsWith(english)),lang+': '+english);
-  await page.screenshot({path:path.join(out,`ROOM-STATUS-CARD-${lang}-${width}-${theme}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`ROOM-STATUS-CARD-${lang}-${width}-${theme}.png`),fullPage:true});
   // Tapping or Enter opens the room's history; an unrelated change in the house does not redraw the card.
   await room('kitchen').locator('ha-card').click();await room('hall').locator('ha-card').press('Enter');
   assert.deepEqual(await page.evaluate(()=>events),['sensor.kitchen_reason','sensor.hall_reason']);
@@ -167,6 +206,8 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   await page.evaluate(()=>{const c=document.querySelector('[data-room=bedroom]');c.hass={...hass,localize:()=>'',themes:{darkMode:!hass.themes.darkMode}};});
   assert.doesNotMatch(await why('bedroom'),/\{|undefined/);
   assert.deepEqual(await chips('bedroom'),[['state','Away'],['house','Holiday']]);  // the house is still on holiday
+  await page.evaluate(()=>{const c=document.querySelector('[data-room=living]');c.hass={...hass,localize:()=>'',themes:{darkMode:!hass.themes.darkMode}};});
+  assert.match(await room('living').locator('[data-step]').innerText(),/^Comfort until (\S+\s)?\d{1,2}:\d\d(\s[AP]M)?, then Night 18[.,]0\u00a0°C$/);
   assert.deepEqual(errors,[]);results.push({language:lang,width,theme,status:'PASS'});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({scope:'shipped_card_fixture_hass_no_ha',results},null,2)+'\n');

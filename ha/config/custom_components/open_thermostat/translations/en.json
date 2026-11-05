@@ -2498,13 +2498,13 @@
         "name": "Daily summary"
       },
       "daily_burner_time": {
-        "name": "Burner time"
+        "name": "Burner time (total)"
       },
       "daily_burner_starts": {
-        "name": "Burner starts today"
+        "name": "Burner starts (total)"
       },
       "daily_missed_comfort": {
-        "name": "Missed comfort time"
+        "name": "Missed comfort time (total)"
       },
       "boiler_activity": {
         "name": "Boiler activity",

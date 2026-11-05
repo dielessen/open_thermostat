@@ -3535,13 +3535,13 @@
         "name": "Dagoverzicht"
       },
       "daily_burner_time": {
-        "name": "Brandertijd"
+        "name": "Brandertijd (totaal)"
       },
       "daily_burner_starts": {
-        "name": "Branderstarts vandaag"
+        "name": "Branderstarts (totaal)"
       },
       "daily_missed_comfort": {
-        "name": "Gemiste comforttijd"
+        "name": "Gemiste comforttijd (totaal)"
       },
       "boiler_activity": {
         "name": "Ketelactiviteit",

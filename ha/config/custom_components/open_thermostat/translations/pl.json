@@ -2498,13 +2498,13 @@
         "name": "Podsumowanie dnia"
       },
       "daily_burner_time": {
-        "name": "Czas pracy palnika dziś"
+        "name": "Czas pracy palnika (łącznie)"
       },
       "daily_burner_starts": {
-        "name": "Starty palnika dziś"
+        "name": "Starty palnika (łącznie)"
       },
       "daily_missed_comfort": {
-        "name": "Utracony czas komfortu"
+        "name": "Utracony czas komfortu (łącznie)"
       },
       "boiler_activity": {
         "name": "Aktywność kotła",

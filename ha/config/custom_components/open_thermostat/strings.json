@@ -3979,11 +3979,11 @@
     },
     "valve_battery_low": {
       "title": "Radiator valve battery low in {room}",
-      "description": "The battery of {valves} in {room} is nearly empty (about 20 % or less). Replace it soon: a valve with an empty battery stops following the E32. This message disappears by itself once the valve reports a full battery."
+      "description": "Battery nearly empty (about 20 % or less) in {room}: {valves}. Replace it soon: a valve with an empty battery stops following the E32. This message disappears by itself once the valve reports a battery that is no longer low."
     },
     "valve_offline": {
       "title": "Radiator valve not reporting in {room}",
-      "description": "{valves} in {room} has not reported to Zigbee2MQTT for more than two hours. Check its battery and Zigbee connection. The room keeps heating on its other temperature sources; the valve's own regulation keeps working on its last setpoint."
+      "description": "Not reporting to Zigbee2MQTT for more than two hours in {room}: {valves}. Check the battery and the Zigbee connection. The room keeps heating on its other temperature sources; a valve keeps regulating on its last setpoint by itself."
     },
     "valve_single_source": {
       "title": "{room} relies on a single temperature source",

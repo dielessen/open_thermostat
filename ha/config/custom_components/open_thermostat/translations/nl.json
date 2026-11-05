@@ -3979,11 +3979,11 @@
     },
     "valve_battery_low": {
       "title": "Batterij radiatorkraan bijna leeg in {room}",
-      "description": "De batterij van {valves} in {room} is bijna leeg (ongeveer 20 % of minder). Vervang hem binnenkort: een kraan met een lege batterij volgt de E32 niet meer. Deze melding verdwijnt vanzelf zodra de kraan weer een volle batterij meldt."
+      "description": "Batterij bijna leeg (ongeveer 20 % of minder) in {room}: {valves}. Vervang hem binnenkort: een kraan met een lege batterij volgt de E32 niet meer. Deze melding verdwijnt vanzelf zodra de kraan een batterij meldt die niet meer bijna leeg is."
     },
     "valve_offline": {
       "title": "Radiatorkraan meldt zich niet in {room}",
-      "description": "{valves} in {room} heeft zich langer dan twee uur niet bij Zigbee2MQTT gemeld. Controleer de batterij en de Zigbee-verbinding. De ruimte blijft verwarmen op haar andere temperatuurbronnen; de kraan regelt zelf door op zijn laatste setpoint."
+      "description": "Al meer dan twee uur geen melding bij Zigbee2MQTT in {room}: {valves}. Controleer de batterij en de Zigbee-verbinding. De ruimte blijft verwarmen op haar andere temperatuurbronnen; een kraan regelt zelf door op zijn laatste setpoint."
     },
     "valve_single_source": {
       "title": "{room} hangt af van één temperatuurbron",

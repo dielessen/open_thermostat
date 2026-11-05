@@ -3979,11 +3979,11 @@
     },
     "valve_battery_low": {
       "title": "Słaba bateria zaworu w {room}",
-      "description": "Bateria {valves} w {room} jest prawie pusta (około 20 % lub mniej). Wymień ją wkrótce: zawór z pustą baterią przestaje słuchać E32. Komunikat zniknie sam, gdy zawór zgłosi pełną baterię."
+      "description": "Bateria prawie pusta (około 20 % lub mniej) w {room}: {valves}. Wymień ją wkrótce: zawór z pustą baterią przestaje słuchać E32. Komunikat zniknie sam, gdy zawór zgłosi baterię, która nie jest już słaba."
     },
     "valve_offline": {
       "title": "Zawór grzejnikowy nie odpowiada w {room}",
-      "description": "{valves} w {room} nie zgłosił się do Zigbee2MQTT od ponad dwóch godzin. Sprawdź baterię i połączenie Zigbee. Pomieszczenie dalej grzeje według innych źródeł temperatury; zawór reguluje sam według ostatniej nastawy."
+      "description": "Brak zgłoszeń do Zigbee2MQTT od ponad dwóch godzin w {room}: {valves}. Sprawdź baterię i połączenie Zigbee. Pomieszczenie dalej grzeje według innych źródeł temperatury; zawór sam reguluje według ostatniej nastawy."
     },
     "valve_single_source": {
       "title": "{room} ma tylko jedno źródło temperatury",

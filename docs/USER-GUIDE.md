@@ -125,17 +125,28 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
     on, whether the house is at home, away or on holiday, and how far the
     radiator valves are open.
   - **Today**: for each room that is switched on, when it warms up next and
-    what it will be then ("Tomorrow Living room warms up from 6:10 to be
-    20.5 °C at 7:00"), and how yesterday's warm-up went ("Yesterday it was
-    warm 4 minutes early"). When the room is warm enough by itself, the line
-    says so ("Tomorrow Living room is warm enough for 20.5 °C at 7:00; if it
-    cools down before then, the warm-up starts earlier"); in the first days,
-    before the E32 has measured the room, the start is marked "(estimate)".
-    Under it one line on Weather compensation: what
-    it asks of the water temperature at today's outdoor temperature, and
-    which line it follows: the standard line, one estimated from your house,
-    or the line learned for your house. Until the line is learned, the line
-    says after how many steady periods it follows.
+    what it will be then ("Tomorrow Living room warms up from 06:10 to be
+    20.5 °C at 07:00"; a start on another day says "at 00:30 tomorrow" or
+    "on 7 Nov"), and how the last warm-up went ("Today it was warm 4 minutes
+    late" once today's warm-up is judged, else "Yesterday it was warm 4
+    minutes early"; "did not get warm within 3 hours" when it never got
+    there). The start shown includes what free heat saves, and a line says
+    how much later it is. While the house or room is away, on holiday or a
+    window is open, no warm-up is announced; the line says why. In the
+    trial run the lines say "would". When the room is warm enough by itself,
+    the line says so ("Tomorrow Living room is warm enough for 20.5 °C at
+    07:00; if it cools down before then, the warm-up starts earlier"); in the
+    first days, before the E32 has measured the room, the start is marked
+    "(estimate)". A room that is off says that only frost protection keeps it
+    warm. Under it one line on Weather compensation: what it asks of the
+    water temperature at today's outdoor temperature (when the room
+    correction adds to the line, it says what the line gives), when no room
+    asks for heat what it would send once one does, and which line it
+    follows: the standard line, one estimated from your house, or the line
+    learned for your house. Until the line is learned, the line says after
+    how many steady periods it follows. The **Smart warm-up start** tile of
+    a room is hidden while Smart warm-up is off or the room is held (away,
+    holiday, open window).
   - **House**: **Home or away** (the house mode; tap it to change it),
     **Holiday** (**Plan** opens the integration's page, where you plan one
     under Configure → House → House mode and holiday; the next planned

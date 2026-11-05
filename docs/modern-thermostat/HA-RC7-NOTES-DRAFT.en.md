@@ -29,7 +29,19 @@ Needs Home Assistant 2026.10.0 or newer.
   progress no longer says "6 of 6", the rooms chip says "Learned", the burner
   power graph says "%" without "not kW", and a day with one outdoor
   temperature says it once.
-<!-- A7 -->
+- **Today and Learning, in plain words:** no warm-up is announced while the
+  house is away, on holiday or a window is open; the start includes free heat;
+  the trial run says "would". "Did not get warm within 3 hours" replaces "180
+  minutes late", "next time it starts a little earlier/later" replaces a
+  percentage, and "0.0 °C too warm" is gone. Once judged, "Today it was warm 2
+  minutes late" (not "This morning": the judged step can be in the afternoon).
+  A room renamed in Home Assistant keeps its learned lines. The weather line
+  says what the learned line gives and what it sends when a room asks for heat.
+  One outdoor temperature on the Overview; times as 06:10; plurals, hours and
+  dates ("5 Nov") correct; Polish grammar; proposals are never shown as "Latest
+  change"; night advice names the currency and "until {time}"; with a gas meter
+  Yesterday shows the measured m³. The week card marks unsaved changes per tab
+  and asks before Reload.
 - **Room values reach the E32 reliably:** they are sent again at once when the
   E32 comes back or restarts, and a source that froze for 3 hours is no longer
   sent as fresh. A renamed source is followed; a removed one raises a repair

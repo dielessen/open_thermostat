@@ -46,6 +46,10 @@ const history=(...more)=>[...DAYLOG.map(([s,h,m])=>({s,lu:at(h,m)/1000})),...mor
 const WEEK={'sensor.gas_heating':[2.3,2.1,2.6,1.9,2.4,3.0,2.2,1.2],'sensor.gas_hot_water':[0.4,0.5,0.4,0.6,0.5,0.4,0.5,0.3],
  'sensor.burner_starts':[17,18,22,15,20,25,19,11]};
 const TODAY={'sensor.gas_heating':1.6,'sensor.gas_hot_water':0.4,'sensor.burner_starts':14};
+// Total-increasing sensors for which Home Assistant answers "today" with the running total (no sum before midnight, as
+// the demo once did just after a restart: 28.6 m³ and 173 starts); the 7-day read has the true daily rows.
+WEEK['sensor.gas_total']=[2.3,2.1,2.6,1.9,2.4,3.0,2.2,2.0];WEEK['sensor.starts_total']=[17,18,22,15,20,25,19,14];
+TODAY['sensor.gas_total']=28.6;TODAY['sensor.starts_total']=173;
 const SPARK=[2.6,3.0,2.5,2.9,3.4,2.7,2.0],AVERAGE=(2.7+2.6+3.0+2.5+2.9+3.4+2.7)/7;
 const ROOMS=[{id:'woonkamer',name:'Woonkamer',temperature:20.4,setpoint:21},{id:'badkamer',name:'Badkamer',temperature:18.9,setpoint:15}];
 const rooms=(...wanting)=>ROOMS.map(r=>({...r,demand:wanting.includes(r.id)}));
@@ -109,6 +113,9 @@ const CARDS={
  // Statistics that fail (a recorder without these sensors): the gas sensor's own today and last 7 days, an estimate.
  nostats:{config:{request:'sensor.req_first',gas:['sensor.gas_attr']},
   states:[ent('sensor.gas_attr','512.3',{...M3,estimate:true,today:1.4,last_7_days:13.4})],history:[]},
+ // Today answered with the running total: the day's change from the 7-day read instead (2.0 m³, 14 starts).
+ cumulative:{config:{request:'sensor.req_first',gas:['sensor.gas_total'],starts:'sensor.starts_total'},
+  states:[ent('sensor.gas_total','1234.5',M3),ent('sensor.starts_total','2088')],history:[]},
  // A room on holiday for 10 more days, and one held until tomorrow morning: the date, and "tomorrow".
  holiday:{config:{request:'sensor.req_first',rooms:[{entity:'sensor.hal_reason',name:'Hal'}]},
   states:[ent('sensor.hal_reason','holiday',{room_id:'hal',line:'holiday',values:{until:new Date(HOLIDAY_END).toISOString(),target:15},
@@ -344,7 +351,7 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
    return {name:c.dataset.card,tone:s.dataset.status,bg:getComputedStyle(s).backgroundColor,words:[...s.querySelectorAll('.line,.sub,.boiler')].map(t=>getComputedStyle(t).color),
     chip:chip?[getComputedStyle(chip).color,getComputedStyle(chip).backgroundColor]:null};}));
   assert.equal(new Set(bands.map(b=>b.name)).size,Object.keys(CARDS).length);
-  assert.deepEqual(bands.map(b=>b.tone),['heat','water','rest','error','heat','wait','rest','rest','keep','heat','rest','rest','rest']);
+  assert.deepEqual(bands.map(b=>b.tone),['heat','water','rest','error','heat','wait','rest','rest','keep','heat','rest','rest','rest','rest']);
   for(const b of bands){
    for(const fg of b.words)assert(fg===WHITE&&contrast(fg,b.bg)>=4.5,`${b.name}: contrast ${fg} on ${b.bg}: ${contrast(fg,b.bg).toFixed(2)}`);
    if(b.chip)assert(contrast(b.chip[0],over(b.chip[1],b.bg))>=4.5,`${b.name}: the chip`);
@@ -452,6 +459,14 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.deepEqual([await nostats.locator('[data-figure="gas"] .label').textContent(),await nostats.locator('[data-figure="gas"] .value').textContent(),
    await nostats.locator('[data-average]').textContent(),await nostats.locator('.spark').count()],
    [W.gas_estimate,n(1.4,1)+NB+'m³',fill(W.per_day,{n:'6',value:n(2,1)+' m³'}),0]);
+  // Today answered with the running total of a total-increasing sensor: never shown as today's figure; the day's own
+  // row, and the line of daily values (no cumulative rise at its end).
+  const cumulative=card('cumulative');
+  await cumulative.locator('.spark').waitFor();
+  assert.deepEqual(await cumulative.locator('[data-figure="gas"] .value, [data-figure="starts"] .value').allTextContents(),
+   [n(2,1)+NB+'m³','14']);
+  assert.equal(await cumulative.locator('svg.spark').getAttribute('aria-label'),
+   fill(W.week,{values:[2.1,2.6,1.9,2.4,3.0,2.2,2.0].map(v=>n(v,1)).join('; ')+NB+'m³'}));
   // A holiday ten days on ends on a date; a temporary target tomorrow morning says "tomorrow"; neither repeats its target.
   const line=key=>words['component.open_thermostat.entity.sensor.room_reason.state_attributes.line.state.'+key];
   const [far,tomorrow]=await page.evaluate(([end,next,lang])=>[

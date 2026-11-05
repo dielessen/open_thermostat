@@ -476,8 +476,13 @@ class OpenThermostatHouse extends OpenThermostatCard {
      const i = days.findIndex(d => Math.abs(d - start) < DAY_MS / 2);
      if (i >= 0 && change !== null) values[i] = change;
     }
+    // Today to the last 5 minutes, as the statistic cards on the Boiler tab. Home Assistant can answer the day's change
+    // with the running total of a total-increasing sensor (no sum found before midnight, e.g. just after a restart while
+    // the recorder catches up: the demo once showed 28.6 m³ and 173 starts "today"). More than the 7 days before and
+    // today together is no day's change: today's own row of the 7-day read stands instead (the hourly statistics).
     const now = numeric(today[ids.indexOf(id)]?.change);
-    if (now !== null) values[7] = now;  // today to the last 5 minutes, as the statistic cards on the Boiler tab
+    const before = values.slice(0, 7).filter(v => v !== null), all = values.filter(v => v !== null).reduce((a, b) => a + b, 0);
+    if (now !== null && !(before.length && now > all + 1e-6)) values[7] = now;
     per[id] = values;
    }
    this._stats = {day, per};

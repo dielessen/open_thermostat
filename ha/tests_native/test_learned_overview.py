@@ -414,7 +414,7 @@ def test_the_warm_up_time_can_be_learned_before_the_coolest_water():
 @pytest.mark.parametrize("language,seen,timing,fine", [
     ("en", "Learning: 14 warm-ups seen; it still needs warm-ups on other days or at another water temperature",
      "Warm-up time learned; the coolest water is still being learned", "Learning: 5 of 6 warm-ups seen"),
-    ("nl", "Aan het leren: 14 keer opwarmen gezien; hij moet nog opwarmen zien op andere dagen of bij een andere "
+    ("nl", "Aan het leren: 14 keer opwarmen gezien; nog nodig: opwarmen op andere dagen of bij een andere "
            "watertemperatuur",
      "Opwarmtijd geleerd; het koelste water leert hij nog", "Aan het leren: 5 van 6 keer opwarmen gezien"),
     ("pl", "Uczy się: widziano 14 nagrzewań; potrzebuje jeszcze nagrzewań w inne dni lub przy innej temperaturze wody",

@@ -183,7 +183,7 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
      **Highest water temperature**: how warm your boiler lets the water get
      by itself at the outdoor temperature (the E32 asks no more than that
      near the target). **Rest**: how long your boiler rests each time it
-     reaches its temperature (the E32 waits as long before it asks again,
+     reaches its temperature (the E32 waits just as long before it asks again,
      unless a room is cold). **Lowest water temperature**: from which water
      temperature your boiler starts heating (the E32 asks at least that).
      What is not learned yet stands on one line, "Still being learned"; while

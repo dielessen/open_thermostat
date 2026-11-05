@@ -397,8 +397,8 @@ TEXT = {
                               "itself; with Smart warm-up on, the E32 would ask at most {asks} °C near the target.",
         "band_low": "when it is below {high} °C outside", "band": "when it is {low} to {high} °C outside",
         "band_high": "when it is {low} °C or warmer outside", "band_none": "at today's outdoor temperature",
-        "boiler_rest": "Rest: your boiler rests {rest} each time it reaches its temperature; the E32 waits as long "
-                       "before it asks again, unless a room is cold.",
+        "boiler_rest": "Rest: your boiler rests {rest} each time it reaches its temperature; the E32 waits just as "
+                       "long before it asks again, unless a room is cold.",
         "boiler_rest_long": "Rest: your boiler rests {rest} each time it reaches its temperature; the E32 waits 15 "
                             "minutes before it asks again, unless a room is cold.",
         "boiler_lowest": "Lowest water temperature: your boiler only starts heating from about {flow} °C, so the E32 "

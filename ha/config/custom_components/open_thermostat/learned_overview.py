@@ -203,7 +203,7 @@ TEXT = {
         "state.active": "De thermostaat past zijn instellingen zelf aan, hooguit één kleine stap per dag.",
         "state.none": "Nog niets aangepast: de beginwaarden passen nog, of er is nog te weinig om op af te gaan.",
         "learned": "Geleerd", "learning": "Aan het leren: {n} van {m} keer opwarmen gezien",
-        "learning_seen": "Aan het leren: {n} keer opwarmen gezien; hij moet nog opwarmen zien op andere dagen of bij een andere watertemperatuur",
+        "learning_seen": "Aan het leren: {n} keer opwarmen gezien; nog nodig: opwarmen op andere dagen of bij een andere watertemperatuur",
         "learning_timing": "Opwarmtijd geleerd; het koelste water leert hij nog",
         "learning_more": "Hij heeft nog een paar keer opwarmen nodig, op andere dagen of bij andere watertemperaturen.",
         "learning_first": "Hij leert van elke keer opwarmen terwijl de verwarming aan staat.",

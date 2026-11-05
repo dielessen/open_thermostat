@@ -2563,22 +2563,22 @@
         }
       },
       "room_warm_on_time": {
-        "name": "Warm on time"
+        "name": "Warm on time yesterday (minutes late)"
       },
       "room_overshoot": {
-        "name": "Overshoot"
+        "name": "Above target yesterday"
       },
       "burner_starts_per_heating_hour": {
-        "name": "Burner starts per heating hour"
+        "name": "Burner starts per heating hour (yesterday)"
       },
       "short_cycling_hours": {
-        "name": "Short burner runs (h)"
+        "name": "Short burner runs yesterday"
       },
       "heating_gas_yesterday": {
-        "name": "Gas for heating (estimate)"
+        "name": "Heating energy yesterday (estimate)"
       },
       "gas_per_degree_day": {
-        "name": "Gas per degree-day"
+        "name": "Heating energy per degree-day (yesterday)"
       }
     },
     "select": {

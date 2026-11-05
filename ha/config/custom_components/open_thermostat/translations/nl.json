@@ -3600,22 +3600,22 @@
         }
       },
       "room_warm_on_time": {
-        "name": "Op tijd warm"
+        "name": "Op tijd warm gisteren (minuten te laat)"
       },
       "room_overshoot": {
-        "name": "Warmer dan gewenst"
+        "name": "Warmer dan gewenst gisteren"
       },
       "burner_starts_per_heating_hour": {
-        "name": "Branderstarts per stookuur"
+        "name": "Branderstarts per stookuur (gisteren)"
       },
       "short_cycling_hours": {
-        "name": "Korte brandtijden (u)"
+        "name": "Korte brandtijden gisteren"
       },
       "heating_gas_yesterday": {
-        "name": "Gas voor verwarming (schatting)"
+        "name": "Energie voor verwarmen gisteren (schatting)"
       },
       "gas_per_degree_day": {
-        "name": "Gas per graaddag"
+        "name": "Verwarmingsenergie per graaddag (gisteren)"
       }
     },
     "select": {

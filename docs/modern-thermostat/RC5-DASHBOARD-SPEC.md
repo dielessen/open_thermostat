@@ -95,7 +95,10 @@ Sections (both `column_span: 2`, as today):
    `request` (hub `heat_request`), `activity` (hub `boiler_activity`), `heating` (field `heating_active`),
    `flow` (`essential("flow")`), `hot_water` (field `dhw_active`), `taps` (hub `dhw_taps_today`),
    `gas` ([hub `heating_gas`, hub `hot_water_gas`] — those that exist), `starts` (hub `daily_burner_starts`),
-   `mode` (select `house_mode`), `problem` (hub `heating_problem`),
+   `mode` (select `house_mode`), `problem` (hub `heating_problem`), and since HA 1.0.0rc7 (the rest of the
+   desktop sketch) `modulation` (`essential("modulation")`), `code` (`essential("code")`), `dhw` (`essential("dhw")`)
+   and `starts_hour` (hub `burner_starts_last_hour`): "burner 37 % · code -H" on the band, the hot water's
+   temperature and the starts in the last hour under their figures,
    `rooms` ([{"entity": room reason sensor, "name": room name}] — **only when exactly one E32 room is active**;
    otherwise omitted). The card needs at least `request` or `activity`; without both, no house card and the
    existing `_wanting_card` stays as the fallback.

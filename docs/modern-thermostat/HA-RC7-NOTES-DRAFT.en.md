@@ -75,7 +75,8 @@ doubled IDs; Configure → Advanced → **Tidy entity IDs** can fix them.
 ## Limitations
 
 The E32's own page still says "6 of 6 warm-ups seen" (firmware, next release).
-The knowledge sentences come in the E32's language, not Home Assistant's.
+The "still to learn" sentences come in Home Assistant's language, not in the
+language of your user profile.
 Radiator valve control is not yet verified on real valves. EMS Classic boilers
 only; EMS+ comes in 1.1. Pairing Bluetooth sensors is done on the E32. HACS
 lists OpenThermostat as a custom repository.

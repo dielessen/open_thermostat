@@ -1598,6 +1598,18 @@
               "away": "Away",
               "holiday": "Holiday"
             }
+          },
+          "program": {
+            "name": "Week program",
+            "state": {
+              "comfort": "Comfort",
+              "eco": "Eco",
+              "night": "Night",
+              "holiday": "Holiday",
+              "step": "{level} until {time}, then {next}",
+              "level_target": "{level} {target} °C",
+              "target": "{target} °C"
+            }
           }
         }
       },
@@ -1676,7 +1688,11 @@
               "degree_days": "Degree-days",
               "target": "target {t} °C",
               "per_day": "{n} days: {value} a day",
-              "today_since": "Today since midnight"
+              "today_since": "Today since midnight",
+              "burner": "burner {n} %",
+              "code": "code {code}",
+              "water": "water {t} °C",
+              "last_hour": "{n} in the last hour"
             }
           }
         }

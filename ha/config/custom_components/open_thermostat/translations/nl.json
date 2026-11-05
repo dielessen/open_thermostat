@@ -2635,6 +2635,18 @@
               "away": "Afwezig",
               "holiday": "Vakantie"
             }
+          },
+          "program": {
+            "name": "Weekprogramma",
+            "state": {
+              "comfort": "Comfort",
+              "eco": "Eco",
+              "night": "Nacht",
+              "holiday": "Vakantie",
+              "step": "{level} tot {time}, daarna {next}",
+              "level_target": "{level} {target} °C",
+              "target": "{target} °C"
+            }
           }
         }
       },
@@ -2713,7 +2725,11 @@
               "degree_days": "Graaddagen",
               "target": "doel {t} °C",
               "per_day": "{n} dagen: {value} per dag",
-              "today_since": "Vandaag sinds middernacht"
+              "today_since": "Vandaag sinds middernacht",
+              "burner": "brander {n} %",
+              "code": "code {code}",
+              "water": "boiler {t} °C",
+              "last_hour": "{n} in het laatste uur"
             }
           }
         }

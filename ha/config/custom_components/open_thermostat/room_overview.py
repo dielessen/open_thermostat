@@ -13,13 +13,19 @@ the history) and the sentence variant and its values as attributes; the room
 status card (frontend/room-status-card.js) writes the sentence from
 strings.json (``entity.sensor.room_reason.state_attributes.line``), so every
 viewer reads it in their own language.
+
+HA 1.0.0rc7 (the owner's sketch, "Comfort until 22:30, then Night 18.0 °C"): the
+same sensor carries ``program``, the room's week program now and its next step
+(program_step), computed in Home Assistant from the plan it holds and the E32's
+time zone; the room status card writes it after the sentence.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, time as clock_time, timedelta, timezone
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.core import callback
 
 from .heating_link import RoomEntity, number
 
@@ -156,6 +162,149 @@ def room_presence(room, status=None):
     return "house_" + presence if presence in ("home", "away") else None
 
 
+# The week planner's levels (room_levels.LEVELS, schedule_levels digits 1..3) and the house's holiday: the names a
+# program step can have (strings.json state_attributes.program.state); None is a point with its own temperature.
+PROGRAM_LEVELS = ["comfort", "eco", "night", "holiday"]
+# Comfort modes in which the week program sets the room's target (the E32's comfort.mode; absent: the program).
+FOLLOWS_PROGRAM = (None, "program")
+
+
+def _marks(plan_room, schedule):
+    """Per day the level of each switch point ("comfort", "eco", "night" or None): the marks the planner stored with
+    its levels (E32 beta.23, room_levels), else the levels inferred from the program as the planner shows them."""
+    from .e32_comfort import program_levels
+    from .room_levels import LEVELS, mark_text, room_levels
+    levels = room_levels(plan_room)
+    text = plan_room.get("schedule_levels") if levels is not None else None
+    if levels is None:
+        levels = dict(zip(LEVELS, (round(value * 100) for value in program_levels(plan_room, None))))
+    days = mark_text(schedule, levels, text).split(".")
+    return [[LEVELS[int(digit) - 1] if digit != "0" else None for digit in day] for day in days]
+
+
+def _schedule(plan_room):
+    """The room's week program as 7 days of [(minute, centi °C)], or None (no program, or not well-formed)."""
+    schedule = plan_room.get("schedule") if type(plan_room) is dict else None
+    if type(schedule) is not list or len(schedule) != 7:
+        return None
+    week = []
+    for day in schedule:
+        if type(day) is not list:
+            return None
+        points = []
+        for point in day:
+            if (type(point) is not list or len(point) != 2 or any(type(v) is not int for v in point)
+                    or not 0 <= point[0] <= 1439 or (points and point[0] <= points[-1][0])):
+                return None
+            points.append((point[0], point[1]))
+        week.append(points)
+    return week if any(week) else None
+
+
+def _holiday_ahead(away, now, before):
+    """(start, temperature °C) of the first planned holiday that starts after now and before ``before`` (None: any
+    time), or None."""
+    from .e32_house import holiday_periods, holiday_temperature, supports_holidays
+    if not supports_holidays(away):
+        return None
+    temperature = holiday_temperature(away)
+    if temperature is None:
+        return None
+    for start, _end in holiday_periods(away.get("holidays")):
+        at = datetime.fromtimestamp(start, timezone.utc)
+        if now < at and (before is None or at < before):
+            return at, temperature
+    return None
+
+
+def _program_now(week, marks, local):
+    """(level, centi °C) of the switch point in force at the local time: the last one at or before it today, else the
+    last one of an earlier day (a week back at most, the E32's RoomSchedule::at)."""
+    weekday, minute = local.weekday(), local.hour * 60 + local.minute
+    for back in range(8):
+        day = (weekday - back) % 7
+        found = [i for i, (at, _) in enumerate(week[day]) if back or at <= minute]
+        if found:
+            return marks[day][found[-1]], week[day][found[-1]][1]
+    return None
+
+
+def program_step(plan_room, now, zone, room=None, away=None):
+    """The room's week program now and its next step, for the room status card ("Comfort until 22:30, then Night
+    18.0 °C"); None while the program does not set the room's target.
+
+    plan_room: the room in the E32's plan (its ``schedule``, 7 days Mon..Sun of [minute, centi °C], a point holding
+    until the next one, also across midnight and empty days, and the planner's ``levels`` and ``schedule_levels``);
+    now: an aware datetime; zone: the E32's time zone (tzinfo) in which the program's times are wall-clock times;
+    room: the room as the E32 reports it (its state, setpoint_source and comfort mode); away: the house's away status
+    (its planned holidays, E32 rc.4).
+
+    Returns {"level", "target", "next_at", "next_level", "next_target"}: the level of the switch point in force
+    ("comfort", "eco", "night", or None for a point with its own temperature) and its temperature (°C); then the
+    first later moment where the level or the temperature changes (ISO, UTC) with the level and temperature from
+    then, all three None when nothing changes in the coming week. A planned holiday that starts before that change is
+    the next step instead: level "holiday", the program's temperature then, at most the holiday temperature (the E32's
+    ceiling on holiday).
+
+    None: no plan room or no program; the room is off; the E32 sets the target from elsewhere (setpoint_source not
+    "schedule": no clock yet, or a target from Home Assistant); an override, away, a holiday or an open window holds
+    the room (comfort mode other than the program: the room's sentence says what holds it and until when).
+    """
+    week = _schedule(plan_room)
+    if week is None or not isinstance(now, datetime) or now.tzinfo is None:
+        return None
+    room = _dict(room)
+    if room.get("state") == "inactive" or room.get("setpoint_source") not in (None, "schedule"):
+        return None
+    if _dict(room.get("comfort")).get("mode") not in FOLLOWS_PROGRAM:
+        return None
+    marks = _marks(plan_room, [[list(point) for point in day] for day in week])
+    local = now.astimezone(zone)
+    current = _program_now(week, marks, local)
+    minute = local.hour * 60 + local.minute
+    following = None
+    for ahead in range(8):  # the coming week, up to the same weekday a week on
+        day = (local.weekday() + ahead) % 7
+        for index, (at, centi) in enumerate(week[day]):
+            if ahead * 1440 + at - minute > 0 and (marks[day][index], centi) != current:
+                # The wall-clock time in the E32's zone (a time a clock change skips counts as the hour after it).
+                wall = datetime.combine(local.date() + timedelta(days=ahead), clock_time(at // 60, at % 60), tzinfo=zone)
+                following = (wall.astimezone(timezone.utc), marks[day][index], centi / 100)
+                break
+        if following:
+            break
+    holiday = _holiday_ahead(_dict(away), now, following[0] if following else None)
+    if holiday is not None:
+        at, ceiling = holiday
+        then = _program_now(week, marks, at.astimezone(zone))[1] / 100
+        following = (at, "holiday", min(then, ceiling))
+    level, centi = current
+    return {"level": level, "target": centi / 100,
+            "next_at": following[0].isoformat() if following else None,
+            "next_level": following[1] if following else None,
+            "next_target": following[2] if following else None}
+
+
+def e32_zone(hass, entry):
+    """The E32's time zone (its Settings, as last seen in its daily settings backup or the time zone step) when Home
+    Assistant knows its rules; else Home Assistant's own (the zone the E32 is set to when it is installed)."""
+    from zoneinfo import ZoneInfo
+
+    from homeassistant.util import dt as dt_util
+
+    from .const import DOMAIN
+    from .e32_system import TIME_ZONE_STATE, ha_zone, zone_of
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id) if entry is not None else None
+    posix = state.get(TIME_ZONE_STATE) if type(state) is dict else None
+    name = zone_of(posix, ha_zone(hass)) if type(posix) is str else None
+    if name is not None:
+        try:
+            return ZoneInfo(name)
+        except (ValueError, OSError):
+            pass
+    return dt_util.get_default_time_zone()
+
+
 def open_contact(hass, entity_ids):
     """The contact of the room that has been open longest (with the others' names), or None."""
     opened = [state for state in (hass.states.get(e) for e in entity_ids) if state is not None and state.state == "on"]
@@ -180,13 +329,58 @@ class RoomReasonSensor(RoomEntity, SensorEntity):
     _attr_icon = "mdi:comment-question-outline"
     # The card's live values; the history keeps the reason itself (the room's own sensors keep the rest).
     _unrecorded_attributes = frozenset({"values", "temperature", "setpoint", "presence", "window", "valve_position",
-                                        "valve_problem"})
+                                        "valve_problem", "program"})
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "reason")
+        self._tick = None  # the timer that writes the state again at the program's next step
+
+    def _entry(self):
+        return getattr(getattr(self, "platform", None), "config_entry", None)
+
+    def _program(self, now=None):
+        """The week program now and its next step (program_step), or None."""
+        plan = getattr(self.hub, "plan", None)
+        plan_room = plan.room(self.room_id) if plan is not None else None
+        if plan_room is None or self.hass is None:
+            return None
+        status = self.hub.status if type(self.hub.status) is dict else {}
+        return program_step(plan_room, now or datetime.now(timezone.utc), e32_zone(self.hass, self._entry()), self.room,
+                            status.get("away"))
+
+    @callback
+    def async_write_ha_state(self):
+        super().async_write_ha_state()
+        self._plan_tick()
+
+    @callback
+    def _plan_tick(self):
+        """Write the state again just after the program's next step, also when the E32 reports nothing new then
+        (a step to another level with the same temperature)."""
+        if self._tick is not None:
+            self._tick()
+            self._tick = None
+        program = self._program() if self.hub.fresh and self.room else None
+        if not program or not program["next_at"]:
+            return
+        from homeassistant.helpers.event import async_track_point_in_utc_time
+
+        @callback
+        def due(_now):
+            self._tick = None
+            if self.hass is not None and self.entity_id:
+                self.async_write_ha_state()
+        self._tick = async_track_point_in_utc_time(
+            self.hass, due, datetime.fromisoformat(program["next_at"]) + timedelta(seconds=1))
+
+    async def async_will_remove_from_hass(self):
+        if self._tick is not None:
+            self._tick()
+            self._tick = None
+        await super().async_will_remove_from_hass()
 
     def _contact(self):
-        entry = getattr(getattr(self, "platform", None), "config_entry", None)
+        entry = self._entry()
         if entry is None or self.hass is None:
             return None
         from .e32_comfort import room_contacts
@@ -221,4 +415,6 @@ class RoomReasonSensor(RoomEntity, SensorEntity):
                 "presence": room_presence(room, self.hub.status),
                 "window": _dict(room.get("comfort")).get("window"),
                 "valve_position": round(sum(moved) / len(moved)) if moved else None,
-                "valve_problem": bool(problems(valves)) if valves else None}
+                "valve_problem": bool(problems(valves)) if valves else None,
+                # HA 1.0.0rc7: the week program now and its next step (program_step), for the room status card.
+                "program": self._program()}

@@ -405,3 +405,65 @@ async def test_the_heat_request_sensor_and_the_diagnostics_show_the_route(hass, 
     assert block["e32_ha"]["last_rejected"]["reason"] == "invalid_json"
     # The timers: the five-minute refreshes and the minute check of the route.
     assert {every for _action, every in link.timers} >= {timedelta(minutes=5), heating_link.INPUT_CHECK}
+
+
+@pytest.mark.asyncio
+async def test_a_restarted_or_returning_e32_gets_the_room_values_at_once(hass, monkeypatch):
+    """R2-2 (1.0.0rc7): a restarted E32 has no room reading until Home Assistant sends one; it must not wait up to
+    five minutes for the refresh (a tado-only room would ask no heat meanwhile)."""
+    hass.states.async_set("climate.woonkamer", "heat", {"current_temperature": 20.4, "temperature": 20.5})
+    hass.states.async_set("person.anna", "home")
+    link = await Installation(hass, monkeypatch).start({"presence_entities": ["person.anna"]})
+    link.e32.heartbeat(uptime=100)  # the thermostats' forwarder sends once on its first E32 message after its setup
+    await link.hass.async_block_till_done()
+    rooms, presence = len(link.sent(entity="climate.woonkamer")), len(link.sent("presence"))
+    # A restart shorter than three heartbeats: only the uptime going down says so (hub.boots).
+    link.e32.heartbeat(uptime=40)
+    await link.hass.async_block_till_done()
+    assert len(link.sent(entity="climate.woonkamer")) == rooms + 1
+    assert len(link.sent("presence")) == presence + 1  # the contacts and presence too
+    link.e32.heartbeat(uptime=100)  # the next heartbeat of the same run: nothing extra
+    await link.hass.async_block_till_done()
+    assert len(link.sent(entity="climate.woonkamer")) == rooms + 1
+    # Offline (its last will, or a power cut), then back online with its retained state.
+    link.e32.message("fw/availability", "offline")
+    assert link.hub.status is None
+    link.e32.message("fw/availability", "online")
+    await link.hass.async_block_till_done()
+    assert link.hub.fresh
+    assert link.sent(entity="climate.woonkamer")[-1] == {"entity": "climate.woonkamer", "temperature": 20.4,
+                                                         "target": 20.5}
+    assert len(link.sent(entity="climate.woonkamer")) == rooms + 2
+
+
+@pytest.mark.asyncio
+async def test_a_source_that_froze_is_not_refreshed_as_fresh(hass, monkeypatch):
+    """R2-3 (1.0.0rc7): an integration that keeps its last state instead of going unavailable. The five-minute
+    refresh no longer sends a source silent for three hours, so the E32 ages it out and uses the next source; a
+    setpoint helper is a setting and still goes; a new value goes at once; no "not accepted" repair for it."""
+    status = {**STATUS, "ha_entities": ["climate.woonkamer", "sensor.woonkamer", "input_number.woonkamer"]}
+    hours_ago = dt_util.utcnow().timestamp() - 4 * 3600
+    hass.states.async_set("climate.woonkamer", "heat", {"current_temperature": 20.4, "temperature": 20.5},
+                          timestamp=hours_ago)
+    hass.states.async_set("sensor.woonkamer", "19.8", {"unit_of_measurement": "°C"}, timestamp=hours_ago)
+    hass.states.async_set("input_number.woonkamer", "20.0", {"unit_of_measurement": "°C"}, timestamp=hours_ago)
+    link = await Installation(hass, monkeypatch).start()
+    link.e32.status(status)
+    await hass.async_block_till_done()
+    assert link.sent(entity="climate.woonkamer") == [] and link.sent(entity="sensor.woonkamer") == []
+    assert link.sent(entity="input_number.woonkamer")[-1]["target"] == 20.0
+    room_refresh = link.refreshes(heating_link)[0]
+    await link.run_timer(room_refresh)
+    assert link.sent(entity="climate.woonkamer") == [] and link.sent(entity="sensor.woonkamer") == []
+    # A state that reports again (polled: the same value, a new last_reported) is fresh again.
+    hass.states.async_set("sensor.woonkamer", "19.8", {"unit_of_measurement": "°C"})
+    await hass.async_block_till_done()
+    await link.run_timer(room_refresh)
+    assert link.sent(entity="sensor.woonkamer")[-1]["temperature"] == 19.8
+    assert link.sent(entity="climate.woonkamer") == []
+    # Only frozen sources to send: the E32 accepting nothing is not Home Assistant's values getting lost.
+    watch = link.hub.input_watch
+    hass.states.async_set("sensor.woonkamer", "19.8", {"unit_of_measurement": "°C"}, timestamp=hours_ago)
+    hass.states.async_remove("input_number.woonkamer")
+    watch.link.attempted = None
+    assert watch._expected(watch.clock()) is False

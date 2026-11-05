@@ -66,6 +66,11 @@ from .const import CONF_TOPIC_PREFIX, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 REFRESH_SECONDS = 300
+# A source that reported nothing for this long froze (an integration that keeps its last state instead of going
+# unavailable): the five-minute refresh no longer sends it as fresh, so the E32 ages it out after 15 minutes and
+# uses the room's next source. Polled thermostats and sensors report far more often; event-driven ones (a generic
+# thermostat, a valve) at least on every change. A setpoint helper (input_number/number) is a setting, never silent.
+SOURCE_SILENT_S = 3 * 3600
 MAX_ENTITIES = 40  # the E32 plan: 8 rooms x (4 sources + setpoint entity)
 # fw/heartbeat every 60 s: unavailable after three missed ones (or fw/availability offline).
 HEARTBEAT_SECONDS = 60
@@ -436,6 +441,14 @@ def input_payload(state, temperature_unit=UnitOfTemperature.CELSIUS):
     if temperature is None and target is None:
         return None
     return json.dumps({"entity": state.entity_id, "temperature": temperature, "target": target})
+
+
+def silent_source(state, now):
+    """True for a source state that reported nothing for SOURCE_SILENT_S (``last_reported``, else ``last_updated``)."""
+    if state is None or state.domain in ("input_number", "number"):
+        return False
+    reported = getattr(state, "last_reported", None) or state.last_updated
+    return (now - reported).total_seconds() > SOURCE_SILENT_S
 
 
 class HeatingHub:
@@ -1036,9 +1049,10 @@ class HeatingInputWatch:
         """Home Assistant sends now (the last five minutes), or has a value for an entity the E32 reads."""
         if self.link.attempted is not None and now - self.link.attempted <= REFRESH_SECONDS + 60:
             return True
-        unit = self.hass.config.units.temperature_unit
-        return any(input_payload(self.hass.states.get(entity_id), unit) is not None
-                   for entity_id in (self.hub.status or {}).get("ha_entities") or [])
+        unit, wall = self.hass.config.units.temperature_unit, dt_util.utcnow()
+        states = [self.hass.states.get(entity_id) for entity_id in (self.hub.status or {}).get("ha_entities") or []]
+        # A frozen source is not sent (silent_source): nothing for the E32 to accept, so no repair for it.
+        return any(input_payload(state, unit) is not None and not silent_source(state, wall) for state in states)
 
     def state(self, age):
         if self.lost_since is not None:
@@ -2169,8 +2183,12 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     # Room, energy and comfort values all leave through the entry's link (P22: per entry, never stuck).
     send = heating_input_link(hass, entry, hub).send
 
-    def publish(entity_id):
-        payload = input_payload(hass.states.get(entity_id), hass.config.units.temperature_unit)
+    def publish(entity_id, now=None):
+        """Send one entity's values; ``now`` (the refresh): not a source that froze (silent_source)."""
+        state = hass.states.get(entity_id)
+        if now is not None and silent_source(state, now):
+            return
+        payload = input_payload(state, hass.config.units.temperature_unit)
         if payload is not None:
             send(payload)
 
@@ -2186,22 +2204,36 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
 
     @callback
     def refresh(_now=None):
+        now = dt_util.utcnow()
         for entity_id in forwarded:
-            publish(entity_id)
+            publish(entity_id, now)
         energy.publish()
+
+    boots = hub.boots
 
     @callback
     def follow():
-        """After every hub change: track exactly the plan's entities; send all at once when new or back."""
-        nonlocal forwarded, unsubscribe_states, was_fresh
+        """After every hub change: track exactly the plan's entities; send all at once when new or back.
+
+        Back: the E32 was offline or silent, or it restarted (its uptime went down, ``hub.boots``; a restart
+        shorter than STALE_SECONDS never makes it silent). A restarted E32 has no room reading until Home
+        Assistant sends one, so the rooms and the energy values go out at once, not at the next refresh. The
+        comfort forwarder sends the contacts and presence itself when the E32 is back (hub_changed); after a
+        quick restart it is told here.
+        """
+        nonlocal forwarded, unsubscribe_states, was_fresh, boots
         status = hub.status
         back = status is not None and not was_fresh
         was_fresh = status is not None
         if status is None:
             return
+        restarted, boots = hub.boots != boots, hub.boots
+        comfort = state.get("comfort_forwarder")
+        if restarted and not back and comfort is not None:
+            comfort.publish()
         if status["ha_entities"] == forwarded:
-            if back:
-                energy.publish()  # the E32 is (back) online: send the energy values at once
+            if back or restarted:
+                refresh()
             return
         forwarded = list(status["ha_entities"])
         if unsubscribe_states is not None:

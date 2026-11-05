@@ -614,6 +614,34 @@ def test_the_heating_start_sensor_names_the_start_the_e32_uses():
     assert "free_heat_min" not in sensor_.extra_state_attributes and sensor_.extra_state_attributes["start_now"] is True
 
 
+def test_a_free_heat_morning_is_never_late():
+    """R4-2: the E32's reachable is for the start without the free heat, so once that earlier start has passed it is
+    false every free-heat morning (WarmupPlanner::lead), while FreeHeat::shorten keeps the target in time. The sensor
+    drops it and the Rooms line never says "may come a little after"."""
+    from datetime import datetime, timedelta, timezone
+    from custom_components.open_thermostat.heating_link import RoomHeatingStartSensor
+    clock = {1793257800: "07:30", 1793259000: "07:50", 1793262600: "08:50"}.get
+    late = {**START, "start_now": True, "reachable": False}
+    before = lo.smart_warm_up_line(late, True, "en", clock, later_min=20, now=1793258400)[0]
+    after = lo.smart_warm_up_line(late, True, "en", clock, later_min=20, now=1793259000)[0]
+    assert before == "Smart warm-up: starts at 07:50 so it is 21 °C at 08:50."
+    assert after == "Smart warm-up: heating now so it is 21 °C at 08:50."
+    # Without free heat the flag still counts: the start could not reach the target in time.
+    assert "may come a little after" in lo.smart_warm_up_line(late, True, "en", clock, now=1793259000)[0]
+    h = HeatingHub("fixture")
+    h.update(STATUS)
+    passed = int(datetime.now(timezone.utc).timestamp()) - 1800  # the start without free heat, half an hour ago
+    h.update_learned("woonkamer", ({**LEARNED, "id": "woonkamer", "free_heat": FREE},
+                                   {"id": "woonkamer", "optimum_start": {**late, "predicted_start_utc": passed}}))
+    sensor_ = RoomHeatingStartSensor(h, STATUS["rooms"][0])
+    assert sensor_.native_value == datetime.fromtimestamp(passed, timezone.utc) + timedelta(minutes=20)
+    attributes = sensor_.extra_state_attributes
+    assert attributes["reachable"] is None and attributes["start_now"] is True and attributes["free_heat_min"] == 20
+    h.update_learned("woonkamer", ({**LEARNED, "id": "woonkamer", "free_heat": {**FREE, "applied_min": 0}},
+                                   {"id": "woonkamer", "optimum_start": {**late, "predicted_start_utc": passed}}))
+    assert sensor_.extra_state_attributes["reachable"] is False  # no free heat: the E32's own flag
+
+
 @pytest.mark.parametrize("comfort", [{"mode": "away"}, {"mode": "presence_away"}, {"mode": "window_open"},
                                      {"mode": "program", "window": "open"}])
 def test_away_or_an_open_window_has_no_smart_warm_up_line(comfort):

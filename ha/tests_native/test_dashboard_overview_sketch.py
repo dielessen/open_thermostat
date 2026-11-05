@@ -326,6 +326,37 @@ async def test_today_says_the_reviewed_cases_in_every_language(hass, clock, lang
     assert said == TODAY_CASES[case][("en", "nl", "pl").index(language)]
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language", ["en", "nl", "pl"])
+async def test_a_free_heat_morning_is_on_time_on_today(hass, clock, language):
+    """R4-2: with free heat the sensor's reachable is None (the E32's flag is for the earlier start without it), and
+    None is not "not reachable": Today says the later start and then "warming up now", never "may come a little
+    after"."""
+    config, rooms, hub, fields, flow, board = sketch(hass, language)
+    card = today_card(config, language)
+    living, start = rooms["woonkamer"], rooms["woonkamer"]["heating_start"]
+    hass.states.async_set(living["state"], "active", {})
+    hass.states.async_set(rooms["badkamer"]["state"], "inactive", {})
+    hass.states.async_set(flow["apply_learned"], "on", {})
+    hass.states.async_set(hub["heat_request"], "36", {"mode": "active"})
+    hass.states.async_set(living["reason"], "warm_enough", {})
+    first = lambda: render(hass, card).split("\n\n")[0].removeprefix(CLOCK)  # noqa: E731
+    for at, start_now in (((4, 16, 10), False), ((4, 14, 20), True)):
+        heating_start(hass, start, at, (4, 17, 0) if not start_now else (4, 15, 0), 21, start_now=start_now)
+        attributes = {**hass.states.get(start).attributes, "reachable": None, "free_heat_min": 20}
+        hass.states.async_set(start, hass.states.get(start).state, attributes)
+        said = first()
+        assert said == {
+            ("en", False): "Today Woonkamer warms up from **16:10** to be 21 °C at **17:00**.",
+            ("en", True): "Woonkamer is warming up now to be 21 °C at **15:00**.",
+            ("nl", False): "Vandaag begint Woonkamer om **16:10** met opwarmen, zodat het om **17:00** 21 °C is.",
+            ("nl", True): "Woonkamer warmt nu op, zodat het om **15:00** 21 °C is.",
+            ("pl", False): "Woonkamer: dziś nagrzewanie od **16:10**, aby o **17:00** było 21 °C.",
+            ("pl", True): "Woonkamer: nagrzewanie trwa, aby o **15:00** było 21 °C.",
+        }[language, start_now]
+        assert said != TODAY_CASES["late"][("en", "nl", "pl").index(language)]
+
+
 LAST_WARM_UP = {
     # R1-6: 3 hours or more is the E32's "never warm" (it counts 3 hours).
     ("180", None, None): ("Yesterday it did not get warm within 3 hours.", "Gisteren werd het binnen 3 uur niet warm.",

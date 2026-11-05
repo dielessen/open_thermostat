@@ -2007,6 +2007,9 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
             # E32 rc.5: the free heat moves the start later (the state is that later start); the E32's start_now is for
             # the start without it, so it heats now only once the later start has come.
             result["free_heat_min"] = later
+            # The E32's reachable is for the start without the free heat: once that earlier start passed it is always
+            # false (WarmupPlanner::lead, "too late already"), which FreeHeat::shorten says is no reason for concern.
+            result["reachable"] = None
             if result["start_now"] is True and begin > datetime.now(timezone.utc):
                 result["start_now"] = False
         if type(start.get("next_switch")) is dict:

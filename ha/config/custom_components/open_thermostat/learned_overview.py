@@ -588,7 +588,7 @@ def smart_warm_up_line(start, on, lang, clock, trial=False, later_min=0, now=Non
     if start.get("lead_minutes") == 0 and start.get("start_now") is not True:
         key = "warmup_ready"
     elif heating:
-        key = ("warmup_trial_now" if trial else "warmup_late" if start.get("reachable") is False
+        key = ("warmup_trial_now" if trial else "warmup_late" if start.get("reachable") is False and not shift
                else "warmup_now_estimate" if start.get("estimate") is True else "warmup_now")
     elif trial:
         key = "warmup_trial"

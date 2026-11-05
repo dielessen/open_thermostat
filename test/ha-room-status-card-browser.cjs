@@ -8,6 +8,7 @@
 // narrow phone, no sideways scroll; every chip and line readable (contrast at least 4.5:1). Screenshots go to the
 // evidence directory.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),component=path.join(root,'ha/config/custom_components/open_thermostat');
 const source=fs.readFileSync(path.join(component,'frontend/room-status-card.js'));
@@ -176,7 +177,7 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   if(lang!=='en')for(const english of ['Now ','Target','Radiator valves open','Someone of this room is home','Nobody of this room is home','Smart warm-up',
    'Heating','At temperature','At home','Away','Holiday','Paused','Off'])
    assert(!shown.some(t=>t.startsWith(english)),lang+': '+english);
-  await page.screenshot({path:path.join(out,`ROOM-STATUS-CARD-${lang}-${width}-${theme}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`ROOM-STATUS-CARD-${lang}-${width}-${theme}.png`),fullPage:true});
   // Tapping or Enter opens the room's history; an unrelated change in the house does not redraw the card.
   await room('kitchen').locator('ha-card').click();await room('hall').locator('ha-card').press('Enter');
   assert.deepEqual(await page.evaluate(()=>events),['sensor.kitchen_reason','sensor.hall_reason']);

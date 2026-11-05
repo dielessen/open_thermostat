@@ -5,6 +5,7 @@
 // type and name), the structure and the words are the generated config
 // (test/fixtures/ha-dashboard-views.json, kept current by ha/tests_native/test_dashboard_layout.py). No HA, no device.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 const config=JSON.parse(fs.readFileSync(path.join(root,'test/fixtures/ha-dashboard-views.json'),'utf8'));
@@ -46,12 +47,6 @@ const html=(view,hidden,width)=>{
   .heading{background:none;box-shadow:none;padding:4px 0;font-size:15px}.tile,.statistic,.gauge{background:var(--tile)}.markdown{background:var(--note)}
   .thermostat,.history-graph,.statistics-graph{background:var(--chart)}</style><h1>${view.title}</h1><div class="view">${sections}</div>`;
 };
-// The screenshots are evidence for a look by eye, not the assertion. Chromium now and then answers
-// Page.captureScreenshot with "Unable to capture screenshot" while its compositor is still busy (GitHub's Ubuntu 26
-// runner, 5 Nov 2026, once in about forty runs of this test); try again after a pause, and give up on a third refusal.
-const shot=async(page,file)=>{for(let attempt=1;;attempt++){
- try{return await page.screenshot({path:file,fullPage:true});}
- catch(e){if(attempt>=3||!/capture screenshot/i.test(String(e&&e.message)))throw e;await page.waitForTimeout(400*attempt);}}};
 (async()=>{
  fs.mkdirSync(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[],problems=[];
  try{for(const lang of Object.keys(config))for(const view of config[lang].views)if(view.sections)for(const width of [390,1280])for(const hidden of [false,true]){
@@ -97,10 +92,10 @@ const shot=async(page,file)=>{for(let attempt=1;;attempt++){
   }
   const file=`${lang}-${view.path}-${width}${hidden?'-conditional-hidden':''}.png`;
   if(!hidden){
-   await shot(page,path.join(out,file));
+   await shot(page,{path:path.join(out,file),fullPage:true});
    // The same layout in the dark scheme (only the colours change), for a look by eye.
    await page.emulateMedia({colorScheme:'dark'});
-   await shot(page,path.join(out,file.replace('.png','-dark.png')));
+   await shot(page,{path:path.join(out,file.replace('.png','-dark.png')),fullPage:true});
   }
   results.push({lang,view:view.path,width,hidden,problems:found});
   for(const message of found)problems.push(`${lang} ${view.path} ${width}${hidden?' (conditional cards hidden)':''}: ${message}`);

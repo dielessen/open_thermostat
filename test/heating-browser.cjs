@@ -89,6 +89,14 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   // Newer firmware reports Home Assistant input freshness in /status/heating; it replaces the /status fallback.
   // HA sends at least every 5 min: four minutes of quiet is still connected (no orange flicker).
   status.ha={input_age_s:240,broker_connected:true};
+  // The page reads /status/heating every 10 s of real time; ask for a read now instead (it reads again when the tab
+  // turns visible) and wait for that read's render. The first read with "ha" may still have a /status fallback in
+  // flight (asked for while the page knew no HA link), whose late answer paints over the lock until the next read
+  // (CI, 31 Oct 2026: 15 s ran out). A second read no longer asks /status, so it settles the lock text.
+  const readHa=()=>root.evaluate(r=>new Promise(done=>{
+   r.addEventListener('heating-status',function seen(e){if(e.detail.ha){r.removeEventListener('heating-status',seen);done();}});
+   document.dispatchEvent(new Event('visibilitychange'));}));
+  await readHa();await readHa();
   await root.locator('[data-heating-lock]').getByText('Beheerd in Home Assistant · verbonden').waitFor({timeout:15000});
   delete status.ha; // the fixture is shared by both viewport passes
   await root.locator('[data-heating-unlock]').click();assert.match(dialogs.at(-1),/ook in Home Assistant[\s\S]*tot je dit tabblad sluit/);

@@ -2,6 +2,7 @@
 // three groups with friendly Dutch names, other-family fields left out, and the
 // owner's "show anyway" for a not-fitted value.
 const {chromium} = require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs = require('node:fs'), path = require('node:path'), zlib = require('node:zlib'), assert = require('node:assert/strict');
 const assets = path.resolve(__dirname, '../data/html');
 const out = path.resolve(process.env.OPENTHERMOSTAT_BOILER_PROFILE_EVIDENCE || 'out/boiler-profile-browser');
@@ -79,7 +80,7 @@ function profile(shown) {
     assert.deepEqual(posts, [{index:6, show:true}]);
     assert.equal(await box.getByRole('button', {name:'Weer verbergen'}).getAttribute('aria-pressed'), 'true');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'no horizontal scroll at ' + width);
-    await page.screenshot({path:path.join(out, `boiler-profile-${width}.png`), fullPage:true});
+    await shot(page,{path:path.join(out, `boiler-profile-${width}.png`), fullPage:true});
     // Older firmware without the route: no card, nothing else breaks.
     available = false;
     await page.evaluate(() => loadNativePage('boiler_test'));

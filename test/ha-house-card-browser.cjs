@@ -18,6 +18,7 @@
 // Yesterday says "no warm-up yesterday" and an hour or more in hours.
 // Screenshots go to the evidence directory for the visual check.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),component=path.join(root,'ha/config/custom_components/open_thermostat');
 const source=fs.readFileSync(path.join(component,'frontend/house-card.js'));
@@ -526,9 +527,9 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
    '.figure,.status,.strip,.today,.words,.value,.trend,.boiler')].filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>c.dataset.card+' '+x.className)));
   assert.deepEqual(cut,[]);
   await page.mouse.click(2,2);  // the screenshots without a keyboard focus ring
-  await page.screenshot({path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
-  for(const name of ['heating','water','idle','problem'])await card(name).screenshot({path:path.join(out,`${lang}-${width}-${theme}-${name}.png`)});
-  await yesterday('full').screenshot({path:path.join(out,`${lang}-${width}-${theme}-yesterday.png`)});
+  await shot(page,{path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
+  for(const name of ['heating','water','idle','problem'])await shot(card(name),{path:path.join(out,`${lang}-${width}-${theme}-${name}.png`)});
+  await shot(yesterday('full'),{path:path.join(out,`${lang}-${width}-${theme}-yesterday.png`)});
 
   if(reads){
    // The reads: Home Assistant only (never the E32), each card once, with the house's midnight; the Yesterday figures ask nothing.

@@ -6,6 +6,7 @@
 // the line of plain language; hidden without a curve. English on a desktop in light, Dutch on a phone in dark.
 // Screenshots go to the evidence directory for the visual check. Waits on element state only.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),assets=path.join(root,'data/html');
 const out=path.resolve(process.env.OPENTHERMOSTAT_HOUSE_CURVE_EVIDENCE||path.join(root,'out/house-curve-20261104'));
@@ -123,7 +124,7 @@ const tidy=svg=>svg.evaluate(s=>{const vb=s.viewBox.baseVal,box=e=>{const b=e.ge
   await page.mouse.move(box.x+box.width/2,box.y-40);await tip.waitFor({state:'hidden'});
   // Phone width first: nothing scrolls sideways.
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
-  await figure.screenshot({path:path.join(out,`${lang}-${width}-${scheme}-learned.png`)});
+  await shot(figure,{path:path.join(out,`${lang}-${width}-${scheme}-learned.png`)});
   // Before the house is learned: the standard line alone (and "now"), no band.
   status.flow.curve=curve({slope:1.17,slope_source:'design',base_c:38,flow_c:39});await push();
   await svg.locator('path[data-line=learned]').waitFor({state:'detached'});
@@ -132,7 +133,7 @@ const tidy=svg=>svg.evaluate(s=>{const vb=s.viewBox.baseVal,box=e=>{const b=e.ge
   assert.deepEqual(await svg.locator('[data-label=frost] tspan').allTextContents(),words.standardFrost);
   assert.deepEqual(await texts(figure.locator('[data-curve-legend] li')),[words.legend[0],words.legend[2]]);
   assert.deepEqual(await tidy(svg),[]);assert(await offLine(svg)<1.5,'now on the standard line');
-  await figure.screenshot({path:path.join(out,`${lang}-${width}-${scheme}-standard.png`)});
+  await shot(figure,{path:path.join(out,`${lang}-${width}-${scheme}-standard.png`)});
   // Worked out from the house model (rc.5): drawn as the learned line too.
   status.flow.curve=curve({slope:0.75,slope_source:'house',windows:2,base_c:31.9,flow_c:33});await push();
   await svg.locator('path[data-line=learned]').waitFor();
@@ -148,7 +149,7 @@ const tidy=svg=>svg.evaluate(s=>{const vb=s.viewBox.baseVal,box=e=>{const b=e.ge
   delete status.flow.curve.base_c;await push();
   await page.waitForFunction(()=>!document.querySelector('[data-curve-chart] svg[role=img]').dataset.before);
   assert(await offLine(svg)<1.5,'now on the line without base_c');
-  await figure.screenshot({path:path.join(out,`${lang}-${width}-${scheme}-cold.png`)});
+  await shot(figure,{path:path.join(out,`${lang}-${width}-${scheme}-cold.png`)});
   // Weather compensation off: the lines stay, as what it would ask.
   status.flow.curve=curve({state:'advice'});await push();
   await figure.locator('[data-curve-off]').waitFor();

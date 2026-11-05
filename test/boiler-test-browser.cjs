@@ -1,5 +1,6 @@
 // Real shipped page, fixture transport only. No physical commissioning claim.
 const {chromium} = require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs = require('node:fs'), path = require('node:path'), zlib = require('node:zlib'), assert = require('node:assert/strict');
 const assets = path.resolve(__dirname, '../data/html');
 const out = path.resolve(process.env.OPENTHERMOSTAT_BOILER_TEST_EVIDENCE || 'out/boiler-test-browser');
@@ -80,7 +81,7 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     assert.equal(saved.telemetry.fields.measured_flow_temperature.observed_at_ms,200);
     assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),true);
-    await page.screenshot({path:path.join(out,`RECEPTION-${width}.png`),fullPage:true});
+    await shot(page,{path:path.join(out,`RECEPTION-${width}.png`),fullPage:true});
     const names = [...fs.readFileSync(path.resolve(__dirname,'../src/EMS/ClassicBoilerMonitor.h'),'utf8').matchAll(/\{"([^"]+)",/g)].map(match => match[1]);
     assert.equal(names.length,69);
     data.fields = Object.fromEntries(names.map(name => [name,{value:2.7,unit:'uA',state:'valid',quality:'reported',age_ms:120}]));
@@ -96,7 +97,7 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     assert.equal(Object.keys(expandedSaved.telemetry.fields).length,69);
     assert.equal(expandedSaved.telemetry.telegram_inventory.types.length,2);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),true);
-    await page.screenshot({path:path.join(out,`EXPANDED-${width}.png`),fullPage:true});
+    await shot(page,{path:path.join(out,`EXPANDED-${width}.png`),fullPage:true});
     data.reception.state = 'conflicting_families';
     await page.locator('[data-reception]').filter({hasText:'Tegenstrijdige'}).waitFor();
     data.reception.state = 'classic_reports_received';

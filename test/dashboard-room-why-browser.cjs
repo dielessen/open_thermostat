@@ -2,6 +2,7 @@
 // Home Assistant's Reason sensor; and (F4) at most two status chips on a phone, the rest under "Who controls the boiler?".
 // Against isolated HTTP fixtures. Shipped index.html and assets; no device connection.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
 const out=path.resolve(process.env.OPENTHERMOSTAT_ROOM_WHY_EVIDENCE||path.join(__dirname,'../out/dashboard-room-why-browser'));
@@ -81,7 +82,7 @@ const luminance=rgb=>{const [r,g,b]=rgb.match(/\d+(\.\d+)?/g).slice(0,3).map(Num
   const bg=await rooms.nth(1).locator('.pd-why').evaluate(n=>getComputedStyle(n).backgroundColor);
   assert(scheme==='dark'?luminance(bg)<0.3:luminance(bg)>0.7,scheme+' '+bg);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(out,`ROOM-WHY-${lang}-${width}-${scheme}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`ROOM-WHY-${lang}-${width}-${scheme}.png`),fullPage:true});
   // Smart warm-up heats early for the next program step: said once, in the why line (HA's warm_up reason).
   const next=Math.round(Date.now()/1000)+3600;
   engine.learned={plans:{rooms:[{id:'living',optimum_start:{reason:'planned',predicted_start_utc:next-5400,lead_minutes:90,start_now:true,applies:true,estimate:false,

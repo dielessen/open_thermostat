@@ -1,5 +1,6 @@
 // Actual shipped room editor; synthetic admin WS, no live HA or device claims.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
@@ -110,7 +111,7 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
   assert.equal(first.settings.temperature_entity,'sensor.room');assert.deepEqual(first.settings.radiator_entities,['climate.valve']);
   await page.evaluate(()=>finishSave());await card.locator('#name:enabled').waitFor();assert(await save().isDisabled());
   await card.getByText(nl?'De ruimte is opgeslagen en het programma is bevestigd':'The room is saved and its program is confirmed',{exact:false}).waitFor();
-  await page.screenshot({path:path.join(out,`${size}-${language}-${shell}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`${size}-${language}-${shell}.png`),fullPage:true});
   await page.evaluate(()=>window.saveMode='uncertain');await card.locator('#name').fill('Retain my intent');await save().click();
   await card.getByText(nl?'De toepassing is nog niet bevestigd.':'Application has not been confirmed.',{exact:false}).waitFor();
   assert.equal(await card.locator('#name').inputValue(),'Retain my intent');assert(await save().isDisabled());

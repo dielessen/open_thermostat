@@ -1,6 +1,7 @@
 // Shipped editor, synthetic authenticated WS; no live HA or device control.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fixture=fs.readFileSync(path.join(__dirname,'ha-room-program-browser.cjs'),'utf8');
 const {initial,source}=vm.runInNewContext(fixture.split('(async()=>{')[0]+';({initial,source});',{require,__dirname,process});
 const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__dirname,'../out/ha-tv02-mode-browser'));
@@ -34,7 +35,7 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
   const card=page.locator('openthermostat-room-editor-v38'),review=card.locator('.target-review[aria-label]');
   await review.waitFor();
   assert((await review.textContent()).includes(language==='nl'?'eigen weekprogramma':'automatic scheduling'));
-  await review.screenshot({path:path.join(output,`AUTO-${width}-${language}.png`)});
+  await shot(review,{path:path.join(output,`AUTO-${width}-${language}.png`)});
   for(const [reason,preset,state,nl,en]of [
    ['holiday_mode_active','holiday','heat','vakantieprogramma','holiday program'],
    ['heating_disabled','manual','off','verwarming uit','heating off'],
@@ -59,7 +60,7 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
   assert(originalText.includes(language==='nl'?'21,5':'21.5'));assert(originalText.includes('0 °C'));
   assert(originalText.includes(language==='nl'?'Verwarmingsstop: Uit':'Heating stop: Off'));
   assert(originalText.includes(language==='nl'?'Vorstbeveiliging: Aan':'Frost protection: On'));
-  await original.screenshot({path:path.join(output,`ORIGINAL-${width}-${language}.png`)});
+  await shot(original,{path:path.join(output,`ORIGINAL-${width}-${language}.png`)});
   for(const state of ['metadata_unavailable','waiting','stale','disconnected','binding_changed','clock_invalid','run_limit','closed','unavailable']){
    await page.evaluate(async state=>{model.actuator_target_review.actuators[0].original_report.status=state;await card.load();},state);
    assert(!(await original.textContent()).includes(language==='nl'?'21,5':'21.5'));
@@ -80,7 +81,7 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
   assert((await reception.innerText()).includes('125'));
   assert((await reception.innerText()).includes(language==='nl'?'Aanwezige gegevens':'Present data'));
   assert.equal(await original.locator('dl').count(),0);
-  await original.screenshot({path:path.join(output,`STALE-RECEPTION-${width}-${language}.png`)});
+  await shot(original,{path:path.join(output,`STALE-RECEPTION-${width}-${language}.png`)});
   await page.evaluate(async()=>{model.actuator_target_review.actuators[0].original_report.last_reception.received_age_ms=null;await card.load();});
   assert((await reception.innerText()).includes(language==='nl'?'ouderdom onbekend':'age unknown'));
   for(const patch of [{scope:'qualified'},{message_kind:{toString:7}},{message_kind:'<img src=x>'},{received_age_ms:-1},

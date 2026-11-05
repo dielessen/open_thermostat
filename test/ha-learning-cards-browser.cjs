@@ -6,6 +6,7 @@
 // Polish; light and dark (each mode its own validated colours); desktop, phone and a narrow phone. Screenshots go to the
 // evidence directory for the visual check.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),component=path.join(root,'ha/config/custom_components/open_thermostat');
 const source=fs.readFileSync(path.join(component,'frontend/heating-curve-card.js'));
@@ -212,7 +213,7 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
   assert.equal(await page.evaluate(()=>document.querySelector('[data-id=curve]').shadowRoot.querySelector('svg')===kept),true);
   // Phone width first: nothing scrolls sideways.
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
-  await page.screenshot({path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
   assert.deepEqual(errors,[]);
   results.push({lang,width,theme,result:'PASS'});await page.close();
  }}finally{await browser.close();}

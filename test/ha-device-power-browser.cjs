@@ -1,5 +1,6 @@
 // Actual room editor; native battery snapshots are read-only model projections.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
 const out=path.join(root,'out/device-power-20261027/browser');
@@ -75,7 +76,7 @@ const model={entry_id:'fixture',room_id:'a1b2c3d4',supported:true,editable:true,
   assert.match(await text(),lang==='nl'?/Aan gemeld/:/Reported on/);assert.equal(await card.locator('.device-power img').count(),0);
   assert.equal(await page.evaluate(()=>calls.every(x=>x.type==='open_thermostat/room/get')),true);
   assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(out,`BATTERY-${lang}-${width}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`BATTERY-${lang}-${width}.png`),fullPage:true});
   results.push({lang,width,result:'PASS',readOnlySnapshot:true,unknownAndZeroDistinct:true,sourceScopeChecked:true,noRefreshOnHassUpdates:true,noUnchangedDomRebuild:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify(results,null,2)+'\n');console.log(JSON.stringify(results));

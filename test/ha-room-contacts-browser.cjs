@@ -1,5 +1,6 @@
 // Shipped HA editor, isolated WebSocket fixture. No HA/E32/device connection.
 const {chromium}=require('playwright-core');
+const shot=require('./helpers/screenshot.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
 const out=path.join(root,'out/room-contacts-20261027/browser');
@@ -61,7 +62,7 @@ const initial={entry_id:'fixture',room_id:'a1b2c3d4',supported:true,editable:tru
   await page.waitForFunction(()=>card._uncertain===true);assert.equal(await boxes.nth(0).isChecked(),true);
   const count=await page.evaluate(()=>calls.length);await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>calls.length),count,'Uncertain save is never replayed');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
-  await page.screenshot({path:path.join(out,`CONTACTS-${lang}-${width}.png`),fullPage:true});
+  await shot(page,{path:path.join(out,`CONTACTS-${lang}-${width}.png`),fullPage:true});
   results.push({lang,width,result:'PASS',nativeSelections:true,oneSave:true,identityPins:true,liveStatusWithoutReads:true,uncertainDraftPreserved:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));

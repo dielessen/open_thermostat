@@ -153,8 +153,27 @@ def plan_error(err):
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="e32_password_change_required")
     if str(err) in SIGN_IN_ERRORS:  # all E32 web sessions in use, or too many sign-in attempts
         return HomeAssistantError(translation_domain=DOMAIN, translation_key=SIGN_IN_ERRORS[str(err)])
-    return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
-                              translation_placeholders={"error": str(err)})
+    return link_error(str(err)) or HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
+                                                      translation_placeholders={"error": str(err)})
+
+
+# E32 link codes that tell the user what to do (1.0.0rc7): a sentence of their own in the user's language
+# instead of "... could not be reached (controller_unreachable)". Other codes stay in the brackets.
+LINK_ERRORS = {"no_controller_connection": "e32_not_connected", "no_connection": "e32_not_connected",
+               "controller_unreachable": "e32_not_reached", "not_read": "e32_not_reached",
+               "controller_response_invalid": "e32_answer_unreadable",
+               "controller_readback_invalid": "e32_answer_unreadable",
+               "controller_update_required": "e32_update_required", "controller_busy_or_conflict": "e32_busy"}
+
+
+def link_error(code):
+    """The Home Assistant error of a known E32 link code (LINK_ERRORS), else None.
+
+    The code stays a placeholder its sentence does not use: the options forms show it as before (e32_room_flow).
+    """
+    key = LINK_ERRORS.get(code)
+    return HomeAssistantError(translation_domain=DOMAIN, translation_key=key,
+                              translation_placeholders={"error": code}) if key else None
 
 
 SIGN_IN_ERRORS = {"controller_session_capacity": "e32_session_capacity",

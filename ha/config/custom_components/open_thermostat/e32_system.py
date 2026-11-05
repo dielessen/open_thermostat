@@ -448,8 +448,8 @@ class E32RestartButton(ButtonEntity):
         from .controller_link import ControllerLinkError
         link = link_for(self.hass, self._entry)
         if link is None:
-            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="e32_restart_failed",
-                                     translation_placeholders={"error": "no_controller_connection"})
+            from .room_plan import link_error
+            raise link_error("no_controller_connection")
         try:
             await async_e32_call(link, lambda client: client.async_reboot(), write=True)
         except ControllerLinkError as err:

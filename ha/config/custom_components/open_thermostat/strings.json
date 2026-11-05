@@ -4279,6 +4279,21 @@
     },
     "firmware_release_unknown": {
       "message": "This release is no longer offered. Check for updates again."
+    },
+    "e32_not_connected": {
+      "message": "Home Assistant has no E32 connection yet. Connect it under Configure → E32 connection, then try again."
+    },
+    "e32_not_reached": {
+      "message": "The E32 did not answer, so nothing was changed. Check that it is on and its web page opens, then try again."
+    },
+    "e32_answer_unreadable": {
+      "message": "The E32 gave an answer this version cannot read, so nothing was changed. Update the E32 firmware and the integration together."
+    },
+    "e32_update_required": {
+      "message": "The firmware on this E32 is too old for this. Update the E32 first (its Firmware update under Settings → Updates), then try again."
+    },
+    "e32_busy": {
+      "message": "The E32 is updating or restarting. Try again once its web page opens normally."
     }
   },
   "device": {

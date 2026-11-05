@@ -4279,6 +4279,21 @@
     },
     "firmware_release_unknown": {
       "message": "To wydanie nie jest już oferowane. Sprawdź aktualizacje ponownie."
+    },
+    "e32_not_connected": {
+      "message": "Home Assistant nie ma jeszcze połączenia z E32. Połącz go w Konfiguruj → Połączenie z E32, a potem spróbuj ponownie."
+    },
+    "e32_not_reached": {
+      "message": "E32 nie odpowiedział, więc nic nie zostało zmienione. Sprawdź, czy jest włączony i czy otwiera się jego strona, a potem spróbuj ponownie."
+    },
+    "e32_answer_unreadable": {
+      "message": "E32 udzielił odpowiedzi, której ta wersja nie potrafi odczytać, więc nic nie zostało zmienione. Zaktualizuj razem oprogramowanie E32 i integrację."
+    },
+    "e32_update_required": {
+      "message": "Oprogramowanie tego E32 jest do tego za stare. Najpierw zaktualizuj E32 (aktualizacja „Oprogramowanie układowe” w Ustawienia → Aktualizacje), a potem spróbuj ponownie."
+    },
+    "e32_busy": {
+      "message": "E32 jest aktualizowany lub uruchamia się ponownie. Spróbuj ponownie, gdy jego strona znów normalnie się otworzy."
     }
   },
   "device": {

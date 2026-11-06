@@ -118,7 +118,7 @@ settings (see [Updates](#13-updates)).
 
 1. Open the [releases page](https://github.com/dielessen/open_thermostat/releases)
    and choose the newest **E32 V2** release. Its tag starts with `v` and
-   contains `e32v2`, for example `v1.0.0-e32v2-rc.5`.
+   contains `e32v2`, for example `v1.0.0-e32v2`.
 2. Under **Assets**, download `open-thermostat-e32v2-<version>.zip`. Do not
    use the "Source code" downloads that GitHub adds automatically.
 3. Extract the ZIP into a new folder. You need two files from it:
@@ -437,7 +437,7 @@ stable versions unless you ask for more. Two ways:
 
 1. On the [releases page](https://github.com/dielessen/open_thermostat/releases),
    choose the **Home Assistant** release that the release notes pair with your
-   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0rc7`.
+   E32 firmware. Its tag starts with `ha-v`, for example `ha-v1.0.0`.
    Download `OpenThermostat-HA-<version>.zip`.
 2. Extract the ZIP on your computer. It contains a folder
    `custom_components/open_thermostat`.

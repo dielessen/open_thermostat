@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-06T15:58:07Z",
+  "requests": [
+    "rc5 is 1.0 wat mij betreft"
+  ],
+  "scope": "Stable pair E32 v1.0.0-e32v2 + HA ha-v1.0.0, a normal GitHub release (not a pre-release). Published on the owner's stable declaration (docs/modern-thermostat/RELEASE-1.0.0-STABLE-DECLARATION-20261106.json, bound in the gate): the Home Assistant update of v1.0.0-e32v2-rc.5 accepted on it with a receipt from the saved Home Assistant history, and its readiness report PASS_DECLARED instead of a 14-day PASS; then a green full local check and green exact-tag CI. Installing is a separate, attended step with pre- and post-install capture (tools/acceptance).",
+  "not_included": [
+    "installation (a separate, attended step)"
+  ],
+  "publication_approval_reply": "we hoeven niet zo lang proef te draaien. We brengen fixes wel uit waar nodig . Je kan rc5 nu als 1.0 beschouwen en uitgeven als 1.0 release. Daarna mag je 1.1 uitbrengen met alle nieuwe mogelijkheden.",
+  "publication_approval_at_utc": "2026-11-06T22:35:00Z",
+  "installation_approval_reply": null
+}

@@ -24,10 +24,10 @@ from reportlab.platypus import (KeepTogether, PageBreak, Paragraph, SimpleDocTem
                                 TableStyle)
 
 # ---- What the manual is written for (change these at each release) ------------------------------------
-# The release pair: E32 firmware rc.5 goes with Home Assistant integration 1.0.0rc7 (see tools/dev/prepare_rc5.py).
-E32_TAG = "v1.0.0-e32v2-rc.5"
-E32_VERSION = "1.0.0-rc.5"
-HA_VERSION = "1.0.0rc7"
+# The release pair: E32 firmware 1.0.0 goes with Home Assistant integration 1.0.0 (see tools/dev/prepare_release.py).
+E32_TAG = "v1.0.0-e32v2"
+E32_VERSION = "1.0.0"
+HA_VERSION = "1.0.0"
 
 # ---- Fonts ---------------------------------------------------------------------------------------------
 # The first complete set wins: Arial and Consolas from Windows (also reachable from WSL), then DejaVu.

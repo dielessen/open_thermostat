@@ -28,8 +28,8 @@ from .room_levels import room_levels, supported, valid_levels
 from .room_plan import has_room_plan, plan_room
 
 MAX_POINTS = 6
-CARD_URL = "/open_thermostat/e32-week-card-1.0.0rc7.js"
-EDITOR_URL = "/open_thermostat/week-editor-1.0.0rc7.js"
+CARD_URL = "/open_thermostat/e32-week-card-1.0.0.js"
+EDITOR_URL = "/open_thermostat/week-editor-1.0.0.js"
 # RoomPlanLink failures -> the short codes the card explains in plain words.
 FAILURES = {"room_plan_changed": "plan_changed", "room_plan_too_large": "plan_too_large",
             "room_plan_storage_full": "storage_full", "room_plan_unconfirmed": "save_unconfirmed",

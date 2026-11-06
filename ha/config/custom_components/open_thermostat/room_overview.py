@@ -30,10 +30,10 @@ from homeassistant.core import callback
 from .heating_link import RoomEntity, number
 
 # The room status card's module (served and loaded with the week planner's, week_planner.card_modules).
-CARD_URL = "/open_thermostat/room-status-card-1.0.0rc7.js"
+CARD_URL = "/open_thermostat/room-status-card-1.0.0.js"
 # The Overview's house card (E32 rc.5, frontend/house-card.js): what the boiler does now, today in figures, the day
 # so far and, in a house with one room switched on, that room. The seventh card module, versioned like the others.
-HOUSE_CARD_URL = "/open_thermostat/house-card-1.0.0rc7.js"
+HOUSE_CARD_URL = "/open_thermostat/house-card-1.0.0.js"
 HOUSE_CARD_TYPE = "custom:openthermostat-house"
 # Yesterday's headline figures on the Learning view, large as on the house card (the same module, house-card.js).
 YESTERDAY_CARD_TYPE = "custom:openthermostat-yesterday"
@@ -59,7 +59,7 @@ PRESENCE = ["room_home", "room_away", "house_home", "house_away"]
 # The Boiler view's "Now" card (E32 rc.5, frontend/boiler-now-card.js): what the boiler does now in a band of its
 # colour with its display code in words, the water to the heating and back, the burner power and its starts as large
 # figures. The eighth card module, versioned like the others.
-BOILER_NOW_CARD_URL = "/open_thermostat/boiler-now-card-1.0.0rc7.js"
+BOILER_NOW_CARD_URL = "/open_thermostat/boiler-now-card-1.0.0.js"
 BOILER_NOW_CARD_TYPE = "custom:openthermostat-boiler-now"
 
 

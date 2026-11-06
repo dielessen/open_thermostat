@@ -13,8 +13,8 @@ us is a gap in the guide: please write it down. When you get through the guide
 on your own, that meets the 1.0 criterion "an install guide someone else has
 followed".
 
-Versions: E32 firmware **1.0.0-rc.5** with Home Assistant integration
-**1.0.0rc7**, or a newer pair that the release notes name together.
+Versions: E32 firmware **1.0.0** with Home Assistant integration
+**1.0.0**, or a newer pair that the release notes name together.
 
 Already testing a release candidate (rc.5, rc.4 or rc.3)? Do not start over:
 update with the three steps in

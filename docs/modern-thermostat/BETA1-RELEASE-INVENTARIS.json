@@ -351,7 +351,7 @@
         },
         {
           "path": "docs/modern-thermostat/STABLE-RELEASE-TAGS.en.md",
-          "sha256": "c6dd706e7fcc9488d8d2e2f961dd0705663e4a2e400930a8d3186e0ac8903fd5"
+          "sha256": "4a520ce1db7bf88ba4b7500806e70d0576427eb393a2031e9f3ea0dbc4fab34b"
         },
         {
           "path": "scripts/ci_reuse.py",
@@ -799,7 +799,7 @@
         },
         {
           "path": "tools/acceptance/README.md",
-          "sha256": "a6d9b6a39ac5895b8c936ce3ac260dd92388be63c7d3d8600df7a10e763de9ee"
+          "sha256": "2fecdfb3e921d094291ccd61855e8910b29fc3a2fb6b6fc738c685a24cbd9ff6"
         },
         {
           "path": "tools/dev/README.md",
@@ -875,11 +875,11 @@
         },
         {
           "path": "tools/acceptance/test_receipt.py",
-          "sha256": "24d903041227f3447388a7c8674474921454ee02e38a770c917414cf64b8a1b6"
+          "sha256": "71ed653d1fd3976777491d09e61b65f82d79609f91f1d23a653181006c73b93a"
         },
         {
           "path": "tools/acceptance/write_receipt.py",
-          "sha256": "2ba5cc89707a53bdd96cf8aaab0afed13d8851b82211f967f7f8d32a06ea87de"
+          "sha256": "1e5ae08f2127702777b03c8ecdfef549fdab82189cfedb73d08be1c048f7966d"
         },
         {
           "path": "tools/dev/manual/README.md",
@@ -1104,6 +1104,10 @@
         {
           "path": "tools/dev/e32-shots/shots.cjs",
           "sha256": "5b3cb96842552c670295f1dcb351c4d56035c1a7381cb2025fa9b7b4b84713a5"
+        },
+        {
+          "path": "tools/acceptance/stable_declaration.py",
+          "sha256": "a7a9feff3affaaa729e21c4e28480e28ee590a8107a1fd37f5415bfeeb8af3bb"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -1249,11 +1253,11 @@
         },
         {
           "path": "scripts/verify_e32_update_gate.py",
-          "sha256": "a74d5f98e38ac93ba756fe4e18c64bb21ebacca240c8d18a962ee5ed229a40c8"
+          "sha256": "b4b84b178ed67379e23d0078ece999977f2ebad41b69fd87f1a6051411034479"
         },
         {
           "path": "scripts/test_verify_e32_update_gate.py",
-          "sha256": "431a082869649a92c8037338bc2b962a839b410501f5b353e8f0d17b82f1ebde"
+          "sha256": "e4d90cf93031de843caf04d3eb7ec298bc400902b820d700f4bd927a5090c7ee"
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
@@ -3758,7 +3762,7 @@
         },
         {
           "path": "tools/switchover/README.md",
-          "sha256": "f23550bfd4a971fc380c347f933479a9811562d1c733dd5c5c0fee3f3ba3cbbb"
+          "sha256": "93c66dab042e84a43c8c0eb6fd7c85d2dddba7886bc971ecbfa5256e5720ba9d"
         },
         {
           "path": "tools/switchover/monitor.py",
@@ -4014,7 +4018,7 @@
         },
         {
           "path": "tools/switchover/release_ready.py",
-          "sha256": "61672105aa2c212c289a5b2e21cbf0224adabbde177520143d512bb8cd0c21ea"
+          "sha256": "fd8d89dde3aa0133c8bdf189fcd1193f65b484d8be36626be565e2683d96b318"
         },
         {
           "path": "tools/switchover/replay_export.py",
@@ -4022,7 +4026,7 @@
         },
         {
           "path": "tools/switchover/test_release_ready.py",
-          "sha256": "484279d7b69b03d6b5ee285d4b6465fbaed4c6dc980fda4e6040e7b18a6bcce3"
+          "sha256": "debb6d70bae450dfd2048e2a75c72a3fb0521156457d3fd81d6b991f090cf352"
         },
         {
           "path": "tools/switchover/test_replay_tools.py",

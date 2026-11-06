@@ -2,14 +2,14 @@
   "schema": 1,
   "required_for_successor_release": true,
   "accepted": {
-    "tag": "v0.1.0-e32v2-beta.22",
-    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta22-20261031.json",
-    "sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223"
+    "tag": "v1.0.0-e32v2-rc.5",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-rc5-20261105.json",
+    "sha256": "bfa9c602976d061409d0b89c74e1bc96cc750e78f4880836547b6576644bcdba"
   },
-  "pending_tag": "v1.0.0-e32v2-rc.5",
+  "pending_tag": null,
   "candidate_plan": "docs/modern-thermostat/RC5-KANDIDAAT.json",
-  "publication_exception": {
-    "receipt": "docs/modern-thermostat/RC5-PUBLICATION-EXCEPTION-20261105.json",
-    "sha256": "0ead8844161fe407c8f8a65c3e75fc01ea3dfaa09529688bd5e5454e50384c7e"
+  "stable_declaration": {
+    "declaration": "docs/modern-thermostat/RELEASE-1.0.0-STABLE-DECLARATION-20261106.json",
+    "sha256": "08066c0898f715692c39e7cdc1258536baef4d87504f1243a0e635af1f17d715"
   }
 }

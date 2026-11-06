@@ -1,0 +1,134 @@
+{
+ "schema": 1,
+ "kind": "release_readiness",
+ "release": "v1.0.0-e32v2-rc.5",
+ "stage": "final",
+ "from": "2026-11-05T05:55:13Z",
+ "to": "2026-11-05T09:00:00Z",
+ "days_needed": 14,
+ "entities": {
+  "uptime": "sensor.woonkamer_openthermostat_device_uptime",
+  "output": null,
+  "update": "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware",
+  "trv": null
+ },
+ "overall": "PASS_DECLARED",
+ "criteria": {
+  "stability": {
+   "result": "DECLARED",
+   "why": "declared by the owner: Fourteen days without an unexpected restart on rc.5 are not waited for: the owner releases now. The readiness report keeps what the saved evidence measured for its window.",
+   "declared": "Fourteen days without an unexpected restart on rc.5 are not waited for: the owner releases now. The readiness report keeps what the saved evidence measured for its window.",
+   "measured": {
+    "result": "WAIT",
+    "why": "3.1 h of the 336 h without a restart so far",
+    "hours_since_restart": 3.1,
+    "restarts_seen": 0,
+    "planned_restarts": 0,
+    "offline_stretches": 0
+   }
+  },
+  "active_control": {
+   "result": "DECLARED",
+   "why": "declared by the owner: Fourteen days of active control on rc.5 are not waited for. The E32 has run the boiler since the owner's switch-over (1 Nov 2026, 20:05Z), but the saved evidence has no history of boiler_output_enabled, so it is not measured here.",
+   "declared": "Fourteen days of active control on rc.5 are not waited for. The E32 has run the boiler since the owner's switch-over (1 Nov 2026, 20:05Z), but the saved evidence has no history of boiler_output_enabled, so it is not measured here.",
+   "measured": {
+    "result": "WAIT",
+    "why": "the E32 ran the boiler: not yet",
+    "current_hours": 0.0,
+    "longest_hours": 0.0,
+    "interruptions": 0,
+    "active_hours": 0.0
+   }
+  },
+  "trv_control": {
+   "result": "DECLARED",
+   "why": "declared by the owner: Not measured: the saved evidence has no entity list that shows whether the installation has valve-control switches; the owner releases without this measurement.",
+   "declared": "Not measured: the saved evidence has no entity list that shows whether the installation has valve-control switches; the owner releases without this measurement.",
+   "measured": {
+    "result": "WAIT",
+    "why": "not measured: the saved evidence has no entity list (--states-file) to tell whether the installation has valve-control switches",
+    "rooms": {}
+   }
+  },
+  "failure_tests": {
+   "result": "DECLARED",
+   "why": "declared by the owner: The attended switch-over tests T1-T12 were not run; the owner releases without them and brings out fixes where needed.",
+   "declared": "The attended switch-over tests T1-T12 were not run; the owner releases without them and brings out fixes where needed.",
+   "measured": {
+    "result": "WAIT",
+    "why": "no attended switch-over results recorded yet",
+    "tests": {}
+   }
+  },
+  "updates": {
+   "result": "PASS",
+   "why": "3 updates accepted on the Home Assistant route",
+   "tags": [
+    "v0.1.0-e32v2-beta.20",
+    "v0.1.0-e32v2-beta.21",
+    "v0.1.0-e32v2-beta.22"
+   ],
+   "receipts": [
+    "docs/modern-thermostat/update-acceptance/e32-beta20-20261030.json",
+    "docs/modern-thermostat/update-acceptance/e32-beta21-20261031.json",
+    "docs/modern-thermostat/update-acceptance/e32-beta22-20261031.json"
+   ],
+   "receipts_with_declared_checks": [
+    "docs/modern-thermostat/update-acceptance/e32-rc5-20261105.json"
+   ]
+  },
+  "install_guide": {
+   "result": "DECLARED",
+   "why": "declared by the owner: Nobody other than the author has followed the install guide to the end yet; the owner releases without that test.",
+   "declared": "Nobody other than the author has followed the install guide to the end yet; the owner releases without that test.",
+   "measured": {
+    "result": "WAIT",
+    "why": "nobody has followed the install guide yet (INSTALLATIETEST-<date>.json)"
+   }
+  },
+  "release_window": {
+   "result": "DECLARED",
+   "why": "declared by the owner: The window on rc.5 is shorter than 14 days: the owner considers rc.5 to be 1.0 now. The report keeps the measured result (only rc.5 installed in the window).",
+   "declared": "The window on rc.5 is shorter than 14 days: the owner considers rc.5 to be 1.0 now. The report keeps the measured result (only rc.5 installed in the window).",
+   "measured": {
+    "result": "PASS",
+    "why": "v1.0.0-e32v2-rc.5 was installed for the whole window, no install inside it",
+    "versions": [
+     "v1.0.0-e32v2-rc.5"
+    ]
+   }
+  }
+ },
+ "installed_versions": [
+  "v1.0.0-e32v2-rc.5"
+ ],
+ "generated_by": "tools/switchover/release_ready.py",
+ "source": "saved_history",
+ "evidence_files": [
+  {
+   "path": "docs/modern-thermostat/update-acceptance/ha-history/e32-rc5-ha-history-2026-11-05-install.json",
+   "sha256": "bac107b2eaeb3bd81d257f848c824a0e9fa847fb7d524cf62ef86035b01cd5e0",
+   "kind": "ha_history"
+  },
+  {
+   "path": "docs/modern-thermostat/update-acceptance/ha-history/e32-rc5-ha-history-2026-11-05-uptime.json",
+   "sha256": "fbdae4c09791b3d2e6417811d3da4ac09f24ad1b3116658639eca04b9dc684b5",
+   "kind": "ha_history"
+  }
+ ],
+ "declaration": {
+  "file": "docs/modern-thermostat/RELEASE-1.0.0-STABLE-DECLARATION-20261106.json",
+  "statements": [
+   "rc5 is 1.0 wat mij betreft",
+   "we hoeven niet zo lang proef te draaien. We brengen fixes wel uit waar nodig . Je kan rc5 nu als 1.0 beschouwen en uitgeven als 1.0 release. Daarna mag je 1.1 uitbrengen met alle nieuwe mogelijkheden."
+  ],
+  "declared_criteria": [
+   "active_control",
+   "failure_tests",
+   "install_guide",
+   "release_window",
+   "stability",
+   "trv_control"
+  ]
+ }
+}

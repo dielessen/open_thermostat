@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "tag": "v1.0.0-e32v2-rc.5",
+  "method": "home_assistant",
+  "evidence": "ha_history",
+  "acceptance_decision": "ACCEPTED_ON_OWNER_DECLARATION",
+  "checks": {
+    "public_release_exact": true,
+    "fresh_preflight_passed": "declared",
+    "backup_verified": "declared",
+    "single_ha_install_action": true,
+    "ha_download_digest_size_marker_verified": true,
+    "local_upload_accepted": true,
+    "new_boot_observed": true,
+    "installed_version_source_elf_web_exact": true,
+    "boot_confirmed": "declared",
+    "stable_uptime_observed": true,
+    "settings_programs_bindings_preserved": "declared",
+    "control_state_safe_after_restart": "declared",
+    "ha_entity_reports_new_version": true,
+    "independent_postcheck_passed": "declared"
+  },
+  "check_basis": {
+    "public_release_exact": "measured from the saved history",
+    "fresh_preflight_passed": "declared by the owner: no saved CI answer for the exact tag was given (--ci-json)",
+    "backup_verified": "declared by the owner: the install was made without the acceptance capture: no settings backup was taken before it, and the history cannot show one",
+    "single_ha_install_action": "measured from the saved history",
+    "ha_download_digest_size_marker_verified": "measured from the saved history",
+    "local_upload_accepted": "measured from the saved history",
+    "new_boot_observed": "measured from the saved history",
+    "installed_version_source_elf_web_exact": "measured from the saved history",
+    "boot_confirmed": "declared by the owner: the history has no boot_pending flag of the E32; supporting, not proof: the uptime sensor rose without a restart for 3.07 h after the install and the update entity kept reporting the release",
+    "stable_uptime_observed": "measured from the saved history",
+    "settings_programs_bindings_preserved": "declared by the owner: the history has no settings export from before and after the install",
+    "control_state_safe_after_restart": "declared by the owner: the history export has no control-state entity of the E32",
+    "ha_entity_reports_new_version": "measured from the saved history",
+    "independent_postcheck_passed": "declared by the owner: no independent post-check was run after the install"
+  },
+  "declared_checks": [
+    "backup_verified",
+    "boot_confirmed",
+    "control_state_safe_after_restart",
+    "fresh_preflight_passed",
+    "independent_postcheck_passed",
+    "settings_programs_bindings_preserved"
+  ],
+  "owner_declaration": {
+    "declaration": "docs/modern-thermostat/RELEASE-1.0.0-STABLE-DECLARATION-20261106.json",
+    "statements": [
+      "rc5 is 1.0 wat mij betreft",
+      "we hoeven niet zo lang proef te draaien. We brengen fixes wel uit waar nodig . Je kan rc5 nu als 1.0 beschouwen en uitgeven als 1.0 release. Daarna mag je 1.1 uitbrengen met alle nieuwe mogelijkheden."
+    ]
+  },
+  "evidence_files": [
+    {
+      "path": "docs/modern-thermostat/update-acceptance/ha-history/e32-rc5-ha-history-2026-11-05-install.json",
+      "sha256": "bac107b2eaeb3bd81d257f848c824a0e9fa847fb7d524cf62ef86035b01cd5e0",
+      "kind": "ha_history",
+      "entities": [
+        "update.openthermostat_update",
+        "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware"
+      ]
+    },
+    {
+      "path": "docs/modern-thermostat/update-acceptance/ha-history/e32-rc5-ha-history-2026-11-05-uptime.json",
+      "sha256": "fbdae4c09791b3d2e6417811d3da4ac09f24ad1b3116658639eca04b9dc684b5",
+      "kind": "ha_history",
+      "entities": [
+        "sensor.woonkamer_openthermostat_device_uptime"
+      ]
+    },
+    {
+      "path": "docs/modern-thermostat/update-acceptance/ha-history/e32-rc5-github-release.json",
+      "sha256": "e1e7c94d924f6920b94d219bb37dcd4cc38c6bab90902864ae97727cdd629931",
+      "kind": "github_release"
+    }
+  ],
+  "github_release": {
+    "tag_name": "v1.0.0-e32v2-rc.5",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-11-05T01:10:22Z",
+    "asset": {
+      "name": "firmware.bin",
+      "size": 3020832,
+      "digest": "sha256:9b072861833f57c9bcbc488d47018639c37391c20dfbf61bb45de088b7275f6b"
+    }
+  },
+  "firmware_sha256": "9b072861833f57c9bcbc488d47018639c37391c20dfbf61bb45de088b7275f6b",
+  "firmware_bytes": 3020832,
+  "source_commit": "e10bdee1482bfad799f1f5f2c6817dca02102c94",
+  "web_sha256": "a859bfe5e3501b543043d2e6f6c2a8032d48d64db9a3c012ecb37c259f87fd94",
+  "elf_sha256": "86d01a92a62335127660a648ee15b07a7de87921e350f335899c82de952e6d6c",
+  "ha_entity_id": "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware",
+  "uptime_entity_id": "sensor.woonkamer_openthermostat_device_uptime",
+  "ha_integration_entity_id": "update.openthermostat_update",
+  "ha_installed_version_before": "v1.0.0-e32v2-rc.4",
+  "ha_latest_version_before": "v1.0.0-e32v2-rc.5",
+  "ha_installed_version_after": "v1.0.0-e32v2-rc.5",
+  "install_actions": 1,
+  "ha_integration_version": "1.0.0rc6",
+  "ha_core_version": null,
+  "ha_install_record": {
+    "tag": "v1.0.0-e32v2-rc.5",
+    "from_version": "v1.0.0-e32v2-rc.4",
+    "sha256": "9b072861833f57c9bcbc488d47018639c37391c20dfbf61bb45de088b7275f6b",
+    "size": 3020832,
+    "started_at": "2026-11-05T05:53:51Z",
+    "finished_at": "2026-11-05T05:55:12Z",
+    "duration_s": 80.7,
+    "result": "installed",
+    "uploads": 1,
+    "reported": {
+      "version": "v1.0.0-e32v2-rc.5",
+      "source_commit": "e10bdee1482bfad799f1f5f2c6817dca02102c94",
+      "web_sha256": "a859bfe5e3501b543043d2e6f6c2a8032d48d64db9a3c012ecb37c259f87fd94",
+      "elf_sha256": "86d01a92a62335127660a648ee15b07a7de87921e350f335899c82de952e6d6c"
+    }
+  },
+  "observations": [
+    {
+      "at_utc": "2026-11-05T05:56:10Z",
+      "version": "v1.0.0-e32v2-rc.5",
+      "uptime_seconds": 67,
+      "source": "sensor.woonkamer_openthermostat_device_uptime"
+    },
+    {
+      "at_utc": "2026-11-05T06:05:10Z",
+      "version": "v1.0.0-e32v2-rc.5",
+      "uptime_seconds": 607,
+      "source": "sensor.woonkamer_openthermostat_device_uptime"
+    },
+    {
+      "at_utc": "2026-11-05T08:59:14Z",
+      "version": "v1.0.0-e32v2-rc.5",
+      "uptime_seconds": 11050,
+      "source": "sensor.woonkamer_openthermostat_device_uptime"
+    }
+  ],
+  "preflight": null,
+  "details": {
+    "mode": "ha_history",
+    "offered_at": "2026-11-05T05:32:00.336794+00:00",
+    "first_reported_installed_at": "2026-11-05T05:55:12.409432+00:00",
+    "tag_commit": "e10bdee1482bfad799f1f5f2c6817dca02102c94",
+    "boot": {
+      "boot_instants": [
+        "2026-11-05T05:55:03Z",
+        "2026-11-05T05:55:03Z",
+        "2026-11-05T05:55:04Z"
+      ],
+      "same_boot": true,
+      "boot_inside_install_window": true
+    },
+    "uptime_hours_after_install": 3.07
+  },
+  "limits": [
+    "Receipt from the saved Home Assistant recorder history only: there was no pre-install capture, no post-install observation of the E32 and no independent check. Every fact here is re-derived by the gate from the exports listed under evidence_files.",
+    "The checks marked \"declared\" are not measured: the owner declared the release stable (docs/modern-thermostat/RELEASE-1.0.0-STABLE-DECLARATION-20261106.json); check_basis says why each one cannot be shown.",
+    "ha_core_version is not in the exports (null).",
+    "The integration version is the installed_version of the integration's own update entity when the install started; the exports do not show the Home Assistant restart that loaded it."
+  ]
+}

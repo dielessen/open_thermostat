@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "owner_declared_stable",
+  "tag": "v1.0.0-e32v2",
+  "ha_tag": "ha-v1.0.0",
+  "follows": "v1.0.0-e32v2-rc.5",
+  "ha_follows": "1.0.0rc7",
+  "date": "2026-11-06",
+  "owner": {
+    "actor": "repository_owner",
+    "name": "Mark Dielessen",
+    "method": "explicit_user_instruction",
+    "channel": "Claude Code session (chat, Dutch), 6 November 2026; relayed word for word by the release coordinator",
+    "statements": [
+      {
+        "at_local": "2026-11-06 23:20 CET",
+        "at_utc": "2026-11-06T22:20:00Z",
+        "text": "rc5 is 1.0 wat mij betreft"
+      },
+      {
+        "at_local": "2026-11-06 23:35 CET",
+        "at_utc": "2026-11-06T22:35:00Z",
+        "text": "we hoeven niet zo lang proef te draaien. We brengen fixes wel uit waar nodig . Je kan rc5 nu als 1.0 beschouwen en uitgeven als 1.0 release. Daarna mag je 1.1 uitbrengen met alle nieuwe mogelijkheden."
+      }
+    ]
+  },
+  "decision": "The owner declares the running release candidate v1.0.0-e32v2-rc.5 (with Home Assistant integration 1.0.0rc7) to be 1.0.0: the same source is published as v1.0.0-e32v2 and ha-v1.0.0 without waiting for the 14-day readiness window, the attended switch-over tests T1-T12 or an install by someone other than the author. Fixes follow in later releases where needed; the next release is 1.1.0 with the new features. The times are to the minute (CET = UTC+1). The reasons below are written by the release tooling's author, not the owner's words.",
+  "declared_criteria": {
+    "stability": "Fourteen days without an unexpected restart on rc.5 are not waited for: the owner releases now. The readiness report keeps what the saved evidence measured for its window.",
+    "active_control": "Fourteen days of active control on rc.5 are not waited for. The E32 has run the boiler since the owner's switch-over (1 Nov 2026, 20:05Z), but the saved evidence has no history of boiler_output_enabled, so it is not measured here.",
+    "trv_control": "Not measured: the saved evidence has no entity list that shows whether the installation has valve-control switches; the owner releases without this measurement.",
+    "failure_tests": "The attended switch-over tests T1-T12 were not run; the owner releases without them and brings out fixes where needed.",
+    "install_guide": "Nobody other than the author has followed the install guide to the end yet; the owner releases without that test.",
+    "release_window": "The window on rc.5 is shorter than 14 days: the owner considers rc.5 to be 1.0 now. The report keeps the measured result (only rc.5 installed in the window)."
+  },
+  "declared_receipt_checks": {
+    "backup_verified": "declared by the owner: the install was made without the acceptance capture: no settings backup was taken before it, and the history cannot show one",
+    "boot_confirmed": "declared by the owner: the history has no boot_pending flag of the E32; supporting, not proof: the uptime sensor rose without a restart for 3.07 h after the install and the update entity kept reporting the release",
+    "control_state_safe_after_restart": "declared by the owner: the history export has no control-state entity of the E32",
+    "fresh_preflight_passed": "declared by the owner: no saved CI answer for the exact tag was given (--ci-json)",
+    "independent_postcheck_passed": "declared by the owner: no independent post-check was run after the install",
+    "settings_programs_bindings_preserved": "declared by the owner: the history has no settings export from before and after the install"
+  },
+  "receipt": {
+    "path": "docs/modern-thermostat/update-acceptance/e32-rc5-20261105.json",
+    "sha256": "bfa9c602976d061409d0b89c74e1bc96cc750e78f4880836547b6576644bcdba"
+  },
+  "readiness_report": {
+    "path": "docs/modern-thermostat/RELEASE-READINESS-1.0.0.json",
+    "sha256": "20c84230b1668afd16c0d39144d8584e20f5c5ba1e854c2ef1ac256894694534"
+  },
+  "evidence": [
+    {
+      "path": "docs/modern-thermostat/update-acceptance/ha-history/e32-rc5-ha-history-2026-11-05-install.json",
+      "sha256": "bac107b2eaeb3bd81d257f848c824a0e9fa847fb7d524cf62ef86035b01cd5e0",
+      "kind": "ha_history"
+    },
+    {
+      "path": "docs/modern-thermostat/update-acceptance/ha-history/e32-rc5-ha-history-2026-11-05-uptime.json",
+      "sha256": "fbdae4c09791b3d2e6417811d3da4ac09f24ad1b3116658639eca04b9dc684b5",
+      "kind": "ha_history"
+    },
+    {
+      "path": "docs/modern-thermostat/update-acceptance/ha-history/e32-rc5-github-release.json",
+      "sha256": "e1e7c94d924f6920b94d219bb37dcd4cc38c6bab90902864ae97727cdd629931",
+      "kind": "github_release"
+    }
+  ],
+  "limits": [
+    "Declared is not measured: every readiness criterion and receipt check named here was not shown by evidence; the owner decided that rc.5 is 1.0.0 without it.",
+    "rc.5 was installed by the owner through the Home Assistant update entity on 5 Nov 2026 (install 05:53:51Z-05:55:12Z, after Home Assistant offered it from 05:32:00Z; integration 1.0.0rc6 installed by HACS at 05:51:28Z) without the acceptance capture: the receipt is built from the saved Home Assistant history.",
+    "This declaration is for v1.0.0-e32v2 only. A later stable release needs its own declaration or the normal rule (an accepted capture receipt and a 14-day PASS readiness report)."
+  ]
+}

@@ -368,7 +368,7 @@ Notes on the guide itself (a word that did not match, a missing step) are
 just as welcome. The filled-in [INSTALL-CHECK.md](INSTALL-CHECK.md) is the
 best report of all.
 
-## 8. Known limits in rc.5
+## 8. Known limits in 1.0.0
 
 - **Radiator valve control is not yet verified on real valves.** You are the
   one verifying it. Switch **Radiator valve control** on one room at a time, after the

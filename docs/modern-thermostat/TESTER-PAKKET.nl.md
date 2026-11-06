@@ -1,4 +1,4 @@
-# Testerpakket: OpenThermostat 1.0 rc.5
+# Testerpakket: OpenThermostat 1.0
 
 Je bent de eerste die OpenThermostat installeert zonder dat de schrijver erbij is, en de eerste met een **Nefit TopLine** en
 echte radiatorkranen. Dat levert twee dingen voor 1.0 op: (1) de installatiegids **tot het eind volgen zonder hulp** en (2)
@@ -14,10 +14,9 @@ de ketel is altijd jouw eigen beslissing.
   Zigbee2MQTT alleen als je kranen daaraan hangen (ZHA en andere integraties lopen via Home Assistant).
 - Kamersensoren (in Home Assistant of Bluetooth), je radiatorkranen en een telefoon voor foto's.
 - **Versies:** E32-firmware **1.0.0-rc.5** (tag `v1.0.0-e32v2-rc.5`) met HA-integratie **1.0.0rc7** (tag `ha-v1.0.0rc7`);
-  Mark meldt wanneer ze gepubliceerd zijn. Het zijn pre-releases: voeg `https://github.com/dielessen/openthermostat-ha`
-  toe als custom repository in HACS (type Integration) en zet **Pre-release** aan (Instellingen → Apparaten en diensten →
-  HACS → apparaat OpenThermostat; eerst de entiteit inschakelen), of kies bij **Download** → *Need a different version?*
-  → **1.0.0rc7**.
+  Mark meldt wanneer ze gepubliceerd zijn. Het is een gewone release (geen pre-release): voeg `https://github.com/dielessen/openthermostat-ha`
+  toe als custom repository in HACS (type Integration) en kies **Download**; de **Pre-release**-schakelaar is niet nodig.
+  Zie je de nieuwste versie nog niet, kies dan **Update information** bij de OpenThermostat-regel in HACS.
 - **Tijd:** ± 1 uur E32 en ± ½ uur Home Assistant als niets hapert, daarna 1–2 weken meekijken. De E32-pagina's volgen de
   taal van je browser (wisselen kan onderaan elke pagina); de gids noemt de Engelse namen.
 

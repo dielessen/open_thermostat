@@ -292,11 +292,11 @@ def content():
                 "Vul in: <font name='Mono'>https://github.com/dielessen/openthermostat-ha</font>, type <b>Integration</b>, en kies <b>Add</b>. "
                 "(" + a("https://github.com/dielessen/openthermostat-ha", "de repository") + ")",
                 "Zoek in HACS naar <b>OpenThermostat</b>, open hem en kies <b>Download</b>.",
-                f"Kies de versie die bij je firmware hoort. Is de nieuwste een <i>pre-release</i> (zoals <font name='Mono'>{HA_VERSION}</font>), "
-                "open dan <b>Need a different version?</b> en kies die versie.",
+                f"Kies de versie die bij je firmware hoort. Biedt HACS een andere versie aan dan in de release-notities staat, "
+                f"open dan <b>Need a different version?</b> en kies de versie uit de notities (nu <font name='Mono'>{HA_VERSION}</font>).",
                 "Herstart Home Assistant: <b>Instellingen → Systeem → Herstarten</b>."]),
          box("Tip: pre-releases als update krijgen",
-             "Zolang er alleen pre-releases zijn: ga naar <b>Instellingen → Apparaten en diensten → HACS</b>, open het apparaat "
+             "Een gewone release biedt HACS vanzelf aan. Alleen voor een pre-release: ga naar <b>Instellingen → Apparaten en diensten → HACS</b>, open het apparaat "
              "<b>OpenThermostat</b>, schakel de entiteit <b>Pre-release</b> in en zet hem aan. Anders biedt HACS een "
              "\"update\" met een vreemde code (bijvoorbeeld 5043af7) aan; die kun je overslaan."),
          p("7. Integratie toevoegen en de E32 koppelen", "h1"),
@@ -473,7 +473,7 @@ def content():
                  "Beide plekken wijzigen dezelfde lijst. Een vakantie heeft de klok van de E32 nodig."],
                 ["Zelfafstelling", "Branderrust, brandtijd en marges stelt hij zelf af, met hooguit één kleine stap per dag. "
                  "Na een herstart wacht hij eerst 2 uur, na de eerste start of een wijziging die de regeling raakt 24 uur."],
-                ["Updates", f"Eerst de integratie ({HA_VERSION}) in HACS (met <b>Pre-release</b> aan) en Home Assistant herstarten, dan de firmware via de "
+                ["Updates", f"Eerst de integratie ({HA_VERSION}) in HACS (een gewone release: de <b>Pre-release</b>-schakelaar is niet nodig) en Home Assistant herstarten, dan de firmware via de "
                  "entiteit " + ui("Firmware") + " (<b>Instellingen → Updates</b>). Doe dit als er iemand thuis is. Wat rc.5 toevoegt (ketel, huis, "
                  "gratis warmte) begint bij nul en vult zich in de eerste stookdagen; het getal van <b>De E32 kent je huis</b> begint dus lager."],
                 ["Na elke firmware-update", "<b>Bevestig de overname opnieuw</b>: Reparatie " + ui("Bevestig opnieuw dat de E32 de ketel mag regelen")

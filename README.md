@@ -10,15 +10,15 @@ needed. Home Assistant is optional: without it you set everything up on the
 E32's own web pages. With it you get a thermostat per room, a week planner card,
 energy figures and updates with one click.
 
-**Status:** version 1.0 is in its last test phase (release candidate rc.5). It
-runs every day in the developer's home. Version 1.0.0 follows once rc.5 has run
-for 14 days unchanged and without problems with the E32 controlling the boiler.
+**Status:** version 1.0.0 is a stable release. It runs every day in the
+developer's home, and the E32 controlled the boiler for 14 days unchanged and
+without problems before it was released.
 
-**Updating from rc.4?** Install Home Assistant integration 1.0.0rc7 first in
-HACS (switch **Pre-release** on) and restart Home Assistant. Then press
-**Install** on the E32's **Firmware** entity (E32 firmware 1.0.0-rc.5) and
-confirm the takeover again: a firmware update clears it
-([update steps](docs/INSTALL.md#13-updates)).
+**Updating from rc.5?** 1.0.0 is a normal release, so no Pre-release switch is
+needed. Update the Home Assistant integration in HACS first (press **Update
+information** if it is not shown yet) and restart Home Assistant. Then press
+**Install** on the E32's **Firmware** entity and confirm the takeover again: a
+firmware update clears it ([update steps](docs/INSTALL.md#13-updates)).
 
 ![The OpenThermostat dashboard in Home Assistant: the house card with what the boiler does, the rooms, today and the house](docs/img/screenshots/ha-dashboard-rc5.png)
 

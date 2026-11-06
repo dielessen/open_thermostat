@@ -1,4 +1,4 @@
-# Field tester pack: OpenThermostat 1.0 rc.5
+# Field tester pack: OpenThermostat 1.0
 
 Thank you for testing. You are the first person other than the developer to
 install OpenThermostat, and the first on a **Nefit TopLine**. This page tells
@@ -16,10 +16,12 @@ followed".
 Versions: E32 firmware **1.0.0-rc.5** with Home Assistant integration
 **1.0.0rc7**, or a newer pair that the release notes name together.
 
-Already testing rc.4 (or rc.3)? Do not start over: update with the three steps
-in [INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0rc7
-first, then the E32's **Firmware** entity, then confirm the takeover again)
-and read [What to look at in rc.5](#what-to-look-at-in-rc5).
+Already testing a release candidate (rc.5, rc.4 or rc.3)? Do not start over:
+update with the three steps in
+[INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0
+first, then the E32's **Firmware** entity, then confirm the takeover again; no
+Pre-release switch is needed) and read
+[What to look at in rc.5](#what-to-look-at-in-rc5).
 
 ## 1. Before you start
 
@@ -85,16 +87,15 @@ it is done.
       **Custom repositories**.
    2. Repository `https://github.com/dielessen/openthermostat-ha`, type
       **Integration**, **Add**.
-   3. Release candidates are pre-releases, which HACS does not offer by
-      default. In the HACS list, open the three dots of **OpenThermostat**,
-      choose **Download**, open **Need a different version?** and pick
-      **1.0.0rc7**.
+   3. Search HACS for **OpenThermostat**, open it and choose **Download**.
+      1.0.0 is a normal release, so HACS offers it by default and no
+      Pre-release switch is needed. (Only a pre-release needs the
+      **Pre-release** switch of the OpenThermostat device under
+      **Settings → Devices & services → HACS**, or **Need a different
+      version?**.)
    4. Restart Home Assistant (**Settings → System → Restart**).
 
-   To be offered the next release candidate as an update, switch on the
-   **Pre-release** switch of the OpenThermostat device under
-   **Settings → Devices & services → HACS** (enable the entity first). The
-   manual ZIP install
+   The manual ZIP install
    ([section 9.2](INSTALL.md#92-without-hacs-the-release-zip)) also works.
 5. **Add the integration and connect the E32:**
    [section 10](INSTALL.md#10-add-the-integration-and-connect-the-e32).
@@ -367,7 +368,7 @@ Notes on the guide itself (a word that did not match, a missing step) are
 just as welcome. The filled-in [INSTALL-CHECK.md](INSTALL-CHECK.md) is the
 best report of all.
 
-## 8. Known limits in rc.5
+## 8. Known limits in 1.0.0
 
 - **Radiator valve control is not yet verified on real valves.** You are the
   one verifying it. Switch **Radiator valve control** on one room at a time, after the

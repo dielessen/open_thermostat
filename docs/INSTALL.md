@@ -890,13 +890,15 @@ When a new release pair comes out, read its release notes first. They say
 which integration goes with which firmware. Usually: **update the integration
 first, then the firmware.**
 
-**From 1.0.0-rc.4 to 1.0.0-rc.5** (Home Assistant integration 1.0.0rc7), while
-someone is home:
+**From 1.0.0-rc.5 to 1.0.0** (Home Assistant integration 1.0.0), while
+someone is home. 1.0.0 is a normal release: HACS and the Home Assistant update
+entity offer it without the **Pre-release** switch.
 
-1. Update OpenThermostat in HACS to **1.0.0rc7** and restart Home Assistant
-   ([13.2](#132-update-the-integration)). HACS offers it only while the
-   **Pre-release** switch is on ([9.1](#91-with-hacs-recommended)).
-2. Install E32 1.0.0-rc.5 from the **Firmware** update entity
+1. Update OpenThermostat in HACS to **1.0.0** and restart Home Assistant
+   ([13.2](#132-update-the-integration)). If HACS does not show it yet, press
+   **Update information** on the OpenThermostat entry (HACS checks custom
+   repositories only every 48 hours of Home Assistant uptime).
+2. Install E32 1.0.0 from the **Firmware** update entity
    ([13.3](#133-update-the-e32-firmware-from-home-assistant-recommended)).
 3. Confirm the takeover again. A firmware update clears it, and until you
    confirm, the E32 keeps only frost protection. In Home Assistant choose
@@ -904,16 +906,17 @@ someone is home:
    (Settings → System → Repairs), or use the **Rooms** page on the E32.
 
 Settings, rooms, programs, sensors, valves and what the E32 learned are kept,
-and so are entity IDs and history in Home Assistant. What rc.5 adds (listening
+and so are entity IDs and history in Home Assistant. 1.0.0 is the same code
+as rc.5, so there is nothing new to learn. What rc.5 added (listening
 to the boiler, the house model, the knowledge figure, free heat) starts from
 zero and fills in over the first days of heating, so **The E32 knows your
 house** starts lower than it will end up; see
 [What the E32 knows](USER-GUIDE.md#what-the-e32-knows-and-what-it-still-lacks).
-The two new sensors **Known about your house** and **Boiler response** read unknown until
-the E32 runs rc.5 and has reported.
+The two sensors **Known about your house** and **Boiler response** read unknown
+until the E32 runs 1.0.0 (or rc.5) and has reported.
 
-**Coming from 1.0.0-rc.3?** The same order and the same versions (integration
-1.0.0rc7, firmware 1.0.0-rc.5); the changes of rc.4 come along. From the first
+**Coming from 1.0.0-rc.4 or rc.3?** The same order and the same versions
+(integration 1.0.0, firmware 1.0.0); the changes of rc.5 and rc.4 come along. From the first
 morning after the update Smart warm-up starts heating early (see
 [Warm on time](USER-GUIDE.md#warm-on-time-smart-warm-up)). The **Yesterday**
 sensors appear once the E32 has measured a day.
@@ -921,9 +924,10 @@ sensors appear once the E32 has measured a day.
 ### 13.2 Update the integration
 
 **With HACS:** **Settings → Updates** shows the new OpenThermostat version.
-Select it, **Install**, then restart Home Assistant. A pre-release only shows
-up there when the **Pre-release** switch is on; otherwise download that
-version as in [section 9.1](#91-with-hacs-recommended).
+Select it, **Install**, then restart Home Assistant. A stable release such as
+1.0.0 shows up there by itself. Only a pre-release needs the **Pre-release**
+switch; otherwise download that version as in
+[section 9.1](#91-with-hacs-recommended).
 
 **Without HACS:**
 

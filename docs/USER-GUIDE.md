@@ -210,7 +210,7 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   your house and your boiler, what the E32 changed by itself, and how it
   learns) and **Who controls the boiler** (the burner as information and the
   check before the E32 takes over). Each part shows only once it has something
-  to say (E32 rc.5). On a phone the sections stand under each other in this
+  to say (since rc.5). On a phone the sections stand under each other in this
   order; on a wide screen they stand in two columns.
 - **Diagnostics**: it starts with **Connection with the E32**, one line per
   question: does the E32 report to Home Assistant (and since when it has been
@@ -778,7 +778,7 @@ learns your house's own from steady heating periods of three hours. The
 learned overview in Home Assistant says which it uses ("Weather compensation:
 standard for now, learning from your house (2 of 6 steady periods)" or
 "Weather compensation: learned for your house"); the E32 Home page says the
-same. Since rc.5 the E32 can use an estimate from its
+same. Since 1.0.0 (rc.5) the E32 can use an estimate from its
 [house model](#the-house-model-and-weather-compensation) in between, and
 [a chart](#the-heating-curve-chart) draws the line. Without an outdoor
 temperature (from the boiler or Home Assistant) the water temperature follows
@@ -1133,11 +1133,11 @@ rc.4 there are none.
 
 ### What the E32 knows, and what it still lacks
 
-From E32 rc.5 (Home Assistant integration 1.0.0rc6) the E32 also learns from
+From E32 1.0.0 (since rc.5, with Home Assistant integration 1.0.0 or 1.0.0rc6 and later) the E32 also learns from
 your boiler and your house, and it says how far it is. There is nothing to set
 for any of it: the E32 tunes itself and you read what it did. This section and
 the five that follow describe what you find on the pages; E32 firmware before
-rc.5 shows none of it, and Home Assistant then leaves the new sensors unknown
+1.0.0 (rc.5) shows none of it, and Home Assistant then leaves the new sensors unknown
 and the new section out.
 
 The first thing to read is one figure, **The E32 knows your house: 70 %**. It

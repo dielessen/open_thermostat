@@ -143,7 +143,7 @@ The [installation guide](docs/INSTALL.md) explains every step. There is also a
 
 | Component | Version | Channel |
 | --- | --- | --- |
-| E32 V2 firmware | [v1.0.0-e32v2-rc.5](https://github.com/dielessen/open_thermostat/releases/tag/v1.0.0-e32v2-rc.5) | Pre-release |
+| E32 V2 firmware | [v1.0.0-e32v2](https://github.com/dielessen/open_thermostat/releases/tag/v1.0.0-e32v2) | Stable |
 | Home Assistant integration | [1.0.0](https://github.com/dielessen/open_thermostat/releases/tag/ha-v1.0.0) | Stable |
 
 Firmware and the HA integration are separate downloads. Read each release’s
@@ -152,7 +152,7 @@ changes, compatibility notes and installation instructions before updating.
 To build the published E32 firmware, start from its exact tag:
 
 ```sh
-git clone --branch v1.0.0-e32v2-rc.5 https://github.com/dielessen/open_thermostat.git
+git clone --branch v1.0.0-e32v2 https://github.com/dielessen/open_thermostat.git
 ```
 
 <!-- openthermostat-readme-releases:end -->

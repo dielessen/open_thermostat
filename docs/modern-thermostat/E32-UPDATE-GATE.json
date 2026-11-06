@@ -10,7 +10,7 @@
   "candidate_plan": "docs/modern-thermostat/RELEASE-1.0.0-KANDIDAAT.json",
   "stable_declaration": {
     "declaration": "docs/modern-thermostat/RELEASE-1.0.0-STABLE-DECLARATION-20261106.json",
-    "sha256": "08066c0898f715692c39e7cdc1258536baef4d87504f1243a0e635af1f17d715"
+    "sha256": "ecd7dc50b3d8aa049893c434747505d9ed265d1bceedaa5841b769e288e88633"
   },
   "readiness_report": {
     "report": "docs/modern-thermostat/RELEASE-READINESS-1.0.0.json",

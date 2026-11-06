@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "a1f26b808f8f4f66073c39b037acc3083481ebba023278ee70f5bab1bcaab7a9"
+          "sha256": "9f8029816940a7250c34fc85a5c19a6cc09207df1541c612467f215fb19b1ee8"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -1111,7 +1111,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-1.0.0-STABLE-DECLARATION-20261106.json",
-          "sha256": "08066c0898f715692c39e7cdc1258536baef4d87504f1243a0e635af1f17d715"
+          "sha256": "ecd7dc50b3d8aa049893c434747505d9ed265d1bceedaa5841b769e288e88633"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-READINESS-1.0.0.json",
@@ -1131,7 +1131,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-1.0.0-OWNER-INSTRUCTION-20261106.json",
-          "sha256": "25a488fcee9e30212a130209815268f5c6ac1a6d3724579b2a33efe5c6bc0058"
+          "sha256": "9d355e0f4ee912355f53bd442a0db296e4237f39f76e59a2e5811ce5f369ff41"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."

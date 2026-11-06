@@ -183,6 +183,13 @@ export OT_HA_TOKEN='<long-lived token>'
 python3 -I tools/switchover/release_ready.py --ha-url https://homeassistant.local:8123 --release v1.0.0-e32v2-rc.1 --insecure
 ```
 
+From saved evidence instead of a live Home Assistant: `--history-file <saved /api/history/period answer>` (repeatable)
+with `--until <end>` (and `--states-file <saved /api/states>` to list the valve switches; without it `trv_control`
+stays WAIT, "not measured"). The owner's stable declaration: `--declaration <file>` (his words, quoted) and optionally
+`--declare <criterion>=<reason>`. A declared criterion becomes `DECLARED` with its measured result kept; a measured FAIL
+is never declared and `updates` is always measured; the overall result is then `PASS_DECLARED`, which the gate accepts
+only with that declaration, for the stable tag it names (`docs/modern-thermostat/STABLE-RELEASE-TAGS.en.md`).
+
 ## Tests
 
 ```sh

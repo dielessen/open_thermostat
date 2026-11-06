@@ -317,7 +317,7 @@ class HomeAssistantRouteTests(GateFixture):
         root=Path(__file__).resolve().parents[1];checked=0
         for path in sorted((root/'docs/modern-thermostat/update-acceptance').glob('e32-*.json')):
             record=json.loads(path.read_text())
-            if record.get('method')=='home_assistant' and record.get('status')=='PASS':
+            if record.get('method')=='home_assistant' and record.get('status')=='PASS' and record.get('evidence')!='ha_history':
                 gate.home_assistant_acceptance(record);checked+=1
         self.assertGreaterEqual(checked,1)
 
@@ -495,5 +495,184 @@ class StableVersionTests(GateFixture):
         self.record=ha_record('v1.0.0-e32v2','v0.1.0-e32v2-beta.19');self.record['github_release']['prerelease']=True
         self.accept()
         with self.assertRaisesRegex(ValueError,'channel'):verify(self.root,self.policy)
+
+def history_exports(tag='v1.0.0-e32v2-rc.5',before='v1.0.0-e32v2-rc.4',installs=1):
+    """Synthetic Home Assistant recorder exports of an install through the update entity (fixture only, no device):
+    the Firmware entity (offer, install record, new version), the integration's update entity and the uptime sensor."""
+    entity,uptime,integration='update.e32_firmware','sensor.e32_device_uptime','update.openthermostat_update'
+    def record(release,start,end):
+        return dict(tag=release,from_version=before,sha256='c'*64,size=2900000,started_at=start,finished_at=end,
+            duration_s=80.7,result='installed',uploads=1,
+            reported=dict(version=release,source_commit='a'*40,web_sha256='e'*64,elf_sha256='d'*64))
+    def row(at,installed,latest,last=None):
+        attributes=dict(installed_version=installed,latest_version=latest,release_url=None)
+        if last:attributes['last_install']=last
+        return dict(entity_id=entity,state='on' if installed!=latest else 'off',attributes=attributes,last_changed=at)
+    rows=[row('2026-11-05T04:00:00+00:00',before,before),row('2026-11-05T05:32:00.336794+00:00',before,tag)]
+    if installs==2:
+        rows.append(row('2026-11-05T05:40:00+00:00',before,tag,record(tag,'2026-11-05T05:38:00Z','2026-11-05T05:39:00Z')))
+    rows.append(row('2026-11-05T05:55:12.409432+00:00',tag,tag,record(tag,'2026-11-05T05:53:51Z','2026-11-05T05:55:12Z')))
+    hacs=[dict(entity_id=integration,state='off',last_changed='2026-11-05T05:51:28.526907+00:00',
+               attributes=dict(installed_version='1.0.0rc6',latest_version='1.0.0rc6',
+                               release_url='https://github.com/owner/openthermostat-ha/releases/1.0.0rc6'))]
+    up=[dict(entity_id=uptime,state='16.2',attributes=dict(unit_of_measurement='h'),last_changed='2026-11-05T05:50:00+00:00'),
+        dict(state='unavailable',last_changed='2026-11-05T05:55:10.303901+00:00')]
+    up+=[dict(state=repr(seconds/3600),last_changed=at) for at,seconds in
+         (('2026-11-05T05:55:10.424794+00:00',7),('2026-11-05T05:56:10.419826+00:00',67),
+          ('2026-11-05T06:06:10.480484+00:00',667),('2026-11-05T08:59:14.068584+00:00',11050))]
+    return [[rows,hacs],[up]]
+
+DECLARED_CRITERIA=('stability','active_control','trv_control','failure_tests','install_guide','release_window')
+WORDS=['rc5 is 1.0 wat mij betreft','Synthetic fixture: the second message of the owner']
+
+class OwnerDeclarationTests(GateFixture):
+    """The owner declares a stable release; the gate records it (synthetic files in a temporary repository)."""
+    TAG,STABLE='v1.0.0-e32v2-rc.5','v1.0.0-e32v2'
+    def setUp(self):
+        super().setUp()
+        self.exports=history_exports()
+        self.statements=[dict(at_utc='2026-11-06T22:20:00Z',text=WORDS[0]),dict(at_utc='2026-11-06T22:35:00Z',text=WORDS[1])]
+        self.criteria={name:'declared: '+name for name in DECLARED_CRITERIA}
+        self.build()
+    def write(self,name,value):
+        raw=(json.dumps(value,indent=1)+'\n').encode();(self.root/name).write_bytes(raw)
+        return hashlib.sha256(raw).hexdigest()
+    def build(self,receipt_changes=None,report_changes=None,declaration_changes=None,seal=True):
+        files=[]
+        for index,export in enumerate(self.exports):
+            files.append(dict(path=f'history-{index}.json',sha256=self.write(f'history-{index}.json',export),kind='ha_history'))
+        facts=gate.ha_history_facts(gate.ha_history_series(self.exports),'update.e32_firmware',self.TAG,
+                                    'sensor.e32_device_uptime','update.openthermostat_update')
+        checks={name:(True if name in gate.HA_HISTORY_MEASURED else 'declared') for name in HA_REQUIRED}
+        declared=sorted(name for name,value in checks.items() if value=='declared')
+        self.receipt=dict(schema=1,status='PASS',tag=self.TAG,method='home_assistant',evidence='ha_history',
+            acceptance_decision='ACCEPTED_ON_OWNER_DECLARATION',checks=checks,declared_checks=declared,
+            owner_declaration=dict(declaration='declaration.json',statements=[s['text'] for s in self.statements]),
+            evidence_files=files,github_release=None,uptime_entity_id='sensor.e32_device_uptime',
+            ha_integration_entity_id='update.openthermostat_update',ha_core_version=None,**facts)
+        self.receipt.update(receipt_changes or {})
+        receipt_sha=self.write('receipt.json',self.receipt)
+        criteria={name:({'result':'DECLARED','declared':self.criteria[name],'measured':{'result':'WAIT'}}
+                        if name in self.criteria else {'result':'PASS'}) for name in READINESS_CRITERIA}
+        self.report=dict(schema=1,kind='release_readiness',release=self.TAG,stage='final',overall='PASS_DECLARED',
+            **{'from':'2026-11-05T05:55:13Z','to':'2026-11-05T09:00:00Z'},installed_versions=[self.TAG],criteria=criteria,
+            declaration=dict(file='declaration.json',statements=[s['text'] for s in self.statements],
+                             declared_criteria=sorted(self.criteria)))
+        self.report.update(report_changes or {})
+        report_sha=self.write('readiness.json',self.report)
+        self.declaration=dict(schema=1,kind='owner_declared_stable',tag=self.STABLE,follows=self.TAG,
+            owner=dict(actor='repository_owner',method='explicit_user_instruction',statements=self.statements),
+            declared_criteria=self.criteria,declared_receipt_checks={name:'why '+name for name in declared},
+            receipt=dict(path='receipt.json',sha256=receipt_sha),readiness_report=dict(path='readiness.json',sha256=report_sha),
+            evidence=[dict(path=f['path'],sha256=f['sha256']) for f in files])
+        self.declaration.update(declaration_changes or {})
+        declaration_sha=self.write('declaration.json',self.declaration)
+        self.policy.update(accepted=dict(tag=self.TAG,receipt='receipt.json',sha256=receipt_sha),pending_tag=self.STABLE,
+            readiness_report=dict(report='readiness.json',sha256=report_sha))
+        if seal:self.policy['stable_declaration']=dict(declaration='declaration.json',sha256=declaration_sha)
+        else:self.policy.pop('stable_declaration',None)
+        self.plan(self.STABLE,self.TAG)
+    def refused(self,message,candidate=None):
+        with self.assertRaisesRegex(ValueError,message):verify(self.root,self.policy,candidate or self.STABLE)
+    def test_the_declaration_is_recorded_and_visible_in_the_result(self):
+        result=verify(self.root,self.policy,self.STABLE,[{'tag_name':self.TAG,'draft':False}])
+        self.assertEqual(result['publication_basis'],'owner_declared_stable')
+        owner=result['owner_declaration']
+        self.assertEqual(owner['statements'],WORDS)
+        self.assertEqual(owner['declared_criteria'],sorted(DECLARED_CRITERIA))
+        self.assertEqual(owner['declared_receipt_checks'],sorted(gate.DECLARABLE_CHECKS))
+        self.assertEqual((owner['tag'],owner['follows'],owner['declaration']),(self.STABLE,self.TAG,'declaration.json'))
+        self.assertLess(owner['readiness_window_days'],1)
+        self.assertEqual(result['accepted_evidence'],'ha_history')
+        self.assertFalse(result['physical_test_performed_by_verifier'])
+        # Without a candidate the policy verifies too, and still says that the accepted receipt rests on the declaration.
+        plain=verify(self.root,self.policy)
+        self.assertEqual(plain['accepted_declared_checks'],sorted(gate.DECLARABLE_CHECKS))
+        self.assertEqual(plain['stable_declaration'],{'declaration':'declaration.json','tag':self.STABLE})
+    def test_a_placeholder_or_empty_statement_is_refused(self):
+        for text in (gate.DECLARATION_PLACEHOLDER,'','   ',None,'ja '+gate.DECLARATION_PLACEHOLDER):
+            with self.subTest(text=text):
+                self.statements=[dict(at_utc='2026-11-06T22:20:00Z',text=text)];self.build()
+                with self.assertRaisesRegex(ValueError,'placeholder'):verify(self.root,self.policy)
+        self.statements=[];self.build();self.refused('no owner statement')
+        self.statements=[dict(at_utc='6 Nov 23:20',text=WORDS[0])];self.build();self.refused('UTC time')
+    def test_the_owner_is_the_author(self):
+        for owner in (dict(actor='assistant',method='explicit_user_instruction',statements=[]),
+                      dict(actor='repository_owner',method='inferred',statements=[]),None):
+            with self.subTest(owner=owner):self.build(declaration_changes=dict(owner=owner));self.refused("not the owner's")
+    def test_one_declaration_per_stable_tag(self):
+        self.build(declaration_changes=dict(tag='v1.0.1-e32v2'));self.refused('belongs to another release')
+        # A later stable release with the same declaration still in the policy gets no help from it.
+        self.build();self.policy['pending_tag']='v1.0.1-e32v2';self.plan('v1.0.1-e32v2',self.TAG)
+        self.refused('belongs to another release','v1.0.1-e32v2')
+    def test_the_receipt_is_still_required_and_bound(self):
+        self.build(seal=False);self.refused("only on the owner's stable declaration")
+        self.build();self.policy['accepted']=None;self.refused('No physically accepted')
+        self.build(declaration_changes=dict(receipt=dict(path='receipt.json',sha256='0'*64)));self.refused('declared receipt changed')
+        self.build();self.policy['stable_declaration']['sha256']='0'*64;self.refused('stable declaration changed')
+        self.build(receipt_changes=dict(status='INCOMPLETE'));self.refused('Update not accepted')
+        self.build(receipt_changes=dict(acceptance_decision='ACCEPTED'));self.refused('Update not accepted')
+        self.build(declaration_changes=dict(follows='v1.0.0-e32v2-rc.4'));self.refused('follows another release')
+    def test_the_install_itself_is_measured_never_declared(self):
+        for name in gate.HA_HISTORY_MEASURED:
+            with self.subTest(name=name):
+                checks={**dict.fromkeys(HA_REQUIRED,'declared'),**dict.fromkeys(gate.HA_HISTORY_MEASURED,True),name:'declared'}
+                self.build(receipt_changes=dict(checks=checks,declared_checks=sorted(k for k,v in checks.items() if v=='declared')))
+                self.refused('Incomplete physical update acceptance')
+        checks={**dict.fromkeys(HA_REQUIRED,True),'backup_verified':False}
+        self.build(receipt_changes=dict(checks=checks,declared_checks=[]));self.refused('Incomplete physical update acceptance')
+    def test_declared_checks_must_be_the_ones_the_owner_declared(self):
+        self.build(declaration_changes=dict(declared_receipt_checks={'backup_verified':'why'}))
+        self.refused("declared checks differ")
+        self.build(declaration_changes=dict(declared_receipt_checks={'new_boot_observed':'why'}))
+        self.refused('checks the history cannot show')
+    def test_the_receipt_is_re_derived_from_the_history(self):
+        for key,value in [('install_actions',2),('ha_installed_version_before','v1.0.0-e32v2-rc.3'),
+                          ('firmware_sha256','f'*64),('ha_integration_version','1.0.0rc7'),('source_commit','b'*40),
+                          ('observations',[dict(at_utc='2026-11-05T06:06:10Z',version=self.TAG,uptime_seconds=667,
+                                                source='sensor.e32_device_uptime')])]:
+            with self.subTest(key=key):self.build(receipt_changes={key:value});self.refused('differs from the Home Assistant history')
+    def test_what_the_history_shows_must_hold(self):
+        self.exports=history_exports(installs=2);self.build();self.refused('missing/repeated')
+        exports=history_exports();exports[1][0]=exports[1][0][:5]  # 67 s and 667 s after the install: enough
+        self.exports=exports;self.build();verify(self.root,self.policy,self.STABLE)
+        exports=history_exports();exports[1][0]=exports[1][0][:4]  # only 67 s of uptime after the install ended
+        self.exports=exports;self.build();self.refused('Missing boot observations')
+        exports=history_exports();exports[1][0].insert(5,dict(state=repr(30/3600),last_changed='2026-11-05T06:00:00+00:00'))
+        self.exports=exports;self.build()  # a restart after the install ends the boot there: 67 s only
+        self.refused('Missing boot observations')
+        exports=history_exports();exports[1][0][0]['attributes']['unit_of_measurement']='weeks'
+        self.exports=exports
+        with self.assertRaisesRegex(ValueError,'Unknown unit'):self.build()
+    def test_evidence_files_are_bound(self):
+        self.build();(self.root/'history-1.json').write_text('[]');self.refused('declared evidence history-1.json changed')
+        self.build(declaration_changes=dict(evidence=[]));self.refused('not covered')
+    def test_criteria_are_declared_never_over_a_fail_and_updates_is_measured(self):
+        criteria=dict(self.report['criteria']);criteria['stability']=dict(criteria['stability'],measured={'result':'FAIL'})
+        self.build(report_changes=dict(criteria=criteria));self.refused('over a measured FAIL')
+        self.criteria={**self.criteria,'updates':'declared'};self.build();self.refused('updates is always measured')
+    def test_the_report_and_the_declaration_name_the_same_criteria(self):
+        self.criteria={k:v for k,v in self.criteria.items() if k!='install_guide'};self.build()
+        criteria=dict(self.report['criteria']);criteria['install_guide']={'result':'DECLARED','declared':'x','measured':{'result':'WAIT'}}
+        self.build(report_changes=dict(criteria=criteria,declaration=dict(self.report['declaration'])))
+        self.refused('not PASS on every criterion')
+        self.criteria={name:'declared: '+name for name in DECLARED_CRITERIA}
+        self.build(report_changes=dict(overall='PASS'));self.refused('not PASS on every criterion')
+        self.build(report_changes=dict(declaration=dict(self.report['declaration'],statements=['something else'])))
+        self.refused("does not quote the owner's declaration")
+    def test_a_short_window_needs_release_window_declared(self):
+        self.criteria={k:v for k,v in self.criteria.items() if k!='release_window'};self.build()
+        criteria=dict(self.report['criteria']);criteria['release_window']={'result':'PASS'}
+        self.build(report_changes=dict(criteria=criteria));self.refused('shorter than 14 days')
+    def test_a_declared_report_needs_its_declaration(self):
+        self.build(report_changes=dict(declaration=None));self.refused('not PASS on every criterion')
+    def test_the_normal_rule_is_unchanged_without_a_declaration(self):
+        self.record=ha_record(self.TAG,'v1.0.0-e32v2-rc.4');GateFixture.accept(self)
+        self.policy.pop('stable_declaration',None);self.policy['pending_tag']=self.STABLE;self.plan(self.STABLE,self.TAG)
+        doc=dict(schema=1,kind='release_readiness',release=self.TAG,stage='final',overall='PASS',
+                 **{'from':'2026-10-30T09:02:10Z','to':'2026-11-13T09:02:10Z'},installed_versions=[self.TAG],
+                 criteria={c:{'result':'PASS'} for c in READINESS_CRITERIA})
+        self.policy['readiness_report']=dict(report='normal.json',sha256=self.write('normal.json',doc))
+        self.assertEqual(verify(self.root,self.policy,self.STABLE)['publication_basis'],'accepted_previous_release')
 
 if __name__=='__main__':unittest.main()

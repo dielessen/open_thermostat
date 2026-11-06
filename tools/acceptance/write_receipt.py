@@ -31,7 +31,24 @@ Usage:
                                   # removed, then run verify_e32_update_gate.py and verify_beta_release_inventory.py
      ... --dry-run                # print what would be read, requested and written; nothing else
   python -I write_receipt.py --post-only --obs <post> [...] --independent <indep> ...
+  python -I write_receipt.py --evidence ha-history --history <saved export> [--history <another>]
+         --declaration <the owner's stable declaration, a path in --repo> [--github-release <saved release or catalog>]
+         [--ci-json <file>] [--uptime-entity <sensor>] [--integration-entity <update entity>] [--repo <worktree>]
+         [--receipt-out <file>] [--write] [--dry-run]
 Repository files only change with --write / --apply-gate; nothing is committed or pushed.
+
+--evidence ha-history builds the receipt of an install that was made through the Home Assistant update entity
+WITHOUT the capture, from saved Home Assistant recorder history only (the answers of /api/history/period, full
+rows for the update entities): the E32 Firmware update entity (offer, last_install, installed_version), the
+device-uptime sensor (the restart and the stable boot after it) and the integration's own update entity (its
+version at the install). Nothing is requested: no Home Assistant, no E32, no GitHub. The facts are derived with the
+gate's own ha_history_facts(), so the gate re-derives and compares them. The checks the history shows are measured
+(true or false); the ones it cannot show (HISTORY_DECLARED) are recorded as "declared" with the reason, quoting the
+owner's stable declaration (--declaration), never as true. A declaration whose statement is still the placeholder
+"<OWNER STATEMENT>" keeps the receipt INCOMPLETE. --write copies the exports into
+docs/modern-thermostat/update-acceptance/ha-history/ (byte for byte; from a saved release catalog only the one
+release object), then writes the receipt; the gate is changed only by stable_declaration.py seal --apply-gate,
+together with the owner's declaration that binds this receipt.
 """
 import argparse
 import json
@@ -319,6 +336,266 @@ def build(cfg, pre, obs_folders, ind, ci, local_logs=(), installed_by='owner', p
     return record, limits
 
 
+# ------------------------------------------------------------------ evidence: the saved Home Assistant history
+
+# Why each check that the recorder history cannot show is declared by the owner instead of measured (never "true").
+HISTORY_DECLARED = {
+    'public_release_exact': 'no saved GitHub release record was given (--github-release), so the published release '
+                            'and its firmware.bin digest are not compared here',
+    'fresh_preflight_passed': 'no saved CI answer for the exact tag was given (--ci-json)',
+    'backup_verified': 'the install was made without the acceptance capture: no settings backup was taken before it, '
+                       'and the history cannot show one',
+    'boot_confirmed': 'the history has no boot_pending flag of the E32',
+    'settings_programs_bindings_preserved': 'the history has no settings export from before and after the install',
+    'control_state_safe_after_restart': 'the history export has no control-state entity of the E32',
+    'independent_postcheck_passed': 'no independent post-check was run after the install',
+}
+
+
+def history_entity(series, wanted, suffix, label, test=None):
+    """The entity to read: the given one, or the single one in the exports that ends in `suffix` (and passes test)."""
+    if wanted:
+        if wanted not in series:
+            raise SystemExit(f'{label} {wanted} is not in the history exports')
+        return wanted
+    found = sorted(entity for entity, rows in series.items() if entity.endswith(suffix) and (test is None or test(rows)))
+    if len(found) != 1:
+        raise SystemExit(f'expected one {label} in the history exports, found {found or "none"}: name it explicitly')
+    return found[0]
+
+
+def repo_path(repo, path):
+    """A path relative to the repository (with /) when the file is inside it, else the absolute path."""
+    path = Path(path).resolve()
+    try:
+        return path.relative_to(repo).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def tag_commit(repo, tag):
+    """The commit of a tag in the repository (annotated tags dereferenced), or None when git cannot tell."""
+    try:
+        result = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', '--quiet', f'refs/tags/{tag}^{{commit}}'],
+                                capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else None
+
+
+def build_from_history(cfg, gate, repo, histories, declaration_name, github=None, ci=None, uptime_entity=None,
+                       integration_entity=None):
+    """The receipt of an install made through the Home Assistant update entity without the capture, from the saved
+    recorder history only. Every fact is derived with the gate's own ha_history_facts(); the checks the history
+    shows are measured, the rest are 'declared' (by the owner's stable declaration, quoted here), never true.
+    The gate's own rule is applied when every evidence file is inside the repository (as --write puts them)."""
+    limits = []
+    exports = [json.loads(Path(path).read_text(encoding='utf-8')) for path in histories]
+    series = gate.ha_history_series(exports)
+    entity = history_entity(series, cfg.entity_id, '_firmware', 'update entity')
+    uptime = history_entity(series, uptime_entity, '_device_uptime', 'device-uptime sensor')
+    integration = history_entity(
+        series, integration_entity, '', 'integration update entity',
+        lambda rows: rows[0]['entity_id'].startswith('update.') and any(
+            cfg.hacs_repository in str((row.get('attributes') or {}).get('release_url') or '') for row in rows))
+    facts = gate.ha_history_facts(series, entity, cfg.tag, uptime, integration)
+    last = facts['ha_install_record']
+    reported = last.get('reported') if isinstance(last.get('reported'), dict) else {}
+    observations = facts['observations']
+    boot_ok, boot_detail = acc.boot_continuity(observations, last.get('started_at'), last.get('finished_at'))
+    uptimes = [item['uptime_seconds'] for item in observations]
+
+    # The owner's declaration: his words, quoted; a placeholder keeps the receipt INCOMPLETE.
+    declaration_path = (repo / declaration_name).resolve()
+    if not declaration_path.is_relative_to(repo) or not declaration_path.is_file():
+        raise SystemExit(f'{declaration_name}: the stable declaration must be a file in {repo}')
+    declaration = json.loads(declaration_path.read_text(encoding='utf-8'))
+    statements = [item.get('text') for item in ((declaration.get('owner') or {}).get('statements') or [])
+                  if isinstance(item, dict)]
+    real_statement = bool(statements) and not any(gate.placeholder(text) for text in statements)
+    if not real_statement:
+        limits.append('The owner statement in the declaration is still a placeholder: nothing is declared yet.')
+    if declaration.get('follows') != cfg.tag:
+        raise SystemExit(f'{declaration_name} follows {declaration.get("follows")}, not {cfg.tag}')
+
+    release = None
+    if github is not None:
+        release = gate.release_summary(json.loads(Path(github).read_text(encoding='utf-8')), cfg.tag)
+    commit = tag_commit(repo, cfg.tag)
+    if commit is None:
+        limits.append(f'git cannot resolve the tag {cfg.tag} here: the reported source commit is not compared with it.')
+    tag_runs = [run for run in (ci or {}).get('runs', []) if run.get('head_branch') == cfg.tag]
+    measured = {
+        # None: no evidence given (declared); False: the evidence shows something else (never declared).
+        'public_release_exact': None if release is None else (
+            release['draft'] is False and release['prerelease'] is cfg.expect_prerelease
+            and release['asset']['digest'] == 'sha256:' + str(last.get('sha256')) and release['asset']['size'] == last.get('size')),
+        'fresh_preflight_passed': None if ci is None else (bool(ci.get('commit')) and bool(tag_runs) and all(
+            run.get('status') == 'completed' and run.get('conclusion') == 'success' for run in tag_runs)),
+        'single_ha_install_action': facts['install_actions'] == 1 and last.get('uploads') == 1,
+        # firmware_update.py records "installed" only after verify_image() passed (GitHub digest, size, marker).
+        'ha_download_digest_size_marker_verified': last.get('result') == 'installed' and bool(last.get('sha256')),
+        'local_upload_accepted': last.get('result') == 'installed' and last.get('uploads') == 1,
+        'new_boot_observed': boot_ok,
+        'installed_version_source_elf_web_exact': (reported.get('version') == cfg.tag
+                                                   and bool(reported.get('source_commit'))
+                                                   and (commit is None or reported['source_commit'] == commit)
+                                                   and bool(reported.get('web_sha256')) and bool(reported.get('elf_sha256'))),
+        'stable_uptime_observed': (len(observations) >= 2 and all(b > a for a, b in zip(uptimes, uptimes[1:]))
+                                   and uptimes[-1] >= 600 and boot_ok
+                                   and all(item['version'] == cfg.tag for item in observations)),
+        'ha_entity_reports_new_version': facts['ha_installed_version_after'] == cfg.tag,
+    }
+    checks, basis = {}, {}
+    for name in GATE_CHECKS:
+        value = measured.get(name)
+        if name in gate.HA_HISTORY_MEASURED or value is not None:
+            checks[name] = value is True
+            basis[name] = 'measured from the saved history' if value is True else 'not shown by the saved history'
+        else:
+            checks[name] = 'declared'
+            basis[name] = 'declared by the owner: ' + HISTORY_DECLARED[name]
+    hours = round((uptimes[-1] if uptimes else 0) / 3600, 2)
+    basis['boot_confirmed'] = basis['boot_confirmed'] + (
+        f'; supporting, not proof: the uptime sensor rose without a restart for {hours} h after the install and the '
+        'update entity kept reporting the release') if checks['boot_confirmed'] == 'declared' else basis['boot_confirmed']
+    for name, value in checks.items():
+        if value is False:
+            limits.append(f'{name}: not shown by the saved history.')
+    declared = sorted(name for name, value in checks.items() if value == 'declared')
+    complete = all(value is not False for value in checks.values())
+    status = 'PASS' if complete and real_statement else 'INCOMPLETE'
+    decision = ('ACCEPTED_ON_OWNER_DECLARATION' if status == 'PASS' else
+                'NOT_ACCEPTED_PENDING_EVIDENCE' if not complete else 'NOT_ACCEPTED_PENDING_OWNER_STATEMENT')
+    files = [{'path': repo_path(repo, path), 'sha256': acc.file_digest(path), 'kind': 'ha_history',
+              'entities': sorted(rows[0]['entity_id'] for rows in export)} for path, export in zip(histories, exports)]
+    if github is not None:
+        files.append({'path': repo_path(repo, github), 'sha256': acc.file_digest(github), 'kind': 'github_release'})
+    inside = all(not Path(item['path']).is_absolute() for item in files)
+    if not inside:
+        limits.append('Evidence files outside the repository: the gate cannot bind them (use --write).')
+    offered = [row for row in series[entity] if (row.get('attributes') or {}).get('latest_version') == cfg.tag]
+    shown = [row for row in series[entity] if (row.get('attributes') or {}).get('installed_version') == cfg.tag]
+    record = {
+        'schema': 1, 'status': status, 'tag': cfg.tag, 'method': 'home_assistant', 'evidence': 'ha_history',
+        'acceptance_decision': decision, 'checks': checks, 'check_basis': basis, 'declared_checks': declared,
+        'owner_declaration': {'declaration': declaration_name, 'statements': statements},
+        'evidence_files': files, 'github_release': release,
+        'firmware_sha256': facts['firmware_sha256'], 'firmware_bytes': facts['firmware_bytes'],
+        'source_commit': facts['source_commit'], 'web_sha256': facts['web_sha256'], 'elf_sha256': facts['elf_sha256'],
+        'ha_entity_id': entity, 'uptime_entity_id': uptime, 'ha_integration_entity_id': integration,
+        'ha_installed_version_before': facts['ha_installed_version_before'],
+        'ha_latest_version_before': facts['ha_latest_version_before'],
+        'ha_installed_version_after': facts['ha_installed_version_after'],
+        'install_actions': facts['install_actions'], 'ha_integration_version': facts['ha_integration_version'],
+        'ha_core_version': None, 'ha_install_record': last, 'observations': observations,
+        'preflight': {'ci_commit': (ci or {}).get('commit'), 'tag_runs': tag_runs} if ci else None,
+        'details': {
+            'mode': 'ha_history',
+            'offered_at': offered[0].get('last_changed') if offered else None,
+            'first_reported_installed_at': shown[0].get('last_changed') if shown else None,
+            'tag_commit': commit, 'boot': boot_detail,
+            'uptime_hours_after_install': hours,
+        },
+        'limits': limits + [
+            'Receipt from the saved Home Assistant recorder history only: there was no pre-install capture, no '
+            'post-install observation of the E32 and no independent check. Every fact here is re-derived by the gate '
+            'from the exports listed under evidence_files.',
+            'The checks marked "declared" are not measured: the owner declared the release stable '
+            f'({declaration_name}); check_basis says why each one cannot be shown.',
+            'ha_core_version is not in the exports (null).',
+            'The integration version is the installed_version of the integration\'s own update entity when the install '
+            'started; the exports do not show the Home Assistant restart that loaded it.'],
+    }
+    if status == 'PASS' and inside:
+        # The gate's rule, with this receipt's own declaration (its digests are bound later, when it is sealed).
+        provisional = {'file': declaration_name, 'follows': declaration.get('follows'), 'statement_texts': statements,
+                       'declared_receipt_checks': dict.fromkeys(declared, 'provisional'),
+                       'evidence': [{'path': item['path'], 'sha256': item['sha256']} for item in files]}
+        gate.ha_history_acceptance(repo, record, provisional)
+    return record, limits
+
+
+def history_main(parser, args):
+    """--evidence ha-history: the receipt from the saved recorder history (offline; nothing is requested)."""
+    if args.preinstall or args.post_only or args.obs or args.independent or args.local_check_log:
+        parser.error('--evidence ha-history reads saved files only: no --preinstall, --post-only, --obs, --independent '
+                     'or --local-check-log')
+    if not args.history or not args.declaration:
+        parser.error('--evidence ha-history needs --history <saved export> (one or more) and --declaration <the owner\'s '
+                     'stable declaration, a path in --repo>')
+    if args.apply_gate:
+        parser.error('--apply-gate: a receipt from the history is accepted only together with the sealed owner '
+                     'declaration; run tools/acceptance/stable_declaration.py seal ... --apply-gate after the readiness '
+                     'report')
+    cfg = acc.load_config(args, needs=('tag', 'previous_tag', 'entity_id'))
+    repo = Path(args.repo).resolve()
+    stem = acc.receipt_stem(cfg.tag)
+    folder = repo / 'docs' / 'modern-thermostat' / 'update-acceptance' / 'ha-history'
+    if args.dry_run:
+        print('DRY RUN write_receipt.py --evidence ha-history: nothing is requested or written.')
+        for line in [f'read the saved history {", ".join(args.history)}, the declaration {args.declaration}'
+                     + (f', the GitHub release in {args.github_release}' if args.github_release else '')
+                     + (f' and the CI answers in {args.ci_json}' if args.ci_json else ''),
+                     'contact nothing (no Home Assistant, no E32, no GitHub)',
+                     f'compile {repo / "scripts" / "verify_e32_update_gate.py"} in memory',
+                     ('write ' + args.receipt_out) if args.receipt_out else 'write no receipt file',
+                     (f'copy the evidence into {folder} and write {repo}/docs/modern-thermostat/update-acceptance/'
+                      f'{stem}-<day>.json' if args.write else 'leave the repository unchanged'),
+                     'leave the gate (stable_declaration.py seal --apply-gate binds the receipt)']:
+            print('  would ' + line)
+        return 0
+    gate = load_verifier(repo)
+    ci = json.loads(Path(args.ci_json).read_text(encoding='utf-8')) if args.ci_json else None
+    histories = [Path(path).resolve() for path in args.history]
+    github = Path(args.github_release).resolve() if args.github_release else None
+    if args.write:
+        # The evidence goes into the repository first (byte for byte; the GitHub release as the one release object),
+        # so that the receipt names the files the gate reads and binds.
+        folder.mkdir(parents=True, exist_ok=True)
+        copies = []
+        for path in histories:
+            target = path if path.is_relative_to(repo) else folder / f'{stem}-{path.name}'
+            if target != path:
+                if target.exists() and target.read_bytes() != path.read_bytes():
+                    raise SystemExit(f'{target} exists with other content; never overwritten')
+                target.write_bytes(path.read_bytes())
+            copies.append(target)
+        histories = copies
+        if github is not None and not github.is_relative_to(repo):
+            raw = json.loads(github.read_text(encoding='utf-8'))
+            rows = [row for row in (raw if isinstance(raw, list) else [raw])
+                    if isinstance(row, dict) and row.get('tag_name') == cfg.tag]
+            if len(rows) != 1:
+                raise SystemExit(f'{github} has no single release {cfg.tag}')
+            target = folder / f'{stem}-github-release.json'
+            data = (json.dumps(rows[0], indent=2, ensure_ascii=False) + '\n').encode()
+            if target.exists() and target.read_bytes() != data:
+                raise SystemExit(f'{target} exists with other content; never overwritten')
+            target.write_bytes(data)
+            print('extracted', cfg.tag, 'from', github.name, acc.file_digest(github), 'to', target)
+            github = target
+    record, limits = build_from_history(cfg, gate, repo, histories, args.declaration, github, ci,
+                                       args.uptime_entity, args.integration_entity)
+    status = record['status']
+    print(json.dumps({'status': status, 'acceptance_decision': record['acceptance_decision'], 'checks': record['checks'],
+                      'declared_checks': record['declared_checks'], 'limits': limits,
+                      'observations': record['observations'], 'install_actions': record['install_actions']}, indent=1,
+                     ensure_ascii=False))
+    text = (json.dumps(record, indent=2, ensure_ascii=False) + '\n').encode()
+    if args.receipt_out:
+        Path(args.receipt_out).write_bytes(text)
+        print('wrote', args.receipt_out, acc.digest(text))
+    if args.write:
+        day = record['observations'][-1]['at_utc'][:10].replace('-', '')
+        receipt = repo / 'docs' / 'modern-thermostat' / 'update-acceptance' / f'{stem}-{day}.json'
+        receipt.write_bytes(text)
+        print('wrote', receipt, acc.file_digest(receipt))
+        print('Next: the readiness report (tools/switchover/release_ready.py --stage final --history-file ... '
+              '--declaration ...), then tools/acceptance/stable_declaration.py seal ... --apply-gate.')
+    return 0 if status == 'PASS' else 2
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     acc.add_config_arguments(parser)
@@ -326,8 +603,15 @@ def main(argv=None):
                                                               '(default: the worktree of this kit)')
     parser.add_argument('--preinstall', help='the pre-install capture folder (not with --post-only)')
     parser.add_argument('--post-only', action='store_true', help='the observations were made with capture_post.py --post-only')
-    parser.add_argument('--obs', action='append', required=True)
-    parser.add_argument('--independent', required=True)
+    parser.add_argument('--obs', action='append')
+    parser.add_argument('--independent')
+    parser.add_argument('--evidence', choices=('capture', 'ha-history'), default='capture',
+                        help='capture (the captures of this kit, the default) or ha-history (the saved recorder history only)')
+    parser.add_argument('--history', action='append', default=[], help='a saved Home Assistant history export (ha-history)')
+    parser.add_argument('--declaration', help="the owner's stable declaration, a path in --repo (ha-history)")
+    parser.add_argument('--github-release', help='a saved GitHub release object or release catalog (ha-history)')
+    parser.add_argument('--uptime-entity', help='the device-uptime sensor in the export (default: the one ending _device_uptime)')
+    parser.add_argument('--integration-entity', help="the integration's own update entity in the export (default: found)")
     parser.add_argument('--local-check-log', action='append', default=[])
     parser.add_argument('--ci-json', help='Saved GitHub API answers instead of asking the API (offline runs)')
     parser.add_argument('--installed-by', choices=('owner', 'assistant'), default='owner')
@@ -336,6 +620,13 @@ def main(argv=None):
     parser.add_argument('--apply-gate', action='store_true')
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args(argv)
+    if args.evidence == 'ha-history':
+        return history_main(parser, args)
+    if args.history or args.declaration or args.github_release or args.uptime_entity or args.integration_entity:
+        parser.error('--history, --declaration, --github-release, --uptime-entity and --integration-entity belong to '
+                     '--evidence ha-history')
+    if not args.obs or not args.independent:
+        parser.error('the following arguments are required: --obs, --independent')
     if args.post_only == bool(args.preinstall):
         parser.error('give --preinstall <pre folder>, or --post-only for an install without one')
     cfg = acc.load_config(args, needs=('tag', 'previous_tag', 'ha_version', 'ha_previous_version'))

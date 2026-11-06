@@ -20,7 +20,8 @@ The owner presses Install once, in Home Assistant.
 | `capture_preinstall.py` | Before the install, two stages: `--stage ha-baseline` and `--stage e32`. |
 | `capture_post.py` | After the install, run twice (and `--post-only` when there was no pre-install capture). |
 | `capture_independent.py` | A second, separate check with its own code. It does not import the other modules. |
-| `write_receipt.py` | Builds the receipt from the verified folders; optionally writes it and the gate. |
+| `write_receipt.py` | Builds the receipt from the verified folders; optionally writes it and the gate. `--evidence ha-history` builds it from saved Home Assistant history instead (see below). |
+| `stable_declaration.py` | The owner's stable declaration: `init` writes one with the placeholder for his words, `seal` binds the receipt, the readiness report and the evidence and (`--apply-gate`) records it in the gate. |
 | `mqtt_listen.py` | The read-only MQTT listener the post capture starts. |
 | `INSTALL-STEPS.nl.md` | The steps for the owner on the day, in Dutch. |
 | `test_receipt.py`, `test_capture_smoke.py` | Offline tests (no device, no network). They run in CI `gates`. |
@@ -105,6 +106,31 @@ Substitute evidence counts only when it is named, and every one is listed under 
 
 Without them `backup_verified`, `settings_programs_bindings_preserved` and `control_state_safe_after_restart` stay
 false. The two Home Assistant upgrade checks cannot be proven after the fact at all. Expect `INCOMPLETE`.
+
+## An install recorded only in the Home Assistant history (owner-declared stable)
+
+When the owner installed a release through the update entity without any capture and then declares it stable
+(`docs/modern-thermostat/STABLE-RELEASE-TAGS.en.md`, "Owner-declared stable release"), the receipt comes from saved
+recorder history only. Nothing is requested; the coordinator exports the history (`/api/history/period`, full rows) of
+the Firmware update entity, the integration's own update entity and the device-uptime sensor.
+
+```
+python -I tools/acceptance/stable_declaration.py init <declaration> --tag v1.0.0-e32v2 --follows v1.0.0-e32v2-rc.5
+#   put the owner's words, exactly as given, in owner.statements (the gate refuses "<OWNER STATEMENT>")
+python -I tools/acceptance/write_receipt.py --evidence ha-history --history <export> [--history <export>] \
+       --github-release <saved release or catalog> [--ci-json <saved CI answers>] --declaration <declaration> --write
+python3 -I tools/switchover/release_ready.py --history-file <export> [...] --release v1.0.0-e32v2-rc.5 --stage final \
+       --since <first second the entity showed the release> --until <end of the export> --declaration <declaration> \
+       --json docs/modern-thermostat/RELEASE-READINESS-1.0.0.json
+python -I tools/acceptance/stable_declaration.py seal <declaration> --receipt <receipt> \
+       --readiness docs/modern-thermostat/RELEASE-READINESS-1.0.0.json --apply-gate
+```
+
+The install itself must show in the history (one install record, uploaded once, `installed`, the restart and ten
+minutes of uptime of that boot, the new version on the entity); those checks are never declared. The checks the
+history cannot show are recorded as `"declared"` with the reason under `check_basis`, never as `true`. The exports are
+copied into `docs/modern-thermostat/update-acceptance/ha-history/` byte for byte and bound by digest; the gate
+re-derives every install fact from them.
 
 ## MQTT listener
 

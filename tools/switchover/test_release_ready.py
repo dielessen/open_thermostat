@@ -2,7 +2,10 @@
 
     python3 -I -m unittest discover -s tools/switchover -p "test_*.py" -v
 """
+import contextlib
 import datetime as dt
+import hashlib
+import io
 import json
 from pathlib import Path
 import sys
@@ -259,6 +262,135 @@ class Repository(unittest.TestCase):
         doc = rr.report('v1.0.0-e32v2-rc.1', 'final', start, end, {}, rr.PASS, {c: {'result': rr.PASS} for c in rr.CRITERIA})
         self.assertEqual((doc['kind'], doc['stage'], doc['from'], doc['to']),
                          ('release_readiness', 'final', '2026-11-03T00:00:00Z', '2026-11-18T00:00:00Z'))
+
+
+def saved_exports(release='v1.0.0-e32v2-rc.5'):
+    """Saved /api/history/period answers (synthetic): the update entity on `release` from 05:55:12 and the uptime
+    sensor in hours, with the restart of the install at 05:55:10 (minimal rows after the first)."""
+    update = [{'entity_id': 'update.test_e32_firmware', 'state': 'on', 'last_changed': '2026-11-05T04:00:00+00:00',
+               'attributes': {'installed_version': 'v1.0.0-e32v2-rc.4', 'latest_version': release}},
+              {'entity_id': 'update.test_e32_firmware', 'state': 'off', 'last_changed': '2026-11-05T05:55:12.409432+00:00',
+               'attributes': {'installed_version': release, 'latest_version': release}}]
+    uptime = [{'entity_id': 'sensor.test_device_uptime', 'state': '16.0', 'last_changed': '2026-11-05T04:00:00+00:00',
+               'attributes': {'unit_of_measurement': 'h'}},
+              {'state': 'unavailable', 'last_changed': '2026-11-05T05:55:10.303901+00:00'},
+              {'state': repr(7 / 3600), 'last_changed': '2026-11-05T05:55:10.424794+00:00'},
+              {'state': repr(11050 / 3600), 'last_changed': '2026-11-05T08:59:14.068584+00:00'}]
+    return [[update], [uptime]]
+
+
+class SavedEvidence(unittest.TestCase):
+    """--history-file (no Home Assistant) and the owner's declaration (--declaration / --declare)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        (self.root / rr.DOCS / 'update-acceptance').mkdir(parents=True)
+        path, record = ha_receipt()
+        (self.root / path).write_text(json.dumps(record))
+        self.files = []
+        for index, export in enumerate(saved_exports()):
+            name = self.root / f'history-{index}.json'
+            name.write_text(json.dumps(export))
+            self.files.append(name)
+        self.declaration = 'declaration.json'
+        self.write_declaration(['Synthetic fixture: rc5 is 1.0'])
+
+    def write_declaration(self, words, criteria=None):
+        (self.root / self.declaration).write_text(json.dumps({
+            'schema': 1, 'kind': 'owner_declared_stable', 'tag': 'v1.0.0-e32v2', 'follows': 'v1.0.0-e32v2-rc.5',
+            'owner': {'actor': 'repository_owner', 'method': 'explicit_user_instruction',
+                      'statements': [{'at_utc': '2026-11-06T22:20:00Z', 'text': text} for text in words]},
+            'declared_criteria': criteria if criteria is not None else {
+                name: 'fixture reason' for name in ('stability', 'active_control', 'trv_control', 'failure_tests',
+                                                    'install_guide', 'release_window')}}))
+
+    def run_main(self, *extra):
+        out = self.root / 'report.json'
+        argv = ['--release', 'v1.0.0-e32v2-rc.5', '--stage', 'final', '--root', str(self.root),
+                '--since', '2026-11-05T05:55:13Z', '--until', '2026-11-05T09:00:00Z', '--json', str(out)]
+        for path in self.files:
+            argv += ['--history-file', str(path)]
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = rr.main(argv + list(extra))
+        return code, (json.loads(out.read_text()) if out.exists() else None)
+
+    def test_measured_from_saved_history_without_a_declaration(self):
+        code, report = self.run_main()
+        self.assertEqual((code, report['overall'], report['source']), (1, 'WAIT', 'saved_history'))
+        criteria = report['criteria']
+        # The uptime is converted from hours: 3.1 h since the restart, not 3 s.
+        self.assertEqual(criteria['stability']['result'], 'WAIT')
+        self.assertEqual(criteria['stability']['hours_since_restart'], 3.1)
+        # No entity list: the valves are not measured, never "not applicable".
+        self.assertEqual(criteria['trv_control']['result'], 'WAIT')
+        self.assertNotIn('not_applicable', criteria['trv_control'])
+        self.assertEqual(criteria['release_window']['result'], 'PASS')
+        self.assertEqual(report['installed_versions'], ['v1.0.0-e32v2-rc.5'])
+        self.assertEqual([f['sha256'] for f in report['evidence_files']],
+                         [hashlib.sha256(p.read_bytes()).hexdigest() for p in self.files])
+        self.assertNotIn('declaration', report)
+
+    def test_a_state_list_shows_that_there_are_no_valves(self):
+        states = self.root / 'states.json'
+        states.write_text(json.dumps([{'entity_id': 'sensor.test_device_uptime', 'attributes': {}},
+                                      {'entity_id': 'update.test_e32_firmware', 'attributes': {}}]))
+        _, report = self.run_main('--states-file', str(states))
+        self.assertEqual(report['criteria']['trv_control']['result'], 'PASS')
+        self.assertTrue(report['criteria']['trv_control']['not_applicable'])
+        self.assertEqual(report['evidence_files'][-1]['kind'], 'ha_states')
+
+    def test_the_owner_declaration_makes_pass_declared_and_keeps_the_measurement(self):
+        code, report = self.run_main('--declaration', self.declaration)
+        self.assertEqual((code, report['overall']), (0, 'PASS_DECLARED'))
+        self.assertEqual(report['declaration']['statements'], ['Synthetic fixture: rc5 is 1.0'])
+        self.assertEqual(report['declaration']['file'], self.declaration)
+        stability = report['criteria']['stability']
+        self.assertEqual((stability['result'], stability['declared'], stability['measured']['result']),
+                         ('DECLARED', 'fixture reason', 'WAIT'))
+        self.assertEqual(report['criteria']['updates']['result'], 'PASS')
+        self.assertEqual(report['criteria']['release_window']['measured']['result'], 'PASS')
+        self.assertEqual(report['installed_versions'], ['v1.0.0-e32v2-rc.5'])
+
+    def test_declare_on_the_command_line_and_what_is_never_declared(self):
+        code, report = self.run_main('--declaration', self.declaration, '--declare', 'stability=only this one')
+        self.assertEqual((code, report['overall']), (1, 'WAIT'))
+        self.assertEqual(report['declaration']['declared_criteria'], ['stability'])
+        for extra, message in ((['--declare', 'updates=no'], 'cannot be declared'),
+                               (['--declare', 'speed=fast'], 'cannot be declared')):
+            with self.subTest(extra=extra), self.assertRaisesRegex(SystemExit, message):
+                self.run_main('--declaration', self.declaration, *extra)
+        with self.assertRaises(SystemExit):
+            self.run_main('--declare', 'stability=without a declaration')
+        # A measured FAIL is never declared: a second release inside the window.
+        exports = saved_exports()
+        exports[0][0].append({'entity_id': 'update.test_e32_firmware', 'state': 'off',
+                              'last_changed': '2026-11-05T07:00:00+00:00',
+                              'attributes': {'installed_version': 'v1.0.0-e32v2-rc.6'}})
+        self.files[0].write_text(json.dumps(exports[0]))
+        with self.assertRaisesRegex(SystemExit, 'never overrides a FAIL'):
+            self.run_main('--declaration', self.declaration)
+
+    def test_a_placeholder_statement_declares_nothing(self):
+        for words in (['<OWNER STATEMENT>'], [''], []):
+            with self.subTest(words=words):
+                self.write_declaration(words)
+                with self.assertRaisesRegex(SystemExit, 'placeholder'):
+                    self.run_main('--declaration', self.declaration)
+
+    def test_saved_evidence_needs_an_end_and_answers_like_home_assistant(self):
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            rr.main(['--release', 'v1.0.0-e32v2-rc.5', '--history-file', str(self.files[0])])
+        saved = rr.SavedHistory([json.loads(p.read_text()) for p in self.files])
+        start = dt.datetime(2026, 11, 5, 5, 55, 13, tzinfo=dt.timezone.utc)
+        end = dt.datetime(2026, 11, 5, 9, tzinfo=dt.timezone.utc)
+        rows = saved.history(['sensor.test_device_uptime'], start, end, minimal=True)['sensor.test_device_uptime']
+        self.assertEqual(rows[0]['last_changed'], start.isoformat())  # the state at the start
+        self.assertEqual(rows[0]['attributes'], {'unit_of_measurement': 'h'})  # full, as Home Assistant's first row
+        self.assertEqual(len(rows), 2)
+        with self.assertRaises(SystemExit):
+            saved.get('/api/config')
 
 
 if __name__ == '__main__':

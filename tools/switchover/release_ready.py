@@ -38,10 +38,29 @@ requires that.
 Entities are found by their suffix unless given: _device_uptime, the climate entity that carries
 boiler_output_enabled, the E32's _firmware update entity, and valve-control switches ending in
 --trv-suffix. Exit status 0 only when every criterion passes.
+
+Saved evidence instead of a live Home Assistant (nothing is requested):
+
+    python3 -I tools/switchover/release_ready.py --history-file <saved /api/history/period answer> [...]
+        [--states-file <saved /api/states answer>] --release v1.0.0-e32v2-rc.5 --stage final
+        --since 2026-11-05T05:55:13Z --until 2026-11-05T09:00:00Z [--json <report>]
+
+The window ends at --until (required). A row before --since stands for the state at --since, as Home
+Assistant's history does. Without --states-file (or --trv-entity) the valve switches cannot be listed, so
+trv_control is WAIT ("not measured"), never "not applicable". The report lists the files and their SHA-256.
+
+The owner's stable declaration (docs/modern-thermostat/STABLE-RELEASE-TAGS.en.md, "Owner-declared stable
+release"): --declaration <file in --root> quotes the owner's words and names the criteria he declares;
+--declare <criterion>=<reason> declares one (default: the declaration's declared_criteria). A declared
+criterion becomes DECLARED with its measured result kept under "measured"; a measured FAIL is never
+declared and updates is always measured. With every criterion PASS or DECLARED the overall result is
+PASS_DECLARED, which the gate accepts only with that declaration (bound by digest) and only for the stable
+tag it names. A declaration whose statement is still the placeholder "<OWNER STATEMENT>" is refused.
 """
 import argparse
 import datetime as dt
 import glob
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -57,6 +76,9 @@ GAP_TOLERANCE_S = 3600   # Home Assistant unavailable for less than this does no
 DOCS = 'docs/modern-thermostat'
 CRITERIA = ('stability', 'active_control', 'trv_control', 'failure_tests', 'updates', 'install_guide')
 WINDOW = 'release_window'  # the seventh criterion: the window is about --release only (R5-09)
+DECLARED = 'DECLARED'
+PLACEHOLDER = '<OWNER STATEMENT>'  # scripts/verify_e32_update_gate.DECLARATION_PLACEHOLDER
+UPTIME_UNITS = {'s': 1, 'min': 60, 'h': 3600, 'd': 86400}  # Home Assistant reports the uptime in its display unit
 
 
 def spans(series, end, gap_tolerance_s=GAP_TOLERANCE_S):
@@ -105,6 +127,10 @@ def trv_control(by_entity, end):
     # rc.5: the valve-control switches exist only for rooms with radiator valves (HA 1.0.0rc6), so an
     # installation without them has nothing to measure: not applicable, which PASSES the criterion (the
     # gate requires PASS on every criterion; a house without valves must not be held back by them).
+    # None: the entity list is unknown (saved evidence without a state list), so absence proves nothing.
+    if by_entity is None:
+        return {'result': WAIT, 'why': 'not measured: the saved evidence has no entity list (--states-file) to tell '
+                                       'whether the installation has valve-control switches', 'rooms': {}}
     if not by_entity:
         return {'result': PASS, 'not_applicable': True,
                 'why': 'not applicable: no radiator valves in this installation (no valve-control switches)', 'rooms': {}}
@@ -145,13 +171,17 @@ def failure_tests(sessions):
 
 def updates(receipts):
     """receipts: [(path, record)]. One accepted update on the official route is enough."""
+    # A receipt with checks the owner declared (from the saved history) is listed, but never counts as measured.
     accepted = [(p, r) for p, r in receipts
-                if r.get('status') == 'PASS' and r.get('method') == 'home_assistant']
+                if r.get('status') == 'PASS' and r.get('method') == 'home_assistant' and not r.get('declared_checks')]
+    declared = [str(p) for p, r in receipts
+                if r.get('status') == 'PASS' and r.get('method') == 'home_assistant' and r.get('declared_checks')]
     tags = [r.get('tag') for _, r in accepted]
+    extra = {'receipts_with_declared_checks': declared} if declared else {}
     if accepted:
         return {'result': PASS, 'why': f'{len(accepted)} updates accepted on the Home Assistant route', 'tags': tags,
-                'receipts': [str(p) for p, _ in accepted]}
-    return {'result': WAIT, 'why': 'no update accepted on the Home Assistant route yet', 'tags': []}
+                'receipts': [str(p) for p, _ in accepted], **extra}
+    return {'result': WAIT, 'why': 'no update accepted on the Home Assistant route yet', 'tags': [], **extra}
 
 
 def install_guide(records):
@@ -211,6 +241,88 @@ def evaluate(history, end, repo, release=None, stage='candidate'):
     return overall, out
 
 
+def declare(overall, criteria, declared, stage):
+    """The owner's declaration over the measured criteria: each declared one becomes DECLARED with its measured
+    result kept. Refused for updates (always measured) and over a measured FAIL. Returns (overall, criteria)."""
+    for name, reason in declared.items():
+        if name not in criteria or name == 'updates':
+            raise SystemExit(f'{name} cannot be declared (declarable: '
+                             f'{", ".join(c for c in CRITERIA + (WINDOW,) if c != "updates")})')
+        if criteria[name]['result'] == FAIL:
+            raise SystemExit(f'{name} measured FAIL ({criteria[name]["why"]}): a declaration never overrides a FAIL')
+        if not isinstance(reason, str) or not reason.strip():
+            raise SystemExit(f'{name}: a declared criterion needs its reason')
+    out = {name: ({'result': DECLARED, 'why': 'declared by the owner: ' + declared[name], 'declared': declared[name],
+                   'measured': value} if name in declared else value) for name, value in criteria.items()}
+    counted = CRITERIA + ((WINDOW,) if stage == 'final' and WINDOW in out else ())
+    results = [out[c]['result'] for c in counted]
+    if all(r in (PASS, DECLARED) for r in results):
+        overall = 'PASS_DECLARED' if DECLARED in results else PASS
+    else:
+        overall = FAIL if FAIL in results else WAIT
+    return overall, out
+
+
+def read_declaration(root, name, given):
+    """The owner's stable declaration (a file in the repository): his statements, and the criteria to declare
+    (--declare wins over the file's declared_criteria). A placeholder statement is refused."""
+    path = (Path(root) / name).resolve()
+    if not path.is_relative_to(Path(root).resolve()) or not path.is_file():
+        raise SystemExit(f'{name}: the declaration must be a file in {root}')
+    document = json.loads(path.read_text(encoding='utf-8'))
+    statements = [item.get('text') for item in ((document.get('owner') or {}).get('statements') or [])
+                  if isinstance(item, dict)]
+    if not statements or any(not isinstance(t, str) or not t.strip() or PLACEHOLDER in t for t in statements):
+        raise SystemExit(f'{name}: the owner statement is still a placeholder or missing; nothing can be declared '
+                         'until his own words are in it')
+    declared = dict(given) if given else dict(document.get('declared_criteria') or {})
+    if not declared:
+        raise SystemExit(f'{name} declares no criterion and no --declare was given')
+    block = {'file': Path(name).as_posix(), 'statements': statements, 'declared_criteria': sorted(declared)}
+    return block, declared
+
+
+class SavedHistory:
+    """Saved Home Assistant answers instead of a live one: /api/history/period exports (lists of series) and,
+    optionally, /api/states. history() answers as Home Assistant does: the last row before the start stands for
+    the state at the start."""
+
+    def __init__(self, exports, states=None):
+        self.series, self.states = {}, states
+        for export in exports:
+            for rows in export:
+                if not rows or not isinstance(rows[0], dict) or 'entity_id' not in rows[0]:
+                    raise SystemExit('a history export is a list of series, each starting with a row that has entity_id')
+                known = self.series.setdefault(rows[0]['entity_id'], [])
+                known += [row for row in rows if row not in known]
+        for rows in self.series.values():
+            rows.sort(key=lambda r: se.parse_time(r.get('last_changed') or r.get('last_updated')))
+
+    def get(self, path):
+        if path != '/api/states':
+            raise SystemExit(f'saved evidence cannot answer {path}')
+        if self.states is not None:
+            return self.states
+        return [{'entity_id': entity, 'state': rows[-1].get('state'),
+                 'attributes': next((r['attributes'] for r in reversed(rows) if r.get('attributes')), {})}
+                for entity, rows in sorted(self.series.items())]
+
+    def history(self, entity_ids, start, end, minimal):
+        out = {}
+        for entity in entity_ids:
+            rows = self.series.get(entity) or []
+            before = [r for r in rows if se.parse_time(r.get('last_changed') or r.get('last_updated')) <= start.timestamp()]
+            inside = [r for r in rows
+                      if start.timestamp() < se.parse_time(r.get('last_changed') or r.get('last_updated')) <= end.timestamp()]
+            # Home Assistant's first row is the full state at the start (minimal rows lack the attributes).
+            known = next((r['attributes'] for r in reversed(before) if r.get('attributes')), None)
+            first = [dict(before[-1], entity_id=entity, last_changed=start.isoformat(), last_updated=start.isoformat(),
+                          **({'attributes': known} if known is not None else {}))] if before else []
+            if first or inside:
+                out[entity] = first + inside
+        return out
+
+
 def read_repo(root):
     root = Path(root)
     docs = root / DOCS
@@ -243,10 +355,21 @@ def load_history(ha, args, start, end):
                                          and 'boiler_output_enabled' in (s.get('attributes') or {})), None)
     update = args.update_entity or next((s['entity_id'] for s in states if s['entity_id'].startswith('update.')
                                          and s['entity_id'].endswith('_firmware') and 'e32' in s['entity_id']), None)
-    trv = args.trv_entity or sorted(s['entity_id'] for s in states if s['entity_id'].endswith(args.trv_suffix))
+    listed = not isinstance(ha, SavedHistory) or ha.states is not None  # saved history alone does not list entities
+    trv = args.trv_entity or (sorted(s['entity_id'] for s in states if s['entity_id'].endswith(args.trv_suffix))
+                              if listed else None)
     ids = {'uptime': uptime, 'output': output, 'update': update, 'trv': trv}
     rows = ha.history([uptime], start, end, minimal=True).get(uptime, [])
-    history = {'uptime': [(se.parse_time(r.get('last_changed') or r.get('last_updated')), se.number(r.get('state'))) for r in rows]}
+    unit = next(((r.get('attributes') or {}).get('unit_of_measurement') for r in rows
+                 if (r.get('attributes') or {}).get('unit_of_measurement')), 's')
+    scale = UPTIME_UNITS.get(unit)
+    if scale is None:
+        raise SystemExit(f'{uptime}: unknown uptime unit {unit!r}')
+
+    def seconds(state):
+        value = se.number(state)
+        return None if value is None else value * scale
+    history = {'uptime': [(se.parse_time(r.get('last_changed') or r.get('last_updated')), seconds(r.get('state'))) for r in rows]}
     offline, since = [], None
     for r in rows:
         t = se.parse_time(r.get('last_changed') or r.get('last_updated'))
@@ -273,7 +396,7 @@ def load_history(ha, args, start, end):
         for r in ha.history([output], start, end, minimal=False).get(output, []):
             value = None if r.get('state') in ('unavailable', 'unknown') else boolean((r.get('attributes') or {}).get('boiler_output_enabled'))
             history['output'].append((se.parse_time(r.get('last_changed') or r.get('last_updated')), value))
-    history['trv'] = {}
+    history['trv'] = None if trv is None else {}
     if trv:
         for entity, rows in ha.history(trv, start, end, minimal=True).items():
             history['trv'][entity] = [(se.parse_time(r.get('last_changed') or r.get('last_updated')),
@@ -282,17 +405,33 @@ def load_history(ha, args, start, end):
     return ids, history
 
 
-def report(release, stage, start, end, ids, overall, criteria):
-    return {'schema': 1, 'kind': 'release_readiness', 'release': release, 'stage': stage,
-            'from': start.strftime('%Y-%m-%dT%H:%M:%SZ'), 'to': end.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'days_needed': DAYS_NEEDED, 'entities': ids, 'overall': overall, 'criteria': criteria,
-            'installed_versions': (criteria.get(WINDOW) or {}).get('versions'),
-            'generated_by': 'tools/switchover/release_ready.py'}
+def report(release, stage, start, end, ids, overall, criteria, declaration=None, evidence=None):
+    """The report the gate reads. The window's installed versions are the measured ones, also when the window
+    criterion is declared."""
+    window = criteria.get(WINDOW) or {}
+    document = {'schema': 1, 'kind': 'release_readiness', 'release': release, 'stage': stage,
+                'from': start.strftime('%Y-%m-%dT%H:%M:%SZ'), 'to': end.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'days_needed': DAYS_NEEDED, 'entities': ids, 'overall': overall, 'criteria': criteria,
+                'installed_versions': (window.get('measured') or window).get('versions'),
+                'generated_by': 'tools/switchover/release_ready.py'}
+    if evidence is not None:
+        document['source'] = 'saved_history'
+        document['evidence_files'] = evidence
+    if declaration is not None:
+        document['declaration'] = declaration
+    return document
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
-    parser.add_argument('--ha-url', required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument('--ha-url')
+    source.add_argument('--history-file', action='append', help='a saved /api/history/period answer (repeatable)')
+    parser.add_argument('--states-file', help='a saved /api/states answer (with --history-file)')
+    parser.add_argument('--until', help='end of the window (ISO; required with --history-file)')
+    parser.add_argument('--declaration', help="the owner's stable declaration, a path in --root")
+    parser.add_argument('--declare', action='append', default=[], metavar='CRITERION=REASON',
+                        help='declare one criterion (with --declaration); default: the declaration\'s declared_criteria')
     parser.add_argument('--release', required=True, help='the release that was measured, e.g. v1.0.0-e32v2-rc.1')
     parser.add_argument('--stage', choices=('candidate', 'final'), default='candidate')
     parser.add_argument('--since', help='start of the window (ISO); default 15 days back')
@@ -303,22 +442,62 @@ def main(argv=None):
     parser.add_argument('--json', help='also write the report here')
     parser.add_argument('--insecure', action='store_true', help='self-signed certificate on your own network')
     args = parser.parse_args(argv)
-    token = os.environ.get('OT_HA_TOKEN', '').strip()
-    if not token:
-        raise SystemExit('set OT_HA_TOKEN to a Home Assistant long-lived access token')
-    ha = se.HomeAssistant(args.ha_url, token, args.insecure)
-    end = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    given = {}
+    for item in args.declare:
+        name, _, reason = item.partition('=')
+        if not reason.strip():
+            parser.error(f'--declare {item!r}: give CRITERION=REASON')
+        given[name.strip()] = reason.strip()
+    if given and not args.declaration:
+        parser.error("--declare needs --declaration (the owner's stable declaration with his own words)")
+    if (args.history_file is None) != (args.until is None) or (args.states_file and not args.history_file):
+        parser.error('--until and --states-file go with --history-file (saved evidence), and --history-file needs --until')
+    evidence = None
+    if args.history_file:
+        root = Path(args.root).resolve()
+        exports, evidence = [], []
+        for name in args.history_file:
+            raw = Path(name).read_bytes()
+            exports.append(json.loads(raw))
+            path = Path(name).resolve()
+            evidence.append({'path': path.relative_to(root).as_posix() if path.is_relative_to(root) else path.as_posix(),
+                             'sha256': hashlib.sha256(raw).hexdigest(), 'kind': 'ha_history'})
+        states = None
+        if args.states_file:
+            raw = Path(args.states_file).read_bytes()
+            states = json.loads(raw)
+            path = Path(args.states_file).resolve()
+            evidence.append({'path': path.relative_to(root).as_posix() if path.is_relative_to(root) else path.as_posix(),
+                             'sha256': hashlib.sha256(raw).hexdigest(), 'kind': 'ha_states'})
+        ha = SavedHistory(exports, states)
+        end = se.parse_since(args.until).astimezone(dt.timezone.utc).replace(microsecond=0)
+    else:
+        token = os.environ.get('OT_HA_TOKEN', '').strip()
+        if not token:
+            raise SystemExit('set OT_HA_TOKEN to a Home Assistant long-lived access token')
+        ha = se.HomeAssistant(args.ha_url, token, args.insecure)
+        end = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     start = se.parse_since(args.since) if args.since else end - dt.timedelta(days=DAYS_NEEDED + 1)
+    declaration, declared = (read_declaration(args.root, args.declaration, given) if args.declaration else (None, {}))
     ids, history = load_history(ha, args, start, end)
     overall, criteria = evaluate(history, end.timestamp(), read_repo(args.root), release=args.release, stage=args.stage)
-    print(f'1.0 readiness of {args.release} ({args.stage}), {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M} UTC')
+    if declaration is not None:
+        overall, criteria = declare(overall, criteria, declared, args.stage)
+    print(f'1.0 readiness of {args.release} ({args.stage}), {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M} UTC'
+          + (' (saved evidence)' if evidence is not None else ''))
     for name in CRITERIA + (WINDOW,):
-        print(f'  {criteria[name]["result"]:<4}  {name:<15} {criteria[name]["why"]}')
+        line = f'  {criteria[name]["result"]:<8}  {name:<15} {criteria[name]["why"]}'
+        if criteria[name]['result'] == DECLARED:
+            line += f' [measured: {criteria[name]["measured"]["result"]}, {criteria[name]["measured"]["why"]}]'
+        print(line)
     print(f'Overall: {overall}')
+    if declaration is not None:
+        print('Owner declaration:', declaration['file'], '|', ' | '.join(declaration['statements']))
     if args.json:
-        Path(args.json).write_bytes((json.dumps(report(args.release, args.stage, start, end, ids, overall, criteria),
+        Path(args.json).write_bytes((json.dumps(report(args.release, args.stage, start, end, ids, overall, criteria,
+                                                       declaration, evidence),
                                                 indent=1, ensure_ascii=False) + '\n').encode())
-    return 0 if overall == PASS else 1
+    return 0 if overall in (PASS, 'PASS_DECLARED') else 1
 
 
 if __name__ == '__main__':

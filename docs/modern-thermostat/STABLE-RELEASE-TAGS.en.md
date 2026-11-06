@@ -58,7 +58,7 @@ update page.
 | `src/update/IndexedReleaseCatalog.h` | `firmwareVersion` (stable rank 3), `newerFirmwareRelease` channel floor |
 | `scripts/organize_releases.py` | `classify`, `is_stable` (tag and GitHub flag), titles `E32 firmware · 1.0.0 · Current`, notes heading `# E32 V2 1.0.0` |
 | `scripts/sync_readme_releases.py` | README table: a Stable row, plus a Pre-release row when a newer one exists; `git clone --branch` uses the stable tag |
-| `scripts/verify_e32_update_gate.py` | `version`, `stable`; a stable candidate needs an accepted **Home Assistant** update of its predecessor; the one-time exception is limited to betas |
+| `scripts/verify_e32_update_gate.py` | `version`, `stable`; a stable candidate needs an accepted **Home Assistant** update of its predecessor; the one-time exception is limited to betas; the owner's stable declaration (`stable_declaration`, below) is recorded in its result as `publication_basis: owner_declared_stable` |
 | `scripts/package_ha_release.py` | `ha-release.json` `prerelease` follows the tag |
 | `scripts/verify_alpha36_beta_path.py`, `verify_accepted_update_path.py` | retained updaters are proved against a stable tag published as a normal release |
 | `scripts/cleanup_release_artifacts.py` | keeps the newest three firmware releases by version (stable included) |
@@ -104,3 +104,55 @@ the published 0.1.0 beta.1.
 - Once `ha-v1.0.0` is published, GitHub's "Latest release" badge goes to
   whichever stable release was published last. Nothing in the update paths
   uses `releases/latest`.
+
+## Owner-declared stable release
+
+Added 6 November 2026. **The owner decides; the gate records it.** The owner may
+declare a release candidate stable without waiting for what the readiness report
+measures (the 14-day window, the attended failure tests, an install by someone
+else). On 6 November 2026 he did so for `v1.0.0-e32v2-rc.5`, which becomes
+`v1.0.0-e32v2` with `ha-v1.0.0`.
+
+The declaration is a JSON record in the repository, bound by digest in
+`E32-UPDATE-GATE.json` under `stable_declaration`
+(`{"declaration": "<path>", "sha256": "<digest>"}`):
+
+- `tag` (the stable tag it is for) and `follows` (the release it follows);
+- `owner.statements`: the owner's own words, exactly as he gave them, each with
+  its time (`at_utc`, and `at_local`). The placeholder `<OWNER STATEMENT>`, or an
+  empty statement, is refused by the gate and by the tools;
+- `declared_criteria`: the readiness criteria declared instead of measured, each
+  with its reason. `updates` (an accepted Home Assistant update) is never
+  declared;
+- `declared_receipt_checks`: the receipt checks the saved evidence cannot show,
+  each with its reason (`seal` copies them from the receipt);
+- `receipt`, `readiness_report` and `evidence`: every file it covers, by SHA-256.
+
+What the gate then accepts, for that stable tag only:
+
+- a readiness report shorter than 14 days whose declared criteria are
+  `DECLARED` (exactly those the declaration names, each with its measured result
+  kept under `measured`, never over a measured FAIL) and whose `overall` is
+  `PASS_DECLARED`;
+- a receipt of the predecessor built from saved Home Assistant history
+  (`evidence: ha_history`, `tools/acceptance/write_receipt.py --evidence
+  ha-history`). The gate re-derives its install facts from the bound exports.
+  The install itself (one install record, one upload, `installed`, the restart
+  and ten minutes of uptime of that boot, the new version on the update entity)
+  must show and is never declared. Only the other checks may be `"declared"`.
+
+What does not change: a receipt is still required, a stable release still never
+uses a publication exception, and there is one declaration per stable tag. A
+later stable release with the declaration still in the policy gets no help from
+it: it needs its own declaration or the normal rule. The gate's result says
+`publication_basis: owner_declared_stable` and lists the owner's words, the
+declared criteria and checks and the length of the window, so the declaration is
+always visible and never silent.
+
+The commands are in `tools/acceptance/README.md` ("An install recorded only in
+the Home Assistant history"): `stable_declaration.py init`, the owner's words,
+`write_receipt.py --evidence ha-history ... --write`, `release_ready.py
+--history-file ... --declaration ... --stage final --json <report>`,
+`stable_declaration.py seal ... --apply-gate`, the inventory refresh and a
+commit, then `tools/dev/prepare_release.py --spec <version>` as for every stable
+release.

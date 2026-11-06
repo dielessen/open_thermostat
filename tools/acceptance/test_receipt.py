@@ -1056,5 +1056,224 @@ class DryRuns(unittest.TestCase):
             self.assertEqual(result.returncode, 2, (arguments, result.stdout, result.stderr))
 
 
+# ------------------------------------------------------------------ --evidence ha-history and the stable declaration
+
+HISTORY_TAG, HISTORY_BEFORE, HISTORY_STABLE = 'v1.0.0-e32v2-rc.5', 'v1.0.0-e32v2-rc.4', 'v1.0.0-e32v2'
+OWNER_WORDS = ['Synthetic fixture: rc5 is 1.0', 'Synthetic fixture: release it as 1.0']
+
+
+def history_exports(installs=1):
+    """Synthetic recorder exports (the shapes of /api/history/period): the Firmware entity, the integration's update
+    entity and the device-uptime sensor in hours, of an install at 05:53:51-05:55:12 with a boot at 05:55:03."""
+    entity, uptime, integration = SETTINGS_BASE['entity_id'], 'sensor.test_device_uptime', 'update.test_openthermostat_update'
+
+    def record(start, end):
+        return {'tag': HISTORY_TAG, 'from_version': HISTORY_BEFORE, 'sha256': FW, 'size': FW_BYTES, 'started_at': start,
+                'finished_at': end, 'duration_s': 80.7, 'result': 'installed', 'uploads': 1,
+                'reported': {'version': HISTORY_TAG, 'source_commit': SOURCE, 'web_sha256': WEB, 'elf_sha256': ELF}}
+
+    def row(at, installed, latest, last=None):
+        attributes = {'installed_version': installed, 'latest_version': latest, 'release_url': None}
+        if last:
+            attributes['last_install'] = last
+        return {'entity_id': entity, 'state': 'on' if installed != latest else 'off', 'attributes': attributes,
+                'last_changed': at}
+    rows = [row('2026-11-05T04:00:00+00:00', HISTORY_BEFORE, HISTORY_BEFORE),
+            row('2026-11-05T05:32:00.336794+00:00', HISTORY_BEFORE, HISTORY_TAG)]
+    if installs == 2:
+        rows.append(row('2026-11-05T05:40:00+00:00', HISTORY_BEFORE, HISTORY_TAG,
+                        record('2026-11-05T05:38:00Z', '2026-11-05T05:39:00Z')))
+    rows.append(row('2026-11-05T05:55:12.409432+00:00', HISTORY_TAG, HISTORY_TAG,
+                    record('2026-11-05T05:53:51Z', '2026-11-05T05:55:12Z')))
+    hacs = [{'entity_id': integration, 'state': 'off', 'last_changed': '2026-11-05T05:51:28.526907+00:00',
+             'attributes': {'installed_version': '1.0.0rc6', 'latest_version': '1.0.0rc6',
+                            'release_url': f'https://github.com/{SETTINGS_BASE["hacs_repository"]}/releases/1.0.0rc6'}}]
+    up = [{'entity_id': uptime, 'state': '16.2', 'attributes': {'unit_of_measurement': 'h'},
+           'last_changed': '2026-11-05T05:50:00+00:00'},
+          {'state': 'unavailable', 'last_changed': '2026-11-05T05:55:10.303901+00:00'}]
+    up += [{'state': repr(seconds / 3600), 'last_changed': at} for at, seconds in
+           (('2026-11-05T05:55:10.424794+00:00', 7), ('2026-11-05T05:56:10.419826+00:00', 67),
+            ('2026-11-05T06:06:10.480484+00:00', 667), ('2026-11-05T08:59:14.068584+00:00', 11050))]
+    return [[rows, hacs], [up]]
+
+
+@unittest.skipUnless(VERIFIER.exists(), f'repository with the gate not found: {VERIFIER}')
+class HistoryReceipt(unittest.TestCase):
+    """write_receipt.py --evidence ha-history and stable_declaration.py on a throwaway repository with the gate."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix='acceptance-history-'))
+        self.repo = self.tmp / 'repo'
+        self.docs = self.repo / 'docs' / 'modern-thermostat'
+        (self.docs / 'update-acceptance').mkdir(parents=True)
+        shutil.copytree(WORKTREE / 'scripts', self.repo / 'scripts', ignore=shutil.ignore_patterns('__pycache__', 'upstream'))
+        (self.docs / 'E32-UPDATE-GATE.json').write_text(json.dumps({
+            'schema': 1, 'required_for_successor_release': True, 'accepted': None, 'pending_tag': HISTORY_TAG,
+            'candidate_plan': None, 'publication_exception': {'receipt': 'x.json', 'sha256': '0' * 64}}))
+        self.config = config_file(self.tmp, tag=HISTORY_TAG, previous_tag=HISTORY_BEFORE)
+        self.inputs = self.tmp / 'inputs'
+        self.inputs.mkdir()
+        self.exports = []
+        for index, export in enumerate(history_exports()):
+            path = self.inputs / f'history-{index}.json'
+            path.write_text(json.dumps(export))
+            self.exports.append(path)
+        self.catalog = self.inputs / 'catalog.json'
+        self.catalog.write_text(json.dumps([
+            {'tag_name': HISTORY_BEFORE, 'draft': False, 'prerelease': True, 'assets': []},
+            {'tag_name': HISTORY_TAG, 'draft': False, 'prerelease': True, 'published_at': '2026-11-05T01:10:22Z',
+             'assets': [{'name': 'firmware.bin', 'size': FW_BYTES, 'digest': 'sha256:' + FW}]}]))
+        self.declaration = 'docs/modern-thermostat/RELEASE-1.0.0-STABLE-DECLARATION-20261106.json'
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def run_tool(self, script, *arguments):
+        return subprocess.run([sys.executable, '-I', str(HERE / script), *arguments], capture_output=True, text=True,
+                              stdin=subprocess.DEVNULL, timeout=120)
+
+    def declare(self, words=OWNER_WORDS):
+        result = self.run_tool('stable_declaration.py', 'init', self.declaration, '--repo', str(self.repo),
+                               '--tag', HISTORY_STABLE, '--follows', HISTORY_TAG)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        path = self.repo / self.declaration
+        document = json.loads(path.read_text(encoding='utf-8'))
+        self.assertIn('<OWNER STATEMENT>', json.dumps(document))
+        if words is not None:
+            document['owner']['statements'] = [{'at_utc': '2026-11-06T22:20:00Z', 'text': text} for text in words]
+            document['declared_criteria'] = {name: 'not waited for (fixture)' for name in
+                                             ('stability', 'active_control', 'trv_control', 'failure_tests',
+                                              'install_guide', 'release_window')}
+            path.write_text(json.dumps(document, indent=2))
+        return path
+
+    def receipt(self, *extra, write=True):
+        arguments = ['--config', str(self.config), '--repo', str(self.repo), '--evidence', 'ha-history',
+                     '--declaration', self.declaration]
+        for path in self.exports:
+            arguments += ['--history', str(path)]
+        result = self.run_tool('write_receipt.py', *arguments, *extra, *(['--write'] if write else []))
+        receipts = sorted((self.docs / 'update-acceptance').glob('e32-*.json'))
+        return result, (json.loads(receipts[-1].read_text(encoding='utf-8')) if receipts else None)
+
+    def test_history_receipt_measures_the_install_and_declares_the_rest(self):
+        self.declare()
+        result, record = self.receipt('--github-release', str(self.catalog))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((record['status'], record['evidence'], record['method'], record['acceptance_decision']),
+                         ('PASS', 'ha_history', 'home_assistant', 'ACCEPTED_ON_OWNER_DECLARATION'))
+        gate = writer.load_verifier(self.repo)
+        for name in gate.HA_HISTORY_MEASURED + ('public_release_exact',):
+            self.assertIs(record['checks'][name], True, name)
+        self.assertEqual(record['declared_checks'], sorted(set(gate.DECLARABLE_CHECKS) - {'public_release_exact'}))
+        for name in record['declared_checks']:
+            self.assertEqual(record['checks'][name], 'declared')
+            self.assertTrue(record['check_basis'][name].startswith('declared by the owner: '))
+        self.assertEqual(record['owner_declaration']['statements'], OWNER_WORDS)
+        self.assertEqual((record['ha_installed_version_before'], record['ha_latest_version_before'],
+                          record['ha_installed_version_after'], record['install_actions'], record['ha_integration_version']),
+                         (HISTORY_BEFORE, HISTORY_TAG, HISTORY_TAG, 1, '1.0.0rc6'))
+        self.assertEqual([o['uptime_seconds'] for o in record['observations']], [67, 667, 11050])
+        # The evidence is in the repository (the exports byte for byte, the one release object) and bound by digest.
+        for item in record['evidence_files']:
+            self.assertEqual(acc.file_digest(self.repo / item['path']), item['sha256'])
+        self.assertEqual((self.repo / record['evidence_files'][0]['path']).read_bytes(), self.exports[0].read_bytes())
+        gate_file = json.loads((self.docs / 'E32-UPDATE-GATE.json').read_text())
+        self.assertIsNone(gate_file['accepted'], 'the receipt writer never changes the gate in history mode')
+
+    def test_without_a_release_record_the_release_check_is_declared_with_a_mismatch_it_is_false(self):
+        self.declare()
+        result, record = self.receipt()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(record['checks']['public_release_exact'], 'declared')
+        catalog = json.loads(self.catalog.read_text())
+        catalog[1]['assets'][0]['digest'] = 'sha256:' + 'f' * 64
+        self.catalog.write_text(json.dumps(catalog))
+        for path in (self.docs / 'update-acceptance' / 'ha-history').glob('*github*'):
+            path.unlink()
+        result, record = self.receipt('--github-release', str(self.catalog))
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIs(record['checks']['public_release_exact'], False)
+        self.assertEqual(record['status'], 'INCOMPLETE')
+
+    def test_a_placeholder_statement_keeps_the_receipt_incomplete(self):
+        self.declare(words=None)
+        result, record = self.receipt()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual((record['status'], record['acceptance_decision']),
+                         ('INCOMPLETE', 'NOT_ACCEPTED_PENDING_OWNER_STATEMENT'))
+        self.assertIn('placeholder', ' '.join(record['limits']))
+
+    def test_a_repeated_install_is_never_declared(self):
+        self.declare()
+        export = history_exports(installs=2)
+        self.exports[0].write_text(json.dumps(export[0]))
+        result, record = self.receipt()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIs(record['checks']['single_ha_install_action'], False)
+        self.assertEqual(record['acceptance_decision'], 'NOT_ACCEPTED_PENDING_EVIDENCE')
+
+    def test_refusals_and_dry_run(self):
+        self.declare()
+        for extra in (['--apply-gate'], ['--obs', 'X'], ['--independent', 'I']):
+            result, _ = self.receipt(*extra)
+            self.assertEqual(result.returncode, 2, (extra, result.stdout, result.stderr))
+        result = self.run_tool('write_receipt.py', '--config', str(self.config), '--repo', str(self.repo),
+                               '--history', str(self.exports[0]), '--obs', 'A', '--independent', 'I', '--preinstall', 'P')
+        self.assertEqual(result.returncode, 2, 'history files belong to --evidence ha-history')
+        result, record = self.receipt('--dry-run', write=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('contact nothing', result.stdout)
+        self.assertIsNone(record)
+        self.assertFalse((self.docs / 'update-acceptance' / 'ha-history').exists())
+
+    def test_seal_binds_everything_and_the_gate_records_the_declaration(self):
+        self.declare()
+        _, record = self.receipt('--github-release', str(self.catalog))
+        receipt = 'docs/modern-thermostat/update-acceptance/e32-rc5-20261105.json'
+        criteria = {name: {'result': 'DECLARED', 'declared': 'not waited for (fixture)', 'measured': {'result': 'WAIT'}}
+                    for name in ('stability', 'active_control', 'trv_control', 'failure_tests', 'install_guide',
+                                 'release_window')}
+        criteria['updates'] = {'result': 'PASS'}
+        report = {'schema': 1, 'kind': 'release_readiness', 'release': HISTORY_TAG, 'stage': 'final',
+                  'overall': 'PASS_DECLARED', 'from': '2026-11-05T05:55:13Z', 'to': '2026-11-05T09:00:00Z',
+                  'installed_versions': [HISTORY_TAG], 'criteria': criteria,
+                  'declaration': {'file': self.declaration, 'statements': OWNER_WORDS,
+                                  'declared_criteria': sorted(k for k, v in criteria.items() if v['result'] == 'DECLARED')}}
+        readiness = 'docs/modern-thermostat/RELEASE-READINESS-FIXTURE.json'
+        (self.repo / readiness).write_text(json.dumps(report))
+        result = self.run_tool('stable_declaration.py', 'seal', self.declaration, '--repo', str(self.repo),
+                               '--receipt', receipt, '--readiness', readiness, '--apply-gate')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        policy = json.loads((self.docs / 'E32-UPDATE-GATE.json').read_text())
+        self.assertEqual(policy['accepted']['tag'], HISTORY_TAG)
+        self.assertIsNone(policy['pending_tag'])
+        self.assertNotIn('publication_exception', policy)
+        self.assertEqual(policy['stable_declaration']['declaration'], self.declaration)
+        gate = writer.load_verifier(self.repo)
+        policy.update(pending_tag=HISTORY_STABLE, candidate_plan='plan.json',
+                      readiness_report={'report': readiness, 'sha256': acc.file_digest(self.repo / readiness)})
+        (self.repo / 'plan.json').write_text(json.dumps({'planned_tag': HISTORY_STABLE, 'previous_published_tag': HISTORY_TAG}))
+        result = gate.verify(self.repo, policy, HISTORY_STABLE)
+        self.assertEqual(result['publication_basis'], 'owner_declared_stable')
+        self.assertEqual(result['owner_declaration']['statements'], OWNER_WORDS)
+        self.assertEqual(result['owner_declaration']['declared_receipt_checks'], record['declared_checks'])
+
+    def test_seal_refuses_a_placeholder_and_init_never_overwrites(self):
+        path = self.declare(words=None)
+        document = json.loads(path.read_text())
+        document['declared_criteria'] = {'stability': 'fixture'}
+        path.write_text(json.dumps(document))
+        self.receipt()
+        result = self.run_tool('stable_declaration.py', 'seal', self.declaration, '--repo', str(self.repo),
+                               '--receipt', 'docs/modern-thermostat/update-acceptance/e32-rc5-20261105.json',
+                               '--readiness', 'nothing.json')
+        self.assertNotEqual(result.returncode, 0)
+        result = self.run_tool('stable_declaration.py', 'init', self.declaration, '--repo', str(self.repo),
+                               '--tag', HISTORY_STABLE, '--follows', HISTORY_TAG)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('never overwritten', result.stdout + result.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

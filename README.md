@@ -10,9 +10,10 @@ needed. Home Assistant is optional: without it you set everything up on the
 E32's own web pages. With it you get a thermostat per room, a week planner card,
 energy figures and updates with one click.
 
-**Status:** version 1.0.0 is a stable release. It runs every day in the
-developer's home, and the E32 controlled the boiler for 14 days unchanged and
-without problems before it was released.
+**Status:** version 1.0.0 is a stable release: the same code as release
+candidate rc.5, which runs every day in the developer's home, where the E32 has
+controlled the boiler since 1 November 2026. It was released without the
+planned 14-day trial; fixes follow in later releases where needed.
 
 **Updating from rc.5?** 1.0.0 is a normal release, so no Pre-release switch is
 needed. Update the Home Assistant integration in HACS first (press **Update
